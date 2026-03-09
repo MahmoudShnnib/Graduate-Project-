@@ -15,8 +15,6 @@ class GenerateStudentNumberAction
     {
         $year = now()->format('y');
 
-        //add somet cahnges
-
         $lastStudent = Student::whereBelongsTo($specialization)
             ->latest()
             ->first();
