@@ -25,7 +25,7 @@ class RegistrationController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:255'],
             'specialization_id' => ['required', 'exists:specializations,id'],
-            'is_transfer' => ['required', 'in:0,1'],
+            'is_transfer' => ['required', 'Iin:0,1'],
             'semester_type' => ['required', 'in:autumn,spring'],
         ]);
 
