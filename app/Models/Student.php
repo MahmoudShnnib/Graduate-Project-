@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Student extends Model
 {
     protected $fillable = [
+        'application_id',
         'student_number',
         'user_id',
         'specialization_id',
@@ -19,6 +20,7 @@ class Student extends Model
     {
         return $this->belongsTo(Specialization::class);
     }
+
     public static function generateStudentNumber(int $specializationCode, int $semesterType): string
     {
         $year = now()->format('y');
@@ -31,7 +33,7 @@ class Student extends Model
 
         $sequence = str_pad($sequence, 2, '0', STR_PAD_LEFT);
 
-        return $year . $specializationCode . $semesterType . $sequence;
+        return $year.$specializationCode.$semesterType.$sequence;
     }
 
     public function application(): BelongsTo

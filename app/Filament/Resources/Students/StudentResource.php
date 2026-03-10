@@ -20,12 +20,11 @@ class StudentResource extends Resource
     protected static ?string $model = Student::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::User;
+
     protected static ?string $recordTitleAttribute = 'student_number';
 
     public static function form(Schema $schema): Schema
     {
-        // livewire
-        //  data[]
         return $schema
             ->components([
                 TextInput::make('student_number')
@@ -57,13 +56,12 @@ class StudentResource extends Resource
     {
         return $table
             ->columns([
+                TextColumn::make('application.full_name')
+                    ->label('اسم الطالب'),
 
                 TextColumn::make('student_number')
                     ->label('رقم القيد')
                     ->searchable(),
-
-                TextColumn::make('application.full_name')
-                    ->label('اسم الطالب'),
 
                 TextColumn::make('specialization.name')
                     ->label('التخصص'),
@@ -73,7 +71,6 @@ class StudentResource extends Resource
 
                 TextColumn::make('semester_type')
                     ->label('الفصل')
-                    //TODO change it to enum
                     ->formatStateUsing(fn ($state) => match ($state) {
                         1 => 'خريف',
                         2 => 'ربيع',

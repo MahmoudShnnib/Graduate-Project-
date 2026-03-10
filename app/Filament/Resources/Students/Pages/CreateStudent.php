@@ -5,9 +5,7 @@ namespace App\Filament\Resources\Students\Pages;
 use App\Actions\GenerateStudentNumberAction;
 use App\Filament\Resources\Students\StudentResource;
 use App\Models\Specialization;
-use App\Models\Student;
 use Filament\Resources\Pages\CreateRecord;
-use Filament\Schemas\Schema;
 
 class CreateStudent extends CreateRecord
 {
@@ -22,5 +20,4 @@ class CreateStudent extends CreateRecord
 
         return $data;
     }
-
 }

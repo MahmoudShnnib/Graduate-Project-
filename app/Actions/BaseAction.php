@@ -11,6 +11,6 @@ class BaseAction
     {
         return Gate::allow(class_basename(static::class));
     }
-    //table permissions
+    // table permissions
     //
 }
