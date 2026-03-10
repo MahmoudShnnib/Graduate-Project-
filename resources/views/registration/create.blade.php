@@ -78,14 +78,26 @@
                     </div>
 
                     <div>
+                        <x-form.label for="is_transfer">هل أنت منتقل من كلية/جامعة أخرى؟</x-form.label>
+
+                        <x-form.select id="is_transfer" name="is_transfer" required>
+                            <option value="">اختر الإجابة</option>
+                            <option value="0" @selected(old('is_transfer') === '0')>لا</option>
+                            <option value="1" @selected(old('is_transfer') === '1')>نعم</option>
+                        </x-form.select>
+
+                        <x-form.error name="is_transfer" />
+                    </div>
+
+                    <div>
                         <x-form.label for="semester_type">نوع الفصل</x-form.label>
+
                         <x-form.select id="semester_type" name="semester_type" required>
                             <option value="">اختر نوع الفصل</option>
-                            <option value="1" @selected(old('semester_type') == '1')>خريف</option>
-                            <option value="2" @selected(old('semester_type') == '2')>ربيع</option>
-                            <option value="3" @selected(old('semester_type') == '3')>خريف منتقل</option>
-                            <option value="4" @selected(old('semester_type') == '4')>ربيع منتقل</option>
+                            <option value="autumn" @selected(old('semester_type') === 'autumn')>خريف</option>
+                            <option value="spring" @selected(old('semester_type') === 'spring')>ربيع</option>
                         </x-form.select>
+
                         <x-form.error name="semester_type" />
                     </div>
                 </div>
