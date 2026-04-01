@@ -89,17 +89,6 @@
                         <x-form.error name="is_transfer" />
                     </div>
 
-                    <div>
-                        <x-form.label for="semester_type">نوع الفصل</x-form.label>
-
-                        <x-form.select id="semester_type" name="semester_type" required>
-                            <option value="">اختر نوع الفصل</option>
-                            <option value="autumn" @selected(old('semester_type') === 'autumn')>خريف</option>
-                            <option value="spring" @selected(old('semester_type') === 'spring')>ربيع</option>
-                        </x-form.select>
-
-                        <x-form.error name="semester_type" />
-                    </div>
                 </div>
 
                 <div class="border-t border-slate-200 pt-6">
