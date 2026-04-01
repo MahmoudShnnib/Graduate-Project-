@@ -17,12 +17,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             SpecializationSeeder::class,
+            SubjectSeeder::class,
         ]);
 
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'admin@admin.com',
         ]);
-
     }
 }
