@@ -137,10 +137,10 @@ class ApplicationResource extends Resource
                     ->icon(Heroicon::Check)
                     ->color('success')
                     ->requiresConfirmation()
-                    ->action(function(Application $application, ApproveApplication $approve) {
-                        try{
+                    ->action(function (Application $application, ApproveApplication $approve) {
+                        try {
                             $approve->handle($application);
-                        }catch (\Exception $e) {
+                        } catch (\Exception $e) {
                             Notification::make()->title('خطأ في الموافقة')
                                 ->body($e->getMessage())
                                 ->danger()
