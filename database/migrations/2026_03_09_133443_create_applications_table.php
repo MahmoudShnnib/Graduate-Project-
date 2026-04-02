@@ -17,9 +17,9 @@ return new class extends Migration
             $table->string('full_name');
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
-            $table->string('specialization')->nullable();
             $table->date('submitted_at')->nullable();
             $table->foreignId('specialization_id')->constrained()->cascadeOnDelete();
+            $table->tinyInteger('semester_type');
             $table->enum('status', ['pending', 'under_review', 'accepted', 'rejected'])->default('pending');
             $table->timestamps();
         });

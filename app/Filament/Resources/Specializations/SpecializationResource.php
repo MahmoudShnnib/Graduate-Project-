@@ -5,8 +5,6 @@ namespace App\Filament\Resources\Specializations;
 use App\Filament\Resources\Specializations\Pages\CreateSpecialization;
 use App\Filament\Resources\Specializations\Pages\EditSpecialization;
 use App\Filament\Resources\Specializations\Pages\ListSpecializations;
-use App\Filament\Resources\Specializations\Schemas\SpecializationForm;
-use App\Filament\Resources\Specializations\Tables\SpecializationsTable;
 use App\Models\Specialization;
 use BackedEnum;
 use Filament\Forms\Components\TextInput;
@@ -23,7 +21,6 @@ class SpecializationResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'name';
-
 
     public static function form(Schema $schema): Schema
     {

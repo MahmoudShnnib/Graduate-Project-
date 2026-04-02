@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Application;
+use App\Actions\CreateApplication;
 use App\Models\Specialization;
 use Illuminate\Http\Request;
 
@@ -15,6 +15,9 @@ class RegistrationController extends Controller
         return view('registration.create', compact('specializations'));
     }
 
+    /**
+     * @throws
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -25,15 +28,7 @@ class RegistrationController extends Controller
             'semester_type' => ['required', 'in:1,2,3,4'],
         ]);
 
-        Application::create([
-            'full_name' => $validated['full_name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'],
-            'specialization_id' => $validated['specialization_id'],
-            'semester_type' => $validated['semester_type'],
-            'status' => 'pending',
-            'submitted_at' => now(),
-        ]);
+        app(CreateApplication::class)->handle($validated);
 
         return redirect()->route('registration.create')->with('success', 'تم إرسال الطلب بنجاح');
     }
