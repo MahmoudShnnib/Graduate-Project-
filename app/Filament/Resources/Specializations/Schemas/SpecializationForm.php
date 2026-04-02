@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Specializations\Schemas;
 
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
 class SpecializationForm
@@ -10,7 +11,13 @@ class SpecializationForm
     {
         return $schema
             ->components([
-                //
+                TextInput::make('name')
+                    ->label('اسم التخصص')
+                    ->required(),
+
+                TextInput::make('code')
+                    ->label('رمز التخصص')
+                    ->required(),
             ]);
     }
 }

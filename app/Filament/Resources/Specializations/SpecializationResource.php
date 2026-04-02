@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Specializations;
 use App\Filament\Resources\Specializations\Pages\CreateSpecialization;
 use App\Filament\Resources\Specializations\Pages\EditSpecialization;
 use App\Filament\Resources\Specializations\Pages\ListSpecializations;
+use App\Filament\Resources\Specializations\Schemas\SpecializationForm;
 use App\Models\Specialization;
 use BackedEnum;
 use Filament\Forms\Components\TextInput;
@@ -24,16 +25,7 @@ class SpecializationResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                TextInput::make('name')
-                    ->label('اسم التخصص')
-                    ->required(),
-
-                TextInput::make('code')
-                    ->label('رمز التخصص')
-                    ->required(),
-            ]);
+        return SpecializationForm::configure($schema);
     }
 
     public static function table(Table $table): Table
