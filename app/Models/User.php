@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use BezhanSalleh\FilamentShield\Support\Utils;
 use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, HasPanelShield, HasRoles, Notifiable, SoftDeletes;
@@ -59,5 +62,23 @@ class User extends Authenticatable
     public function application(): HasOne
     {
         return $this->hasOne(Application::class);
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        if ($panel->getId() === 'student') {
+            return $this->role === 'student' && (bool) $this->is_active;
+        }
+
+        // Allow Spatie role OR the role column (the latter supports test environments)
+        if ($this->role === 'super_admin' || $this->hasRole(Utils::getSuperAdminName())) {
+            return true;
+        }
+
+        if (in_array($this->role, ['secretary', 'faculty'], true)) {
+            return true;
+        }
+
+        return (bool) $this->hasRole(Utils::getPanelUserRoleName());
     }
 }
