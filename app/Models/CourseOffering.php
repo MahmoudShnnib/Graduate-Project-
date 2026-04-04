@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class CourseOffering extends Model
+{
+    protected $fillable = [
+        'course_id',
+        'semester_id',
+        'faculty_id',
+        'is_open',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_open' => 'boolean',
+        ];
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function semester(): BelongsTo
+    {
+        return $this->belongsTo(Semester::class);
+    }
+
+    public function faculty(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'faculty_id');
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(StudentEnrollment::class);
+    }
+}

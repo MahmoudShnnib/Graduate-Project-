@@ -4,19 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateApplication;
 use App\Models\Specialization;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class RegistrationController extends Controller
 {
-    /**
-     * @param CreateApplication $createApplication
-     * @see https://laravel.com/docs/10.x/controllers#dependency-injection-and-controllers
-     */
     public function __construct(
-        //
         public CreateApplication $createApplication,
-    )
-    {}
+    ) {}
 
     public function create()
     {
@@ -25,38 +22,40 @@ class RegistrationController extends Controller
         return view('registration.create', compact('specializations'));
     }
 
-    /**
-     * @throws
-     */
     public function store(Request $request)
     {
-        //@ TODO use form request
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
-            'mother_name' => ['required', 'string', 'max:255'],
-            'gender' => ['required', 'in:male,female'],
-            'birth_date' => ['required', 'date'],
-            'nationality' => ['required', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:255'],
-            'address' => ['required', 'string', 'max:255'],
-            'previous_education' => ['required', 'file', 'mimes:pdf', 'max:2048'],
             'specialization_id' => ['required', 'exists:specializations,id'],
-            'is_transfer' => ['required', 'in:0,1'],
+            'bachelor_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,png', 'max:5120'],
+            'remedial_statement' => ['nullable', 'file', 'mimes:pdf,jpg,png', 'max:5120'],
         ]);
 
-        $settings = \App\Models\ApplicationSetting::first();
+        DB::transaction(function () use ($validated, $request) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'password' => Hash::make('changeme'),
+                'role' => 'student',
+                'specialization_id' => $validated['specialization_id'],
+            ]);
 
-        if (!$settings) {
-            return back()->withErrors(['error' => 'برجاء ضبط إعدادات السنة الدراسية من لوحة التحكم أولاً.']);
-        }
+            $data = [];
 
-        $validated['current_year'] = $settings->current_year;
-        $validated['semester_type'] = $settings->active_semester;
+            if ($request->hasFile('bachelor_certificate')) {
+                $data['bachelor_certificate'] = $request->file('bachelor_certificate')->store('applications', 'public');
+            }
 
-        // TODO use dependency injection
-//        app(\App\Actions\CreateApplication::class)->handle($validated);
+            if ($request->hasFile('remedial_statement')) {
+                $data['remedial_statement'] = $request->file('remedial_statement')->store('applications', 'public');
+            }
 
-        $this->createApplication->handle($validated);
+            $this->createApplication->handle($user->id, $data);
+        });
+
         return redirect()->back()->with('success', 'تم التسجيل بنجاح');
-    }}
+    }
+}

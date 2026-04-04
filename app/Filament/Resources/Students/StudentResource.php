@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Students;
 
+use App\Enums\StudentStatus;
 use App\Filament\Resources\Students\Pages\CreateStudent;
 use App\Filament\Resources\Students\Pages\EditStudent;
 use App\Filament\Resources\Students\Pages\ListStudents;
@@ -13,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class StudentResource extends Resource
@@ -21,34 +23,51 @@ class StudentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::User;
 
-    protected static ?string $recordTitleAttribute = 'student_number';
+    protected static ?string $navigationLabel = 'الطلاب';
+
+    protected static ?string $modelLabel = 'طالب';
+
+    protected static ?string $pluralModelLabel = 'الطلاب';
+
+    protected static ?string $recordTitleAttribute = 'enrollment_no';
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('student_number')
+                TextInput::make('enrollment_no')
                     ->label('رقم القيد')
                     ->disabled()
                     ->placeholder('سيتم توليد رقم القيد تلقائياً')
                     ->dehydrated(),
+
+                Select::make('user_id')
+                    ->relationship('user', 'name')
+                    ->label('المستخدم')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
 
                 Select::make('specialization_id')
                     ->relationship('specialization', 'name')
                     ->label('التخصص')
                     ->required(),
 
-                TextInput::make('admission_year')
-                    ->label('سنة القبول'),
+                Select::make('status')
+                    ->label('الحالة')
+                    ->options(StudentStatus::class)
+                    ->default(StudentStatus::Active)
+                    ->required(),
 
-                Select::make('semester_type')
-                    ->label('نوع الفصل')
-                    ->options([
-                        1 => 'خريف',
-                        2 => 'ربيع',
-                        3 => 'خريف منتقل',
-                        4 => 'ربيع منتقل',
-                    ]),
+                TextInput::make('gpa')
+                    ->label('المعدل التراكمي')
+                    ->numeric()
+                    ->disabled(),
+
+                TextInput::make('warnings_count')
+                    ->label('عدد الإنذارات')
+                    ->numeric()
+                    ->default(0),
             ]);
     }
 
@@ -56,28 +75,34 @@ class StudentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('application.full_name')
-                    ->label('اسم الطالب'),
-
-                TextColumn::make('student_number')
+                TextColumn::make('enrollment_no')
                     ->label('رقم القيد')
+                    ->searchable(),
+
+                TextColumn::make('user.name')
+                    ->label('اسم الطالب')
                     ->searchable(),
 
                 TextColumn::make('specialization.name')
                     ->label('التخصص'),
 
-                TextColumn::make('admission_year')
-                    ->label('سنة القبول'),
+                TextColumn::make('gpa')
+                    ->label('المعدل')
+                    ->badge()
+                    ->color(fn (string $state): string => (float) $state >= 3.0 ? 'success' : 'danger'),
 
-                TextColumn::make('semester_type')
-                    ->label('الفصل')
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        1 => 'خريف',
-                        2 => 'ربيع',
-                        3 => 'خريف منتقل',
-                        4 => 'ربيع منتقل',
-                        default => $state,
-                    }),
+                TextColumn::make('status')
+                    ->label('الحالة')
+                    ->badge()
+                    ->formatStateUsing(fn (StudentStatus $state): string => $state->label()),
+            ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('الحالة')
+                    ->options(StudentStatus::class),
+                SelectFilter::make('specialization_id')
+                    ->relationship('specialization', 'name')
+                    ->label('التخصص'),
             ]);
     }
 

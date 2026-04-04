@@ -2,42 +2,88 @@
 
 namespace App\Models;
 
+use App\Enums\GradeStatus;
+use App\Enums\StudentStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
-        'application_id',
-        'student_number',
         'user_id',
+        'enrollment_no',
         'specialization_id',
-        'admission_year',
-        'semester_type',
+        'status',
+        'gpa',
+        'warnings_count',
+        'suspension_count',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => StudentStatus::class,
+            'gpa' => 'decimal:2',
+            'warnings_count' => 'integer',
+            'suspension_count' => 'integer',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function specialization(): BelongsTo
     {
         return $this->belongsTo(Specialization::class);
     }
 
-    public static function generateStudentNumber(int $specializationCode, int $semesterType): string
+    public function enrollments(): HasMany
     {
-        $year = now()->format('y');
-
-        $lastStudent = self::where('specialization_id', $specializationCode)
-            ->latest()
-            ->first();
-
-        $sequence = $lastStudent ? ((int) substr($lastStudent->student_number, -2) + 1) : 1;
-
-        $sequence = str_pad($sequence, 2, '0', STR_PAD_LEFT);
-
-        return $year.$specializationCode.$semesterType.$sequence;
+        return $this->hasMany(StudentEnrollment::class);
     }
 
-    public function application(): BelongsTo
+    public function courseSurveys(): HasMany
     {
-        return $this->belongsTo(Application::class);
+        return $this->hasMany(CourseSurvey::class);
+    }
+
+    public function suspensionRequests(): HasMany
+    {
+        return $this->hasMany(SuspensionRequest::class);
+    }
+
+    public function thesisRegistration(): HasOne
+    {
+        return $this->hasOne(ThesisRegistration::class);
+    }
+
+    public function clearanceRequest(): HasOne
+    {
+        return $this->hasOne(ClearanceRequest::class);
+    }
+
+    public function completedCoursesCount(): int
+    {
+        return $this->enrollments()
+            ->whereHas('grade', function ($query) {
+                $query->where('status', GradeStatus::Approved)
+                    ->whereNotNull('letter')
+                    ->where('letter', '!=', 'F');
+            })
+            ->count();
+    }
+
+    public function isEligibleForThesis(): bool
+    {
+        return $this->completedCoursesCount() >= 10
+            && (float) $this->gpa >= 3.0;
     }
 }

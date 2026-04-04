@@ -2,27 +2,35 @@
 
 namespace App\Models;
 
+use App\Enums\ApplicationStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Application extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'application_number',
-        'full_name',
-        'email',
-        'phone',
-        'specialization_id',
-        'semester_type',
+        'user_id',
         'status',
-        'submitted_at',
+        'bachelor_certificate',
+        'remedial_statement',
+        'notes',
+        'rejection_reason',
+        'exam_date',
     ];
 
-    protected $casts = [
-        'submitted_at' => 'date',
-    ];
-
-    public function specialization()
+    protected function casts(): array
     {
-        return $this->belongsTo(Specialization::class);
+        return [
+            'status' => ApplicationStatus::class,
+            'exam_date' => 'datetime',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

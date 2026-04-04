@@ -10,18 +10,9 @@ class SpecializationSeeder extends Seeder
     public function run(): void
     {
         Specialization::insert([
-            [
-                'name' => 'الاتصالات',
-                'code' => 1,
-            ],
-            [
-                'name' => 'الحاسب الآلي',
-                'code' => 2,
-            ],
-            [
-                'name' => 'التحكم',
-                'code' => 3,
-            ],
+            ['name' => 'علوم الحاسوب', 'code' => 2],
+            ['name' => 'نظم المعلومات', 'code' => 3],
+            ['name' => 'الشبكات', 'code' => 4],
         ]);
     }
 }
