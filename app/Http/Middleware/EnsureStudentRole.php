@@ -10,7 +10,9 @@ class EnsureStudentRole
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check() && auth()->user()->role === 'student') {
+        $user = $request->user();
+
+        if ($user && $user->role === 'student') {
             return $next($request);
         }
 

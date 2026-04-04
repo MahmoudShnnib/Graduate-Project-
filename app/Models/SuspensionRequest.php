@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\SuspensionStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SuspensionRequest extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'student_id',
         'semester_id',

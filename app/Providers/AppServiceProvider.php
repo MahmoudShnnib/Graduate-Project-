@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\ThesisRegistration;
 use App\Observers\AuditObserver;
 use App\Observers\GradeObserver;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::before(function ($user, string $ability): ?bool {
+            return $user->hasRole('super_admin') ? true : null;
+        });
+
         Grade::observe(GradeObserver::class);
 
         Grade::observe(AuditObserver::class);
