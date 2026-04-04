@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Applications;
 
 use App\Actions\ApproveApplication;
+use App\Enums\ApplicationStatus;
 use App\Filament\Resources\Applications\Pages\EditApplication;
 use App\Filament\Resources\Applications\Pages\ListApplications;
 use App\Models\Application;
@@ -12,9 +13,10 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -41,46 +43,41 @@ class ApplicationResource extends Resource
     {
         return $schema
             ->components([
-                TextInput::make('application_number')
-                    ->label('رقم الطلب')
+                Select::make('user_id')
+                    ->relationship('user', 'name')
+                    ->label('المتقدم')
                     ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(255),
-
-                TextInput::make('full_name')
-                    ->label('اسم المتقدم')
-                    ->required()
-                    ->maxLength(255),
-
-                TextInput::make('email')
-                    ->label('البريد الإلكتروني')
-                    ->email()
-                    ->maxLength(255),
-
-                TextInput::make('phone')
-                    ->label('رقم الهاتف')
-                    ->maxLength(255),
-
-                Select::make('specialization_id')
-                    ->relationship('specialization', 'name')
-                    ->label('التخصص')
-                    ->required(),
-
-                DatePicker::make('submitted_at')
-                    ->label('تاريخ التقديم')
-                    ->native(false),
+                    ->searchable()
+                    ->preload(),
 
                 Select::make('status')
                     ->label('الحالة')
-                    ->options([
-                        'pending' => 'قيد الانتظار',
-                        'under_review' => 'قيد المراجعة',
-                        'accepted' => 'مقبول',
-                        'rejected' => 'مرفوض',
-                    ])
-                    ->default('pending')
-                    ->required()
-                    ->native(false),
+                    ->options(ApplicationStatus::class)
+                    ->default(ApplicationStatus::Pending)
+                    ->required(),
+
+                FileUpload::make('bachelor_certificate')
+                    ->label('شهادة البكالوريوس')
+                    ->directory('applications')
+                    ->acceptedFileTypes(['application/pdf', 'image/*']),
+
+                FileUpload::make('remedial_statement')
+                    ->label('بيان المعادلة')
+                    ->directory('applications')
+                    ->acceptedFileTypes(['application/pdf', 'image/*']),
+
+                Textarea::make('notes')
+                    ->label('ملاحظات')
+                    ->rows(3),
+
+                Textarea::make('rejection_reason')
+                    ->label('سبب الرفض')
+                    ->rows(3)
+                    ->visible(fn (?Application $record) => $record?->status === ApplicationStatus::Rejected),
+
+                DateTimePicker::make('exam_date')
+                    ->label('تاريخ الامتحان')
+                    ->visible(fn (?Application $record) => $record?->status === ApplicationStatus::ProvisionallyAccepted),
             ]);
     }
 
@@ -88,66 +85,58 @@ class ApplicationResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('application_number')
-                    ->label('رقم الطلب')
-                    ->searchable(),
-
-                TextColumn::make('full_name')
+                TextColumn::make('user.name')
                     ->label('المتقدم')
                     ->searchable(),
 
-                TextColumn::make('specialization.name')
-                    ->label('التخصص'),
+                TextColumn::make('user.email')
+                    ->label('البريد الإلكتروني')
+                    ->searchable(),
 
-                TextColumn::make('submitted_at')
-                    ->label('تاريخ التقديم')
-                    ->date(),
+                TextColumn::make('user.phone')
+                    ->label('الهاتف'),
 
                 TextColumn::make('status')
                     ->label('الحالة')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
-                        'under_review' => 'info',
-                        'accepted' => 'success',
-                        'rejected' => 'danger',
-                        default => 'gray',
+                    ->color(fn (ApplicationStatus $state): string => match ($state) {
+                        ApplicationStatus::Pending => 'warning',
+                        ApplicationStatus::ProvisionallyAccepted => 'info',
+                        ApplicationStatus::Accepted => 'success',
+                        ApplicationStatus::Rejected => 'danger',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending' => 'قيد الانتظار',
-                        'under_review' => 'قيد المراجعة',
-                        'accepted' => 'مقبول',
-                        'rejected' => 'مرفوض',
-                        default => $state,
-                    }),
+                    ->formatStateUsing(fn (ApplicationStatus $state): string => $state->label()),
+
+                TextColumn::make('exam_date')
+                    ->label('تاريخ الامتحان')
+                    ->dateTime()
+                    ->toggleable(),
+
+                TextColumn::make('created_at')
+                    ->label('تاريخ التقديم')
+                    ->date()
+                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('الحالة')
-                    ->options([
-                        'pending' => 'قيد الانتظار',
-                        'under_review' => 'قيد المراجعة',
-                        'accepted' => 'مقبول',
-                        'rejected' => 'مرفوض',
-                    ]),
+                    ->options(ApplicationStatus::class),
             ])
             ->recordActions([
-                Action::make('accepted')
-                    ->label('الموافقة')
+                Action::make('approve')
+                    ->label('قبول')
                     ->icon(Heroicon::Check)
                     ->color('success')
                     ->requiresConfirmation()
                     ->action(function (Application $application, ApproveApplication $approve) {
                         try {
                             $approve->handle($application);
+                            Notification::make()->title('تم القبول بنجاح')->success()->send();
                         } catch (\Exception $e) {
-                            Notification::make()->title('خطأ في الموافقة')
-                                ->body($e->getMessage())
-                                ->danger()
-                                ->send();
+                            Notification::make()->title('خطأ')->body($e->getMessage())->danger()->send();
                         }
                     })
-                    ->visible(fn (Application $record) => $record->status === 'pending'),
+                    ->visible(fn (Application $record) => $record->status === ApplicationStatus::Pending),
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),

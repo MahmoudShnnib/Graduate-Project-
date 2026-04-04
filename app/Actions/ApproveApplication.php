@@ -2,43 +2,43 @@
 
 namespace App\Actions;
 
+use App\Enums\ApplicationStatus;
 use App\Models\Application;
+use App\Models\Semester;
 use App\Models\Student;
+use App\Services\EnrollmentNumberService;
 use Illuminate\Support\Facades\DB;
 
 class ApproveApplication
 {
-    /**
-     * @throws \Throwable
-     */
+    public function __construct(
+        private EnrollmentNumberService $enrollmentNumberService,
+    ) {}
+
     public function handle(Application $application): Application
     {
-        //lockup query
-        if (Student::where('application_id', $application->id)->exists()) {
+        if (Student::where('user_id', $application->user_id)->exists()) {
             throw new \Exception('تمت الموافقة على هذا الطلب بالفعل');
         }
 
-        DB::transaction(function() use ($application) {
+        DB::transaction(function () use ($application) {
             $application->update([
-                'status' => 'accepted',
+                'status' => ApplicationStatus::Accepted,
             ]);
 
-            $semesterType = (int) $application->semester_type;
+            $user = $application->user;
 
-            //create
-            Student::create([
-                'application_id' => $application->id,
-                'student_number' => Student::generateStudentNumber(
-                    (int) $application->specialization_id,
-                    $semesterType,
-                ),
-                'specialization_id' => $application->specialization_id,
-                'admission_year' => now()->year,
-                'semester_type' => $semesterType,
+            $student = Student::create([
+                'user_id' => $user->id,
+                'specialization_id' => $user->specialization_id,
             ]);
+
+            $activeSemester = Semester::where('is_active', true)->first();
+
+            if ($activeSemester) {
+                $this->enrollmentNumberService->generate($student, $activeSemester);
+            }
         });
-
-
 
         return $application;
     }

@@ -6,28 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('applications', function (Blueprint $table) {
             $table->id();
-            $table->string('application_number')->unique();
-            $table->string('full_name');
-            $table->string('email')->nullable();
-            $table->string('phone')->nullable();
-            $table->date('submitted_at')->nullable();
-            $table->foreignId('specialization_id')->constrained()->cascadeOnDelete();
-            $table->tinyInteger('semester_type');
-            $table->enum('status', ['pending', 'under_review', 'accepted', 'rejected'])->default('pending');
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->enum('status', ['pending', 'provisionally_accepted', 'accepted', 'rejected'])->default('pending');
+            $table->string('bachelor_certificate')->nullable();
+            $table->string('remedial_statement')->nullable();
+            $table->text('notes')->nullable();
+            $table->text('rejection_reason')->nullable();
+            $table->datetime('exam_date')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('applications');
