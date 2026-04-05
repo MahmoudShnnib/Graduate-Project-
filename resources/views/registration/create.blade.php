@@ -247,13 +247,13 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <x-form.label for="password">كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password" name="password" type="password" placeholder="8 أحرف على الأقل" required />
+                        <x-form.input id="password" name="password" type="password" value="{{ old('password') }}" placeholder="8 أحرف على الأقل" required />
                         <x-form.error name="password" />
                     </div>
 
                     <div>
                         <x-form.label for="password_confirmation">تأكيد كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" placeholder="أعد إدخال كلمة المرور" required />
+                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" value="{{ old('password_confirmation') }}" placeholder="أعد إدخال كلمة المرور" required />
                     </div>
                 </div>
             </div>
