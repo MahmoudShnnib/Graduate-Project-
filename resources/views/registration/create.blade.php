@@ -1,5 +1,5 @@
 <x-layout.app title="طلب الالتحاق بالدراسات العليا">
-    <div class="mx-auto max-w-4xl">
+    <div class="mx-auto max-w-5xl">
 
         {{-- Header --}}
         <div class="mb-10 text-center">
@@ -27,46 +27,46 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-6">
+        <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8">
             @csrf
 
             {{-- 1. Personal Information --}}
-            <div class="rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-5 border-b border-slate-100 pb-3 text-base font-bold text-slate-800">
+            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                <h3 class="mb-6 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
                     أولاً: البيانات الشخصية
                 </h3>
 
-                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {{-- Name row --}}
-                    <div>
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {{-- Full name --}}
+                    <div class="md:col-span-2">
                         <x-form.label for="name">اسم الطالب الرباعي <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول والثاني والثالث والرابع" required />
+                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول والثاني والثالث والرابع (بالعربية)" required />
+                        <p class="mt-1 text-xs text-slate-400">يجب إدخال أربعة أسماء على الأقل باللغة العربية</p>
                         <x-form.error name="name" />
                     </div>
 
                     <div>
                         <x-form.label for="last_name">اللقب <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="last_name" name="last_name" type="text" value="{{ old('last_name') }}" placeholder="اللقب العائلي" required />
+                        <x-form.input id="last_name" name="last_name" type="text" value="{{ old('last_name') }}" placeholder="اللقب العائلي بالعربية" required />
                         <x-form.error name="last_name" />
                     </div>
 
                     <div>
                         <x-form.label for="mother_name">اسم الأم <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="mother_name" name="mother_name" type="text" value="{{ old('mother_name') }}" required />
+                        <x-form.input id="mother_name" name="mother_name" type="text" value="{{ old('mother_name') }}" placeholder="الاسم الأول والثاني على الأقل" required />
                         <x-form.error name="mother_name" />
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <x-form.label for="birth_date">تاريخ الميلاد <span class="text-red-500">*</span></x-form.label>
-                            <x-form.input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}" required />
-                            <x-form.error name="birth_date" />
-                        </div>
-                        <div>
-                            <x-form.label for="birth_place">مكان الميلاد <span class="text-red-500">*</span></x-form.label>
-                            <x-form.input id="birth_place" name="birth_place" type="text" value="{{ old('birth_place') }}" required />
-                            <x-form.error name="birth_place" />
-                        </div>
+                    <div>
+                        <x-form.label for="birth_date">تاريخ الميلاد <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}" required />
+                        <x-form.error name="birth_date" />
+                    </div>
+
+                    <div>
+                        <x-form.label for="birth_place">مكان الميلاد <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="birth_place" name="birth_place" type="text" value="{{ old('birth_place') }}" required />
+                        <x-form.error name="birth_place" />
                     </div>
 
                     <div>
@@ -91,23 +91,32 @@
                         <x-form.error name="marital_status" />
                     </div>
 
+                    {{-- Nationality combo --}}
                     <div>
                         <x-form.label for="nationality">الجنسية <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="nationality" name="nationality" type="text" value="{{ old('nationality', 'ليبية') }}" required />
+                        <x-form.select id="nationality" name="nationality" required>
+                            <option value="ليبية" @selected(old('nationality', 'ليبية') !== 'أخرى')>ليبية</option>
+                            <option value="أخرى" @selected(old('nationality') === 'أخرى')>أخرى</option>
+                        </x-form.select>
                         <x-form.error name="nationality" />
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <x-form.label for="national_id">الرقم الوطني <span class="text-red-500">*</span></x-form.label>
-                            <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" required />
-                            <x-form.error name="national_id" />
-                        </div>
-                        <div>
-                            <x-form.label for="card_number">رقم البطاقة</x-form.label>
-                            <x-form.input id="card_number" name="card_number" type="text" value="{{ old('card_number') }}" />
-                            <x-form.error name="card_number" />
-                        </div>
+                    <div id="nationality_other_row" class="{{ old('nationality') === 'أخرى' ? '' : 'hidden' }}">
+                        <x-form.label for="nationality_other">حدد الجنسية <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="nationality_other" name="nationality_other" type="text" value="{{ old('nationality_other') }}" placeholder="أدخل الجنسية بالعربية" />
+                        <x-form.error name="nationality_other" />
+                    </div>
+
+                    <div>
+                        <x-form.label for="national_id">الرقم الوطني <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" placeholder="12 رقماً" maxlength="12" required />
+                        <x-form.error name="national_id" />
+                    </div>
+
+                    <div>
+                        <x-form.label for="card_number">رقم البطاقة</x-form.label>
+                        <x-form.input id="card_number" name="card_number" type="text" value="{{ old('card_number') }}" />
+                        <x-form.error name="card_number" />
                     </div>
 
                     <div>
@@ -152,12 +161,12 @@
             </div>
 
             {{-- 2. Contact & Academic --}}
-            <div class="rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-5 border-b border-slate-100 pb-3 text-base font-bold text-slate-800">
+            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                <h3 class="mb-6 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
                     ثانياً: بيانات التواصل والقسم
                 </h3>
 
-                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <x-form.label for="email">البريد الإلكتروني <span class="text-red-500">*</span></x-form.label>
                         <x-form.input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="example@email.com" required />
@@ -166,7 +175,8 @@
 
                     <div>
                         <x-form.label for="phone">رقم النقال <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" required />
+                        <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" required />
+                        <p class="mt-1 text-xs text-slate-400">10 أرقام يبدأ بـ 09 (ليبي فقط)</p>
                         <x-form.error name="phone" />
                     </div>
 
@@ -186,39 +196,39 @@
             </div>
 
             {{-- 3. Study Type --}}
-            <div class="rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-5 border-b border-slate-100 pb-3 text-base font-bold text-slate-800">
+            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                <h3 class="mb-6 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
                     ثالثاً: نوع الدراسة <span class="text-red-500">*</span>
                 </h3>
 
                 <div class="space-y-3">
-                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
                         <input type="radio" name="study_type" value="self_funded" @checked(old('study_type') === 'self_funded') class="size-4 accent-blue-600" />
-                        <span class="font-medium text-slate-700">الدراسة على حسابي الخاص</span>
+                        <span class="text-base font-medium text-slate-700">الدراسة على حسابي الخاص</span>
                     </label>
 
-                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
                         <input type="radio" name="study_type" value="internally_delegated" @checked(old('study_type') === 'internally_delegated') class="size-4 accent-blue-600" />
-                        <span class="font-medium text-slate-700">موفد بموجب قرار إيفاد داخلي</span>
+                        <span class="text-base font-medium text-slate-700">موفد بموجب قرار إيفاد داخلي</span>
                     </label>
 
-                    <div id="delegation_number_row" class="hidden ps-10">
+                    <div id="delegation_number_row" class="hidden ps-12">
                         <x-form.label for="delegation_number">رقم قرار الإيفاد</x-form.label>
                         <x-form.input id="delegation_number" name="delegation_number" type="text" value="{{ old('delegation_number') }}" class="max-w-xs" />
                         <x-form.error name="delegation_number" />
                     </div>
 
-                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
                         <input type="radio" name="study_type" value="faculty_assistant" @checked(old('study_type') === 'faculty_assistant') class="size-4 accent-blue-600" />
-                        <span class="font-medium text-slate-700">معيد بالكلية</span>
+                        <span class="text-base font-medium text-slate-700">معيد بالكلية</span>
                     </label>
 
-                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
                         <input type="radio" name="study_type" value="public_delegation" @checked(old('study_type') === 'public_delegation') class="size-4 accent-blue-600" />
-                        <span class="font-medium text-slate-700">موفد من قِبَل جهة عامة</span>
+                        <span class="text-base font-medium text-slate-700">موفد من قِبَل جهة عامة</span>
                     </label>
 
-                    <div id="delegation_entity_row" class="hidden ps-10">
+                    <div id="delegation_entity_row" class="hidden ps-12">
                         <x-form.label for="delegation_entity">اسم الجهة المُوفِدة</x-form.label>
                         <x-form.input id="delegation_entity" name="delegation_entity" type="text" value="{{ old('delegation_entity') }}" />
                         <x-form.error name="delegation_entity" />
@@ -229,12 +239,12 @@
             </div>
 
             {{-- 4. Password --}}
-            <div class="rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-5 border-b border-slate-100 pb-3 text-base font-bold text-slate-800">
+            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                <h3 class="mb-6 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
                     رابعاً: كلمة مرور بوابة الطالب
                 </h3>
 
-                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <x-form.label for="password">كلمة المرور <span class="text-red-500">*</span></x-form.label>
                         <x-form.input id="password" name="password" type="password" placeholder="8 أحرف على الأقل" required />
@@ -249,34 +259,48 @@
             </div>
 
             {{-- 5. Documents --}}
-            <div class="rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-1 border-b border-slate-100 pb-3 text-base font-bold text-slate-800">
+            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                <h3 class="mb-1 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
                     خامساً: المستندات المطلوبة
                 </h3>
-                <p class="mb-5 text-sm text-slate-500">الصيغ المقبولة: PDF، JPG، PNG — الحجم الأقصى 5 ميجابايت لكل ملف</p>
+                <p class="mb-6 text-sm text-slate-500">الصيغ المقبولة: PDF، JPG، PNG — الحجم الأقصى 5 ميجابايت لكل ملف</p>
 
-                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <x-form.label for="bachelor_certificate">شهادة البكالوريوس</x-form.label>
                         <input id="bachelor_certificate" name="bachelor_certificate" type="file" accept=".pdf,.jpg,.jpeg,.png"
-                            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
+                            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
                         <x-form.error name="bachelor_certificate" />
                     </div>
 
                     <div>
                         <x-form.label for="remedial_statement">كشف المواد التكميلية</x-form.label>
                         <input id="remedial_statement" name="remedial_statement" type="file" accept=".pdf,.jpg,.jpeg,.png"
-                            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
+                            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
                         <x-form.error name="remedial_statement" />
                     </div>
                 </div>
             </div>
 
-            {{-- Agreement & Submit --}}
-            <div class="rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                <p class="mb-5 text-sm leading-relaxed text-slate-600">
-                    * أقر بصحة البيانات المذكورة أعلاه وكما أقر بأني غير مسجل للدراسات العليا بأي كلية داخل ليبيا.
-                </p>
+            {{-- Declaration & Submit --}}
+            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+
+                {{-- Declaration checkbox --}}
+                <div class="mb-6 rounded-xl border-2 border-blue-200 bg-blue-50 p-5">
+                    <label class="flex cursor-pointer items-start gap-4">
+                        <input
+                            type="checkbox"
+                            name="declaration"
+                            value="1"
+                            @checked(old('declaration'))
+                            class="mt-1 size-5 shrink-0 cursor-pointer rounded accent-blue-600"
+                        />
+                        <span class="text-base font-semibold leading-relaxed text-slate-800">
+                            أقر بصحة البيانات المذكورة أعلاه، وكما أقر بأني غير مسجل للدراسات العليا بأي كلية داخل ليبيا.
+                        </span>
+                    </label>
+                    <x-form.error name="declaration" />
+                </div>
 
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-slate-500">
@@ -292,7 +316,20 @@
     </div>
 
     <script>
-        // Show/hide delegation fields based on study_type selection
+        // Nationality combo: show/hide custom nationality input
+        function updateNationalityField() {
+            const val = document.getElementById('nationality').value;
+            const row = document.getElementById('nationality_other_row');
+            const input = document.getElementById('nationality_other');
+            const isOther = val === 'أخرى';
+            row.classList.toggle('hidden', ! isOther);
+            input.required = isOther;
+        }
+
+        document.getElementById('nationality').addEventListener('change', updateNationalityField);
+        updateNationalityField();
+
+        // Study type: show/hide delegation fields
         function updateDelegationFields() {
             const selected = document.querySelector('input[name="study_type"]:checked')?.value;
             document.getElementById('delegation_number_row').classList.toggle('hidden', selected !== 'internally_delegated');
@@ -304,7 +341,6 @@
             el.addEventListener('change', updateDelegationFields);
         });
 
-        // Restore state on old() re-render
         updateDelegationFields();
     </script>
 </x-layout.app>
