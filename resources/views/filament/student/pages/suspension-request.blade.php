@@ -9,7 +9,7 @@
     @if($hasPending)
         <x-filament::section>
             <div class="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                <x-heroicon-o-clock class="w-5 h-5 text-yellow-600 shrink-0" />
+                <x-heroicon-o-clock style="width: 1.25rem; height: 1.25rem; flex-shrink: 0;" class="text-yellow-600" />
                 <p class="text-sm text-yellow-800">لديك طلب انقطاع قيد المراجعة. لا يمكن تقديم طلب جديد حتى يتم البت في الطلب الحالي.</p>
             </div>
         </x-filament::section>

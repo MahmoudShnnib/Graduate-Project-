@@ -64,7 +64,7 @@
             <ol class="relative border-r border-gray-200 me-3 space-y-6">
                 <li class="ms-6">
                     <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-primary-100">
-                        <x-heroicon-o-check class="w-3 h-3 text-primary-600" />
+                        <x-heroicon-o-check style="width: 0.75rem; height: 0.75rem;" class="text-primary-600" />
                     </span>
                     <h3 class="font-medium text-sm">تقديم الطلب</h3>
                     <p class="text-xs text-gray-500">{{ $application->created_at->diffForHumans() }}</p>
@@ -72,7 +72,7 @@
                 @if(in_array($application->status, ['exam_scheduled', 'accepted', 'rejected']))
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
-                            <x-heroicon-o-eye class="w-3 h-3 text-blue-600" />
+                            <x-heroicon-o-eye style="width: 0.75rem; height: 0.75rem;" class="text-blue-600" />
                         </span>
                         <h3 class="font-medium text-sm">مراجعة الطلب</h3>
                     </li>
@@ -80,7 +80,7 @@
                 @if($application->status === 'exam_scheduled' && $application->exam_date)
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
-                            <x-heroicon-o-calendar class="w-3 h-3 text-blue-600" />
+                            <x-heroicon-o-calendar style="width: 0.75rem; height: 0.75rem;" class="text-blue-600" />
                         </span>
                         <h3 class="font-medium text-sm">تم تحديد موعد الاختبار</h3>
                         <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($application->exam_date)->format('Y/m/d H:i') }}</p>
@@ -89,7 +89,7 @@
                 @if($application->status === 'accepted')
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
-                            <x-heroicon-o-check-circle class="w-3 h-3 text-green-600" />
+                            <x-heroicon-o-check-circle style="width: 0.75rem; height: 0.75rem;" class="text-green-600" />
                         </span>
                         <h3 class="font-medium text-sm text-green-700">تم قبول الطلب</h3>
                     </li>
@@ -97,7 +97,7 @@
                 @if($application->status === 'rejected')
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
-                            <x-heroicon-o-x-circle class="w-3 h-3 text-red-600" />
+                            <x-heroicon-o-x-circle style="width: 0.75rem; height: 0.75rem;" class="text-red-600" />
                         </span>
                         <h3 class="font-medium text-sm text-red-700">تم رفض الطلب</h3>
                     </li>

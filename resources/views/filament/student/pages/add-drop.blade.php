@@ -8,7 +8,7 @@
     @if(! $isOpen)
         <x-filament::section>
             <div class="text-center py-6">
-                <x-heroicon-o-lock-closed class="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <x-heroicon-o-lock-closed style="width: 3rem; height: 3rem; display: block; margin: 0 auto 0.75rem;" class="text-gray-400" />
                 <p class="text-gray-600 font-medium">فترة الإضافة والحذف مغلقة حالياً</p>
                 <p class="text-sm text-gray-500 mt-1">سيتم فتحها في بداية الفصل الدراسي الجديد</p>
             </div>

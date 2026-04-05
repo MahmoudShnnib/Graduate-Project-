@@ -10,7 +10,7 @@
         <x-filament::section>
             <div class="flex items-start gap-4">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow-100">
-                    <x-heroicon-o-information-circle class="w-5 h-5 text-yellow-600" />
+                    <x-heroicon-o-information-circle style="width: 1.25rem; height: 1.25rem; flex-shrink: 0;" class="text-yellow-600" />
                 </div>
                 <div>
                     <p class="font-medium text-gray-900">الاستماحة غير متاحة بعد</p>
@@ -50,11 +50,11 @@
                     'bg-red-100' => $clearance->status === 'rejected',
                 ])>
                     @if($clearance->status === 'approved')
-                        <x-heroicon-o-check-badge class="w-8 h-8 text-green-600" />
+                        <x-heroicon-o-check-badge style="width: 2rem; height: 2rem;" class="text-green-600" />
                     @elseif($clearance->status === 'rejected')
-                        <x-heroicon-o-x-circle class="w-8 h-8 text-red-600" />
+                        <x-heroicon-o-x-circle style="width: 2rem; height: 2rem;" class="text-red-600" />
                     @else
-                        <x-heroicon-o-clock class="w-8 h-8 text-yellow-600" />
+                        <x-heroicon-o-clock style="width: 2rem; height: 2rem;" class="text-yellow-600" />
                     @endif
                 </div>
                 <p class="text-xl font-bold">{{ $label }}</p>
@@ -78,7 +78,7 @@
     @else
         <x-filament::section heading="طلب الاستماحة">
             <div class="text-center py-6">
-                <x-heroicon-o-check-badge class="w-16 h-16 text-primary-400 mx-auto mb-4" />
+                <x-heroicon-o-check-badge style="width: 4rem; height: 4rem; display: block; margin: 0 auto 1rem;" class="text-primary-400" />
                 <p class="text-gray-700 mb-2">رسالتك مقبولة. يمكنك الآن تقديم طلب الاستماحة.</p>
                 <p class="text-sm text-gray-500 mb-6">ستتمكن من تنزيل نموذج الاستماحة بعد مراجعة الطلب والموافقة عليه.</p>
                 <x-filament::button

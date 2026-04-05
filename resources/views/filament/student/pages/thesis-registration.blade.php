@@ -14,9 +14,9 @@
                 'bg-red-100' => ! $isEligible,
             ])>
                 @if($isEligible)
-                    <x-heroicon-o-check class="w-5 h-5 text-green-600" />
+                    <x-heroicon-o-check style="width: 1.25rem; height: 1.25rem;" class="text-green-600" />
                 @else
-                    <x-heroicon-o-x-mark class="w-5 h-5 text-red-600" />
+                    <x-heroicon-o-x-mark style="width: 1.25rem; height: 1.25rem;" class="text-red-600" />
                 @endif
             </div>
             <div>
