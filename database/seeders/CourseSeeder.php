@@ -10,53 +10,85 @@ class CourseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 4 general courses (all specializations)
-        $generalCourses = [
-            ['name' => 'اللغة العربية', 'code' => 'GEN-101', 'credits' => 3, 'type' => 'general'],
-            ['name' => 'اللغة الإنجليزية', 'code' => 'GEN-102', 'credits' => 3, 'type' => 'general'],
-            ['name' => 'مناهج البحث العلمي', 'code' => 'GEN-103', 'credits' => 3, 'type' => 'general'],
-            ['name' => 'الإحصاء التطبيقي', 'code' => 'GEN-104', 'credits' => 3, 'type' => 'general'],
+        // -------------------------------------------------------
+        // Common courses — shared by all specializations
+        // -------------------------------------------------------
+        $commonCourses = [
+            ['name' => 'Advanced Mathematics', 'code' => 'EE601', 'credits' => 3, 'type' => 'general'],
+            ['name' => 'Digital Signal Processing', 'code' => 'EE602', 'credits' => 3, 'type' => 'general'],
+            ['name' => 'Advanced Electronics', 'code' => 'EE603', 'credits' => 3, 'type' => 'general'],
+            ['name' => 'Computing', 'code' => 'EE604', 'credits' => 3, 'type' => 'general'],
+            // CM614 is an elective in all three specializations; stored without a
+            // specific specialization so it appears as a shared elective option.
+            ['name' => 'Information Theory', 'code' => 'CM614', 'credits' => 3, 'type' => 'elective'],
         ];
 
-        foreach ($generalCourses as $course) {
+        foreach ($commonCourses as $course) {
             Course::create($course);
         }
 
-        // Specialized + elective courses per specialization
-        $specializations = Specialization::all();
+        // -------------------------------------------------------
+        // Per-specialization courses
+        // -------------------------------------------------------
+        $comms = Specialization::where('code', 1)->firstOrFail();   // الإتصالات
+        $cs    = Specialization::where('code', 2)->firstOrFail();   // الحاسب الآلي
+        $ctrl  = Specialization::where('code', 3)->firstOrFail();   // التحكم الآلي
 
         $specCourses = [
-            2 => [ // Computer Science
-                ['name' => 'البرمجة المتقدمة', 'code' => 'CS-201', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'هياكل البيانات', 'code' => 'CS-202', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'قواعد البيانات المتقدمة', 'code' => 'CS-203', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'الذكاء الاصطناعي', 'code' => 'CS-204', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'تعلم الآلة', 'code' => 'CS-301', 'credits' => 3, 'type' => 'elective'],
-                ['name' => 'الحوسبة السحابية', 'code' => 'CS-302', 'credits' => 3, 'type' => 'elective'],
+
+            // ---- الإتصالات (P=1) --------------------------------
+            $comms->id => [
+                // Core
+                ['name' => 'Communication Networks',          'code' => 'CM611', 'type' => 'specialized'],
+                ['name' => 'Microwave Engineering',           'code' => 'MW612', 'type' => 'specialized'],
+                ['name' => 'Wireless Communication Networks', 'code' => 'CM613', 'type' => 'specialized'],
+                ['name' => 'Antenna Engineering',             'code' => 'MW613', 'type' => 'specialized'],
+                // Elective (select two)
+                ['name' => 'Optical Communication',          'code' => 'CM624', 'type' => 'elective'],
+                ['name' => 'Radio Communication',            'code' => 'CM222', 'type' => 'elective'],
+                ['name' => 'Radio Communication',            'code' => 'CM625', 'type' => 'elective'],
+                // CM614 Information Theory is already seeded as a shared elective above
             ],
-            3 => [ // Information Systems
-                ['name' => 'تحليل النظم', 'code' => 'IS-201', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'إدارة قواعد البيانات', 'code' => 'IS-202', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'أمن المعلومات', 'code' => 'IS-203', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'نظم دعم القرار', 'code' => 'IS-204', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'التجارة الإلكترونية', 'code' => 'IS-301', 'credits' => 3, 'type' => 'elective'],
-                ['name' => 'إدارة المشاريع', 'code' => 'IS-302', 'credits' => 3, 'type' => 'elective'],
+
+            // ---- الحاسب الآلي (P=2) -----------------------------
+            $cs->id => [
+                // Core
+                ['name' => 'Microprocessors & Embedded Systems', 'code' => 'CP611', 'type' => 'specialized'],
+                ['name' => 'VHDL Design and Synthesis',          'code' => 'CP612', 'type' => 'specialized'],
+                // CP614 is core here; CT614 is elective in الحاسب but core in التحكم —
+                // both are assigned to their "primary" specialization (see notes below).
+                ['name' => 'Fault Tolerant Systems',             'code' => 'CP614', 'type' => 'specialized'],
+                ['name' => 'Parallel Architectures',             'code' => 'CP619', 'type' => 'specialized'],
+                // Elective (select two)
+                ['name' => 'Network Applications & Administration', 'code' => 'CP616', 'type' => 'elective'],
+                ['name' => 'Data Acquisition Systems',              'code' => 'CP617', 'type' => 'elective'],
+                ['name' => 'Computer Security',                     'code' => 'CP615', 'type' => 'elective'],
+                // CM614 Information Theory → shared elective (seeded above)
+                // CT614 Sensors and Actuators  → seeded under التحكم الآلي as specialized
             ],
-            4 => [ // Networks
-                ['name' => 'شبكات الحاسوب المتقدمة', 'code' => 'NET-201', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'أمن الشبكات', 'code' => 'NET-202', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'الاتصالات اللاسلكية', 'code' => 'NET-203', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'بروتوكولات الشبكات', 'code' => 'NET-204', 'credits' => 3, 'type' => 'specialized'],
-                ['name' => 'إنترنت الأشياء', 'code' => 'NET-301', 'credits' => 3, 'type' => 'elective'],
-                ['name' => 'الحوسبة الموزعة', 'code' => 'NET-302', 'credits' => 3, 'type' => 'elective'],
+
+            // ---- التحكم الآلي (P=3) -----------------------------
+            $ctrl->id => [
+                // Core
+                // CT614 is core here; it is also listed as elective in الحاسب الآلي,
+                // but since the code must be unique it is stored under التحكم الآلي.
+                ['name' => 'Sensors and Actuators',           'code' => 'CT614', 'type' => 'specialized'],
+                ['name' => 'Multivariable Control Systems',   'code' => 'CT613', 'type' => 'specialized'],
+                ['name' => 'Modeling and Simulation',         'code' => 'CT612', 'type' => 'specialized'],
+                ['name' => 'Advanced Control Systems',        'code' => 'CT611', 'type' => 'specialized'],
+                // Elective (select two)
+                ['name' => 'Embedded Systems',                'code' => 'CT622', 'type' => 'elective'],
+                // CP614 Fault Tolerant Systems → seeded under الحاسب الآلي as specialized
+                // CM614 Information Theory     → shared elective (seeded above)
             ],
         ];
 
-        foreach ($specializations as $spec) {
-            if (isset($specCourses[$spec->code])) {
-                foreach ($specCourses[$spec->code] as $course) {
-                    Course::create(array_merge($course, ['specialization_id' => $spec->id]));
-                }
+        foreach ($specCourses as $specializationId => $courses) {
+            foreach ($courses as $course) {
+                Course::create(array_merge(
+                    ['credits' => 3, 'specialization_id' => $specializationId],
+                    $course
+                ));
             }
         }
     }
