@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Specializations\RelationManagers;
 
+use App\Models\Semester;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Grouping\Group;
@@ -22,7 +23,14 @@ class CoursesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        $activeSemesterId = Semester::where('is_active', true)->value('id');
+
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with([
+                'courseOfferings' => fn ($q) => $q
+                    ->where('semester_id', $activeSemesterId)
+                    ->with('faculty:id,name'),
+            ]))
             ->columns([
                 TextColumn::make('code')
                     ->label('الرمز')
@@ -50,6 +58,13 @@ class CoursesRelationManager extends RelationManager
                         default => 'gray',
                     })
                     ->sortable(),
+
+                TextColumn::make('faculty')
+                    ->label('أستاذ المادة')
+                    ->getStateUsing(
+                        fn ($record): string => $record->courseOfferings->first()?->faculty?->name ?? '—'
+                    )
+                    ->placeholder('غير مسند'),
 
                 TextColumn::make('credits')
                     ->label('الساعات')
