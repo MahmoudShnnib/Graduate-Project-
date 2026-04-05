@@ -136,6 +136,10 @@ class ApplicationResource extends Resource
                     TextInput::make('delegation_entity')
                         ->label('جهة الإيفاد')
                         ->visible(fn ($get): bool => in_array($get('study_type'), ['faculty_assistant', 'public_delegation'])),
+
+                    \Filament\Forms\Components\Toggle::make('is_transfer')
+                        ->label('منتقل من كلية أخرى؟')
+                        ->columnSpan(2),
                 ]),
 
             Section::make('القرار الإداري')

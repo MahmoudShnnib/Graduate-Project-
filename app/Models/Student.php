@@ -23,6 +23,24 @@ class Student extends Model
         'gpa',
         'warnings_count',
         'suspension_count',
+        'last_name',
+        'mother_name',
+        'birth_date',
+        'birth_place',
+        'gender',
+        'marital_status',
+        'nationality',
+        'national_id',
+        'card_number',
+        'residence',
+        'permanent_address',
+        'profession',
+        'workplace',
+        'study_type',
+        'delegation_number',
+        'delegation_entity',
+        'is_transfer',
+        'degree_image',
     ];
 
     protected function casts(): array
@@ -32,6 +50,8 @@ class Student extends Model
             'gpa' => 'decimal:2',
             'warnings_count' => 'integer',
             'suspension_count' => 'integer',
+            'is_transfer' => 'boolean',
+            'birth_date' => 'date',
         ];
     }
 

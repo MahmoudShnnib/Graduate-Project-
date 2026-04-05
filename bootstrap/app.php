@@ -14,9 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // When a non-student visits /portal while authenticated, redirect to portal login
+        // When an unauthenticated user visits /portal, redirect to portal login
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
-            if ($e->getStatusCode() === 403 && str_starts_with($request->path(), 'portal')) {
+            if ($e->getStatusCode() === 403 && str_starts_with($request->path(), 'portal') && ! $request->user()) {
                 return redirect('/portal/login');
             }
         });
