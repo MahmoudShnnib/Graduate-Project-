@@ -28,6 +28,7 @@ class CreateApplication
             'study_type' => $data['study_type'] ?? null,
             'delegation_number' => $data['delegation_number'] ?? null,
             'delegation_entity' => $data['delegation_entity'] ?? null,
+            'is_transfer' => $data['is_transfer'] ?? false,
             'bachelor_certificate' => $data['bachelor_certificate'] ?? null,
             'remedial_statement' => $data['remedial_statement'] ?? null,
             'notes' => $data['notes'] ?? null,

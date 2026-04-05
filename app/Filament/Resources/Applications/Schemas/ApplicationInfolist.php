@@ -149,6 +149,10 @@ class ApplicationInfolist
                     TextEntry::make('delegation_entity')
                         ->label('جهة الإيفاد')
                         ->placeholder('-'),
+
+                    \Filament\Infolists\Components\IconEntry::make('is_transfer')
+                        ->label('منتقل من كلية أخرى')
+                        ->boolean(),
                 ]),
 
             // Documents & Admin Notes

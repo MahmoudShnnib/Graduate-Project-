@@ -50,6 +50,7 @@ class RegistrationController extends Controller
             'study_type' => ['required', 'in:self_funded,internally_delegated,faculty_assistant,public_delegation'],
             'delegation_number' => ['nullable', 'required_if:study_type,internally_delegated', 'string', 'max:100'],
             'delegation_entity' => ['nullable', 'required_if:study_type,public_delegation,faculty_assistant', 'string', 'max:255'],
+            'is_transfer' => ['required', 'in:0,1'],
             // Documents
             'bachelor_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'remedial_statement' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
@@ -75,6 +76,7 @@ class RegistrationController extends Controller
             'study_type.required' => 'يرجى تحديد نوع الدراسة',
             'delegation_number.required_if' => 'يرجى إدخال رقم قرار الإيفاد',
             'delegation_entity.required_if' => 'يرجى إدخال جهة الإيفاد',
+            'is_transfer.required' => 'يرجى تحديد ما إذا كنت منتقلاً من كلية أخرى',
         ]);
 
         DB::transaction(function () use ($validated, $request) {
@@ -88,6 +90,7 @@ class RegistrationController extends Controller
             ]);
 
             $data = $validated;
+            $data['is_transfer'] = (bool) ($validated['is_transfer'] ?? false);
 
             if ($request->hasFile('bachelor_certificate')) {
                 $data['bachelor_certificate'] = $request->file('bachelor_certificate')

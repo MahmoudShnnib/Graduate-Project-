@@ -29,6 +29,7 @@ class Application extends Model
         'study_type',
         'delegation_number',
         'delegation_entity',
+        'is_transfer',
         'status',
         'bachelor_certificate',
         'remedial_statement',
@@ -42,6 +43,7 @@ class Application extends Model
         return [
             'status' => ApplicationStatus::class,
             'exam_date' => 'datetime',
+            'is_transfer' => 'boolean',
         ];
     }
 
