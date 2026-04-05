@@ -72,8 +72,9 @@ class CoursesRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->defaultGroup(
-                Group::make('pivot.type')
+                Group::make('pivot_type')
                     ->label('النوع')
+                    ->getKeyFromRecordUsing(fn ($record): string => $record->pivot->type ?? '')
                     ->getTitleFromRecordUsing(fn ($record): string => match ($record->pivot->type ?? '') {
                         'general' => '📘 عام (مشترك)',
                         'specialized' => '📗 تخصصي (إجباري)',
