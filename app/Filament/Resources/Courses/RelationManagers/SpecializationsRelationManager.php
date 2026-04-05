@@ -41,9 +41,10 @@ class SpecializationsRelationManager extends RelationManager
                 TextColumn::make('name')
                     ->label('التخصص'),
 
-                TextColumn::make('pivot.type')
+                TextColumn::make('type')
                     ->label('الدور')
                     ->badge()
+                    ->getStateUsing(fn ($record): string => $record->pivot->type ?? '')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'general' => 'عام',
                         'specialized' => 'تخصصي',
