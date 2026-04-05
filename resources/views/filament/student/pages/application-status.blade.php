@@ -20,18 +20,13 @@
                         @php
                             $statusColors = [
                                 'pending' => 'bg-yellow-100 text-yellow-800',
+                                'provisionally_accepted' => 'bg-blue-100 text-blue-800',
                                 'accepted' => 'bg-green-100 text-green-800',
                                 'rejected' => 'bg-red-100 text-red-800',
-                                'exam_scheduled' => 'bg-blue-100 text-blue-800',
                             ];
-                            $statusLabels = [
-                                'pending' => 'قيد المراجعة',
-                                'accepted' => 'مقبول',
-                                'rejected' => 'مرفوض',
-                                'exam_scheduled' => 'تم تحديد موعد الاختبار',
-                            ];
-                            $color = $statusColors[$application->status] ?? 'bg-gray-100 text-gray-800';
-                            $label = $statusLabels[$application->status] ?? $application->status;
+                            $statusValue = $application->status->value;
+                            $color = $statusColors[$statusValue] ?? 'bg-gray-100 text-gray-800';
+                            $label = $application->status->label();
                         @endphp
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $color }}">
                             {{ $label }}
@@ -69,7 +64,7 @@
                     <h3 class="font-medium text-sm">تقديم الطلب</h3>
                     <p class="text-xs text-gray-500">{{ $application->created_at->diffForHumans() }}</p>
                 </li>
-                @if(in_array($application->status, ['exam_scheduled', 'accepted', 'rejected']))
+                @if(in_array($application->status, [\App\Enums\ApplicationStatus::ProvisionallyAccepted, \App\Enums\ApplicationStatus::Accepted, \App\Enums\ApplicationStatus::Rejected]))
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
                             <x-heroicon-o-eye class="w-3 h-3 text-blue-600" />
@@ -77,16 +72,15 @@
                         <h3 class="font-medium text-sm">مراجعة الطلب</h3>
                     </li>
                 @endif
-                @if($application->status === 'exam_scheduled' && $application->exam_date)
+                @if($application->status === \App\Enums\ApplicationStatus::ProvisionallyAccepted)
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
-                            <x-heroicon-o-calendar class="w-3 h-3 text-blue-600" />
+                            <x-heroicon-o-check class="w-3 h-3 text-blue-600" />
                         </span>
-                        <h3 class="font-medium text-sm">تم تحديد موعد الاختبار</h3>
-                        <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($application->exam_date)->format('Y/m/d H:i') }}</p>
+                        <h3 class="font-medium text-sm text-blue-700">مقبول مبدئياً</h3>
                     </li>
                 @endif
-                @if($application->status === 'accepted')
+                @if($application->status === \App\Enums\ApplicationStatus::Accepted)
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
                             <x-heroicon-o-check-circle class="w-3 h-3 text-green-600" />
@@ -94,7 +88,7 @@
                         <h3 class="font-medium text-sm text-green-700">تم قبول الطلب</h3>
                     </li>
                 @endif
-                @if($application->status === 'rejected')
+                @if($application->status === \App\Enums\ApplicationStatus::Rejected)
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
                             <x-heroicon-o-x-circle class="w-3 h-3 text-red-600" />

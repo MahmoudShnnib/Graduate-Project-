@@ -83,23 +83,23 @@
         <x-filament::section heading="الخدمات الإلكترونية">
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 <a href="{{ route('filament.student.pages.course-survey-page') }}" wire:navigate
-                   class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
-                    <x-heroicon-o-clipboard-document-list class="w-8 h-8 text-primary-600" />
+                   class="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
+                    <x-heroicon-o-clipboard-document-list class="w-6 h-6 text-primary-600" />
                     <span class="text-sm font-medium">استطلاع المقررات</span>
                 </a>
                 <a href="{{ route('filament.student.pages.student-courses-page') }}" wire:navigate
-                   class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
-                    <x-heroicon-o-academic-cap class="w-8 h-8 text-primary-600" />
+                   class="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
+                    <x-heroicon-o-academic-cap class="w-6 h-6 text-primary-600" />
                     <span class="text-sm font-medium">مقرراتي</span>
                 </a>
                 <a href="{{ route('filament.student.pages.grades-page') }}" wire:navigate
-                   class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
-                    <x-heroicon-o-chart-bar class="w-8 h-8 text-primary-600" />
+                   class="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
+                    <x-heroicon-o-chart-bar class="w-6 h-6 text-primary-600" />
                     <span class="text-sm font-medium">الدرجات</span>
                 </a>
                 <a href="{{ route('filament.student.pages.thesis-registration-page') }}" wire:navigate
-                   class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
-                    <x-heroicon-o-document-text class="w-8 h-8 text-primary-600" />
+                   class="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-200 hover:border-primary-400 hover:bg-primary-50 transition-colors text-center">
+                    <x-heroicon-o-document-text class="w-6 h-6 text-primary-600" />
                     <span class="text-sm font-medium">تسجيل الرسالة</span>
                 </a>
             </div>
