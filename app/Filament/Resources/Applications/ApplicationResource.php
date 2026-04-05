@@ -6,6 +6,8 @@ use App\Actions\ApproveApplication;
 use App\Enums\ApplicationStatus;
 use App\Filament\Resources\Applications\Pages\EditApplication;
 use App\Filament\Resources\Applications\Pages\ListApplications;
+use App\Filament\Resources\Applications\Pages\ViewApplication;
+use App\Filament\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Models\Application;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -15,10 +17,13 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -39,46 +44,139 @@ class ApplicationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return ApplicationInfolist::configure($schema);
+    }
+
     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->label('المتقدم')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
+        return $schema->components([
 
-                Select::make('status')
-                    ->label('الحالة')
-                    ->options(ApplicationStatus::class)
-                    ->default(ApplicationStatus::Pending)
-                    ->required(),
+            Section::make('البيانات الشخصية')
+                ->columns(2)
+                ->components([
+                    Select::make('user_id')
+                        ->relationship('user', 'name')
+                        ->label('المتقدم')
+                        ->required()
+                        ->searchable()
+                        ->preload()
+                        ->columnSpan(2),
 
-                FileUpload::make('bachelor_certificate')
-                    ->label('شهادة البكالوريوس')
-                    ->directory('applications')
-                    ->acceptedFileTypes(['application/pdf', 'image/*']),
+                    TextInput::make('last_name')
+                        ->label('اللقب'),
 
-                FileUpload::make('remedial_statement')
-                    ->label('بيان المعادلة')
-                    ->directory('applications')
-                    ->acceptedFileTypes(['application/pdf', 'image/*']),
+                    TextInput::make('mother_name')
+                        ->label('اسم الأم'),
 
-                Textarea::make('notes')
-                    ->label('ملاحظات')
-                    ->rows(3),
+                    TextInput::make('birth_date')
+                        ->label('تاريخ الميلاد')
+                        ->type('date'),
 
-                Textarea::make('rejection_reason')
-                    ->label('سبب الرفض')
-                    ->rows(3)
-                    ->visible(fn (?Application $record) => $record?->status === ApplicationStatus::Rejected),
+                    TextInput::make('birth_place')
+                        ->label('مكان الميلاد'),
 
-                DateTimePicker::make('exam_date')
-                    ->label('تاريخ الامتحان')
-                    ->visible(fn (?Application $record) => $record?->status === ApplicationStatus::ProvisionallyAccepted),
-            ]);
+                    Select::make('gender')
+                        ->label('الجنس')
+                        ->options([
+                            'male' => 'ذكر',
+                            'female' => 'أنثى',
+                        ]),
+
+                    Select::make('marital_status')
+                        ->label('الحالة الاجتماعية')
+                        ->options([
+                            'single' => 'أعزب / عزباء',
+                            'married' => 'متزوج / متزوجة',
+                            'divorced' => 'مطلق / مطلقة',
+                            'widowed' => 'أرمل / أرملة',
+                        ]),
+
+                    TextInput::make('nationality')
+                        ->label('الجنسية')
+                        ->default('ليبية'),
+
+                    TextInput::make('national_id')
+                        ->label('الرقم الوطني'),
+
+                    TextInput::make('card_number')
+                        ->label('رقم البطاقة'),
+
+                    TextInput::make('residence')
+                        ->label('مكان الإقامة'),
+
+                    TextInput::make('permanent_address')
+                        ->label('العنوان الدائم'),
+
+                    TextInput::make('profession')
+                        ->label('المهنة'),
+
+                    TextInput::make('workplace')
+                        ->label('مكان العمل'),
+                ]),
+
+            Section::make('نوع الدراسة')
+                ->columns(2)
+                ->components([
+                    Radio::make('study_type')
+                        ->label('نوع الدراسة')
+                        ->options([
+                            'self_funded' => 'الدراسة على حسابي الخاص',
+                            'internally_delegated' => 'موفد بموجب قرار إيفاد داخلي',
+                            'faculty_assistant' => 'معيد بالكلية',
+                            'public_delegation' => 'موفد من قِبَل جهة عامة',
+                        ])
+                        ->columnSpan(2),
+
+                    TextInput::make('delegation_number')
+                        ->label('رقم قرار الإيفاد')
+                        ->visible(fn ($get): bool => $get('study_type') === 'internally_delegated'),
+
+                    TextInput::make('delegation_entity')
+                        ->label('جهة الإيفاد')
+                        ->visible(fn ($get): bool => in_array($get('study_type'), ['faculty_assistant', 'public_delegation'])),
+                ]),
+
+            Section::make('القرار الإداري')
+                ->columns(2)
+                ->components([
+                    Select::make('status')
+                        ->label('الحالة')
+                        ->options(ApplicationStatus::class)
+                        ->default(ApplicationStatus::Pending)
+                        ->required(),
+
+                    DateTimePicker::make('exam_date')
+                        ->label('تاريخ الامتحان')
+                        ->visible(fn ($get): bool => $get('status') === ApplicationStatus::ProvisionallyAccepted->value),
+
+                    Textarea::make('notes')
+                        ->label('ملاحظات')
+                        ->rows(3)
+                        ->columnSpan(2),
+
+                    Textarea::make('rejection_reason')
+                        ->label('سبب الرفض')
+                        ->rows(3)
+                        ->columnSpan(2)
+                        ->visible(fn ($get): bool => $get('status') === ApplicationStatus::Rejected->value),
+                ]),
+
+            Section::make('المستندات')
+                ->columns(2)
+                ->components([
+                    FileUpload::make('bachelor_certificate')
+                        ->label('شهادة البكالوريوس')
+                        ->directory('applications')
+                        ->acceptedFileTypes(['application/pdf', 'image/*']),
+
+                    FileUpload::make('remedial_statement')
+                        ->label('كشف المواد التكميلية')
+                        ->directory('applications')
+                        ->acceptedFileTypes(['application/pdf', 'image/*']),
+                ]),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -86,15 +184,44 @@ class ApplicationResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('user.name')
-                    ->label('المتقدم')
-                    ->searchable(),
+                    ->label('الاسم الرباعي')
+                    ->searchable()
+                    ->sortable(),
 
-                TextColumn::make('user.email')
-                    ->label('البريد الإلكتروني')
-                    ->searchable(),
+                TextColumn::make('last_name')
+                    ->label('اللقب')
+                    ->searchable()
+                    ->placeholder('-'),
+
+                TextColumn::make('national_id')
+                    ->label('الرقم الوطني')
+                    ->searchable()
+                    ->placeholder('-')
+                    ->toggleable(),
 
                 TextColumn::make('user.phone')
-                    ->label('الهاتف'),
+                    ->label('النقال')
+                    ->placeholder('-')
+                    ->toggleable(),
+
+                TextColumn::make('user.specialization.name')
+                    ->label('التخصص')
+                    ->placeholder('-')
+                    ->toggleable(),
+
+                TextColumn::make('study_type')
+                    ->label('نوع الدراسة')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'self_funded' => 'حساب خاص',
+                        'internally_delegated' => 'إيفاد داخلي',
+                        'faculty_assistant' => 'معيد',
+                        'public_delegation' => 'جهة عامة',
+                        default => '-',
+                    })
+                    ->placeholder('-')
+                    ->badge()
+                    ->color('gray')
+                    ->toggleable(),
 
                 TextColumn::make('status')
                     ->label('الحالة')
@@ -107,20 +234,25 @@ class ApplicationResource extends Resource
                     })
                     ->formatStateUsing(fn (ApplicationStatus $state): string => $state->label()),
 
-                TextColumn::make('exam_date')
-                    ->label('تاريخ الامتحان')
-                    ->dateTime()
-                    ->toggleable(),
-
                 TextColumn::make('created_at')
                     ->label('تاريخ التقديم')
                     ->date()
                     ->sortable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->label('الحالة')
                     ->options(ApplicationStatus::class),
+
+                SelectFilter::make('study_type')
+                    ->label('نوع الدراسة')
+                    ->options([
+                        'self_funded' => 'حساب خاص',
+                        'internally_delegated' => 'إيفاد داخلي',
+                        'faculty_assistant' => 'معيد بالكلية',
+                        'public_delegation' => 'جهة عامة',
+                    ]),
             ])
             ->recordActions([
                 Action::make('approve')
@@ -155,6 +287,7 @@ class ApplicationResource extends Resource
     {
         return [
             'index' => ListApplications::route('/'),
+            'view' => ViewApplication::route('/{record}'),
             'edit' => EditApplication::route('/{record}/edit'),
         ];
     }
