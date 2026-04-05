@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\CourseType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -17,23 +16,26 @@ class Course extends Model
         'name',
         'code',
         'credits',
-        'type',
-        'specialization_id',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
-            'type' => CourseType::class,
             'credits' => 'integer',
             'is_active' => 'boolean',
         ];
     }
 
-    public function specialization(): BelongsTo
+    /**
+     * The specializations this course belongs to, with the role (type)
+     * it plays in each (general / specialized / elective).
+     */
+    public function specializations(): BelongsToMany
     {
-        return $this->belongsTo(Specialization::class);
+        return $this->belongsToMany(Specialization::class)
+            ->withPivot('type')
+            ->withTimestamps();
     }
 
     public function courseOfferings(): HasMany

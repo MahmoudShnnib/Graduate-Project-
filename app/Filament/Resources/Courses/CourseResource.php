@@ -2,16 +2,15 @@
 
 namespace App\Filament\Resources\Courses;
 
-use App\Enums\CourseType;
 use App\Filament\Resources\Courses\Pages\CreateCourse;
 use App\Filament\Resources\Courses\Pages\EditCourse;
 use App\Filament\Resources\Courses\Pages\ListCourses;
+use App\Filament\Resources\Courses\RelationManagers\SpecializationsRelationManager;
 use App\Models\Course;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -19,7 +18,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class CourseResource extends Resource
@@ -61,18 +59,6 @@ class CourseResource extends Resource
                     ->maxValue(6)
                     ->required(),
 
-                Select::make('type')
-                    ->label('نوع المقرر')
-                    ->options(CourseType::class)
-                    ->required(),
-
-                Select::make('specialization_id')
-                    ->label('التخصص')
-                    ->relationship('specialization', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->helperText('اتركه فارغاً للمقررات العامة'),
-
                 Toggle::make('is_active')
                     ->label('نشط')
                     ->default(true),
@@ -92,19 +78,10 @@ class CourseResource extends Resource
                     ->label('اسم المقرر')
                     ->searchable(),
 
-                TextColumn::make('type')
-                    ->label('النوع')
+                TextColumn::make('specializations.name')
+                    ->label('التخصصات')
                     ->badge()
-                    ->formatStateUsing(fn (CourseType $state): string => $state->label())
-                    ->color(fn (CourseType $state): string => match ($state) {
-                        CourseType::General => 'info',
-                        CourseType::Specialized => 'success',
-                        CourseType::Elective => 'warning',
-                    }),
-
-                TextColumn::make('specialization.name')
-                    ->label('التخصص')
-                    ->placeholder('عام'),
+                    ->separator(','),
 
                 TextColumn::make('credits')
                     ->label('الساعات')
@@ -115,15 +92,6 @@ class CourseResource extends Resource
                     ->label('نشط')
                     ->boolean(),
             ])
-            ->filters([
-                SelectFilter::make('type')
-                    ->label('النوع')
-                    ->options(CourseType::class),
-
-                SelectFilter::make('specialization_id')
-                    ->label('التخصص')
-                    ->relationship('specialization', 'name'),
-            ])
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
@@ -131,6 +99,13 @@ class CourseResource extends Resource
             ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
+    }
+
+    public static function getRelationManagers(): array
+    {
+        return [
+            SpecializationsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

@@ -10,86 +10,72 @@ class CourseSeeder extends Seeder
 {
     public function run(): void
     {
-        // -------------------------------------------------------
-        // Common courses — shared by all specializations
-        // -------------------------------------------------------
-        $commonCourses = [
-            ['name' => 'Advanced Mathematics', 'code' => 'EE601', 'credits' => 3, 'type' => 'general'],
-            ['name' => 'Digital Signal Processing', 'code' => 'EE602', 'credits' => 3, 'type' => 'general'],
-            ['name' => 'Advanced Electronics', 'code' => 'EE603', 'credits' => 3, 'type' => 'general'],
-            ['name' => 'Computing', 'code' => 'EE604', 'credits' => 3, 'type' => 'general'],
-            // CM614 is an elective in all three specializations; stored without a
-            // specific specialization so it appears as a shared elective option.
-            ['name' => 'Information Theory', 'code' => 'CM614', 'credits' => 3, 'type' => 'elective'],
+        $commsId = Specialization::where('code', 1)->firstOrFail()->id;   // الإتصالات
+        $csId = Specialization::where('code', 2)->firstOrFail()->id;   // الحاسب الآلي
+        $ctrlId = Specialization::where('code', 3)->firstOrFail()->id;   // التحكم الآلي
+
+        // ----------------------------------------------------------------
+        // 'specializations' => [ specialization_id => pivot_type ]
+        // ----------------------------------------------------------------
+        $courses = [
+
+            // ── Common (عام) — shared by all three specializations ──────
+            ['name' => 'Advanced Mathematics',      'code' => 'EE601', 'specializations' => [$commsId => 'general', $csId => 'general', $ctrlId => 'general']],
+            ['name' => 'Digital Signal Processing', 'code' => 'EE602', 'specializations' => [$commsId => 'general', $csId => 'general', $ctrlId => 'general']],
+            ['name' => 'Advanced Electronics',      'code' => 'EE603', 'specializations' => [$commsId => 'general', $csId => 'general', $ctrlId => 'general']],
+            ['name' => 'Computing',                 'code' => 'EE604', 'specializations' => [$commsId => 'general', $csId => 'general', $ctrlId => 'general']],
+
+            // CM614 is an elective in all three specializations
+            ['name' => 'Information Theory', 'code' => 'CM614', 'specializations' => [$commsId => 'elective', $csId => 'elective', $ctrlId => 'elective']],
+
+            // ── الإتصالات — core ────────────────────────────────────────
+            ['name' => 'Communication Networks',          'code' => 'CM611', 'specializations' => [$commsId => 'specialized']],
+            ['name' => 'Microwave Engineering',           'code' => 'MW612', 'specializations' => [$commsId => 'specialized']],
+            ['name' => 'Wireless Communication Networks', 'code' => 'CM613', 'specializations' => [$commsId => 'specialized']],
+            ['name' => 'Antenna Engineering',             'code' => 'MW613', 'specializations' => [$commsId => 'specialized']],
+
+            // ── الإتصالات — elective ────────────────────────────────────
+            ['name' => 'Optical Communication', 'code' => 'CM624', 'specializations' => [$commsId => 'elective']],
+            ['name' => 'Radio Communication',   'code' => 'CM222', 'specializations' => [$commsId => 'elective']],
+            ['name' => 'Radio Communication',   'code' => 'CM625', 'specializations' => [$commsId => 'elective']],
+
+            // ── الحاسب الآلي — core ─────────────────────────────────────
+            ['name' => 'Microprocessors & Embedded Systems', 'code' => 'CP611', 'specializations' => [$csId => 'specialized']],
+            ['name' => 'VHDL Design and Synthesis',          'code' => 'CP612', 'specializations' => [$csId => 'specialized']],
+            // CP614: core in الحاسب الآلي, elective in التحكم الآلي
+            ['name' => 'Fault Tolerant Systems',             'code' => 'CP614', 'specializations' => [$csId => 'specialized', $ctrlId => 'elective']],
+            ['name' => 'Parallel Architectures',             'code' => 'CP619', 'specializations' => [$csId => 'specialized']],
+
+            // ── الحاسب الآلي — elective ─────────────────────────────────
+            ['name' => 'Network Applications & Administration', 'code' => 'CP616', 'specializations' => [$csId => 'elective']],
+            ['name' => 'Data Acquisition Systems',              'code' => 'CP617', 'specializations' => [$csId => 'elective']],
+            ['name' => 'Computer Security',                     'code' => 'CP615', 'specializations' => [$csId => 'elective']],
+
+            // ── التحكم الآلي — core ─────────────────────────────────────
+            // CT614: core in التحكم الآلي, elective in الحاسب الآلي
+            ['name' => 'Sensors and Actuators',         'code' => 'CT614', 'specializations' => [$ctrlId => 'specialized', $csId => 'elective']],
+            ['name' => 'Multivariable Control Systems', 'code' => 'CT613', 'specializations' => [$ctrlId => 'specialized']],
+            ['name' => 'Modeling and Simulation',       'code' => 'CT612', 'specializations' => [$ctrlId => 'specialized']],
+            ['name' => 'Advanced Control Systems',      'code' => 'CT611', 'specializations' => [$ctrlId => 'specialized']],
+
+            // ── التحكم الآلي — elective ─────────────────────────────────
+            ['name' => 'Embedded Systems', 'code' => 'CT622', 'specializations' => [$ctrlId => 'elective']],
         ];
 
-        foreach ($commonCourses as $course) {
-            Course::create($course);
-        }
+        foreach ($courses as $data) {
+            $course = Course::create([
+                'name' => $data['name'],
+                'code' => $data['code'],
+                'credits' => 3,
+                'is_active' => true,
+            ]);
 
-        // -------------------------------------------------------
-        // Per-specialization courses
-        // -------------------------------------------------------
-        $comms = Specialization::where('code', 1)->firstOrFail();   // الإتصالات
-        $cs    = Specialization::where('code', 2)->firstOrFail();   // الحاسب الآلي
-        $ctrl  = Specialization::where('code', 3)->firstOrFail();   // التحكم الآلي
-
-        $specCourses = [
-
-            // ---- الإتصالات (P=1) --------------------------------
-            $comms->id => [
-                // Core
-                ['name' => 'Communication Networks',          'code' => 'CM611', 'type' => 'specialized'],
-                ['name' => 'Microwave Engineering',           'code' => 'MW612', 'type' => 'specialized'],
-                ['name' => 'Wireless Communication Networks', 'code' => 'CM613', 'type' => 'specialized'],
-                ['name' => 'Antenna Engineering',             'code' => 'MW613', 'type' => 'specialized'],
-                // Elective (select two)
-                ['name' => 'Optical Communication',          'code' => 'CM624', 'type' => 'elective'],
-                ['name' => 'Radio Communication',            'code' => 'CM222', 'type' => 'elective'],
-                ['name' => 'Radio Communication',            'code' => 'CM625', 'type' => 'elective'],
-                // CM614 Information Theory is already seeded as a shared elective above
-            ],
-
-            // ---- الحاسب الآلي (P=2) -----------------------------
-            $cs->id => [
-                // Core
-                ['name' => 'Microprocessors & Embedded Systems', 'code' => 'CP611', 'type' => 'specialized'],
-                ['name' => 'VHDL Design and Synthesis',          'code' => 'CP612', 'type' => 'specialized'],
-                // CP614 is core here; CT614 is elective in الحاسب but core in التحكم —
-                // both are assigned to their "primary" specialization (see notes below).
-                ['name' => 'Fault Tolerant Systems',             'code' => 'CP614', 'type' => 'specialized'],
-                ['name' => 'Parallel Architectures',             'code' => 'CP619', 'type' => 'specialized'],
-                // Elective (select two)
-                ['name' => 'Network Applications & Administration', 'code' => 'CP616', 'type' => 'elective'],
-                ['name' => 'Data Acquisition Systems',              'code' => 'CP617', 'type' => 'elective'],
-                ['name' => 'Computer Security',                     'code' => 'CP615', 'type' => 'elective'],
-                // CM614 Information Theory → shared elective (seeded above)
-                // CT614 Sensors and Actuators  → seeded under التحكم الآلي as specialized
-            ],
-
-            // ---- التحكم الآلي (P=3) -----------------------------
-            $ctrl->id => [
-                // Core
-                // CT614 is core here; it is also listed as elective in الحاسب الآلي,
-                // but since the code must be unique it is stored under التحكم الآلي.
-                ['name' => 'Sensors and Actuators',           'code' => 'CT614', 'type' => 'specialized'],
-                ['name' => 'Multivariable Control Systems',   'code' => 'CT613', 'type' => 'specialized'],
-                ['name' => 'Modeling and Simulation',         'code' => 'CT612', 'type' => 'specialized'],
-                ['name' => 'Advanced Control Systems',        'code' => 'CT611', 'type' => 'specialized'],
-                // Elective (select two)
-                ['name' => 'Embedded Systems',                'code' => 'CT622', 'type' => 'elective'],
-                // CP614 Fault Tolerant Systems → seeded under الحاسب الآلي as specialized
-                // CM614 Information Theory     → shared elective (seeded above)
-            ],
-        ];
-
-        foreach ($specCourses as $specializationId => $courses) {
-            foreach ($courses as $course) {
-                Course::create(array_merge(
-                    ['credits' => 3, 'specialization_id' => $specializationId],
-                    $course
-                ));
+            $pivotData = [];
+            foreach ($data['specializations'] as $specId => $type) {
+                $pivotData[$specId] = ['type' => $type];
             }
+
+            $course->specializations()->attach($pivotData);
         }
     }
 }

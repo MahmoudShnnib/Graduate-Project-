@@ -23,7 +23,7 @@ test('student is eligible for thesis when 10+ approved courses and gpa >= 3.0', 
     $semester = Semester::factory()->active()->create();
 
     for ($i = 0; $i < 10; $i++) {
-        $course = Course::factory()->create(['specialization_id' => $this->specialization->id]);
+        $course = Course::factory()->create();
         $offering = CourseOffering::factory()->create([
             'course_id' => $course->id,
             'semester_id' => $semester->id,

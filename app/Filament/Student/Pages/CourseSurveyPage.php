@@ -55,10 +55,8 @@ class CourseSurveyPage extends Page
         }
 
         return Course::where('is_active', true)
-            ->where(function ($q) use ($student) {
-                $q->whereNull('specialization_id')
-                    ->orWhere('specialization_id', $student->specialization_id);
-            })
+            ->whereHas('specializations', fn ($q) => $q->where('specializations.id', $student->specialization_id))
+            ->with(['specializations' => fn ($q) => $q->where('specializations.id', $student->specialization_id)])
             ->orderBy('name')
             ->get();
     }
