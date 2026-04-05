@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Applications\Schemas;
 
 use App\Enums\ApplicationStatus;
+use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -14,18 +15,19 @@ class ApplicationInfolist
     {
         return $schema->components([
 
-            // Status banner at the top
+            // ── Header banner ──────────────────────────────────────────────────
             Section::make()
                 ->compact()
                 ->components([
-                    Grid::make(4)
+                    Grid::make(['default' => 2, 'sm' => 4])
                         ->components([
                             TextEntry::make('user.name')
-                                ->label('الاسم الرباعي'),
+                                ->label('الاسم الرباعي')
+                                ->weight(\Filament\Support\Enums\FontWeight::Bold),
 
                             TextEntry::make('last_name')
                                 ->label('اللقب')
-                                ->placeholder('-'),
+                                ->placeholder('—'),
 
                             TextEntry::make('status')
                                 ->label('حالة الطلب')
@@ -44,131 +46,151 @@ class ApplicationInfolist
                         ]),
                 ]),
 
-            // Personal Data
-            Section::make('أولاً: البيانات الشخصية')
-                ->columns(3)
+            // ── Two-column main layout ─────────────────────────────────────────
+            Grid::make(3)
                 ->components([
-                    TextEntry::make('mother_name')
-                        ->label('اسم الأم')
-                        ->placeholder('-'),
 
-                    TextEntry::make('birth_date')
-                        ->label('تاريخ الميلاد')
-                        ->date()
-                        ->placeholder('-'),
-
-                    TextEntry::make('birth_place')
-                        ->label('مكان الميلاد')
-                        ->placeholder('-'),
-
-                    TextEntry::make('gender')
-                        ->label('الجنس')
-                        ->formatStateUsing(fn (?string $state): string => match ($state) {
-                            'male' => 'ذكر',
-                            'female' => 'أنثى',
-                            default => '-',
-                        })
-                        ->placeholder('-'),
-
-                    TextEntry::make('marital_status')
-                        ->label('الحالة الاجتماعية')
-                        ->formatStateUsing(fn (?string $state): string => match ($state) {
-                            'single' => 'أعزب / عزباء',
-                            'married' => 'متزوج / متزوجة',
-                            'divorced' => 'مطلق / مطلقة',
-                            'widowed' => 'أرمل / أرملة',
-                            default => '-',
-                        })
-                        ->placeholder('-'),
-
-                    TextEntry::make('nationality')
-                        ->label('الجنسية')
-                        ->placeholder('-'),
-
-                    TextEntry::make('national_id')
-                        ->label('الرقم الوطني')
-                        ->placeholder('-'),
-
-                    TextEntry::make('card_number')
-                        ->label('رقم البطاقة')
-                        ->placeholder('-'),
-
-                    TextEntry::make('residence')
-                        ->label('مكان الإقامة')
-                        ->placeholder('-'),
-
-                    TextEntry::make('permanent_address')
-                        ->label('العنوان الدائم')
+                    // Personal data — takes 2/3 of width
+                    Section::make('أولاً: البيانات الشخصية')
                         ->columnSpan(2)
-                        ->placeholder('-'),
+                        ->columns(2)
+                        ->components([
+                            TextEntry::make('mother_name')
+                                ->label('اسم الأم')
+                                ->placeholder('—'),
 
-                    TextEntry::make('profession')
-                        ->label('المهنة')
-                        ->placeholder('-'),
+                            TextEntry::make('birth_date')
+                                ->label('تاريخ الميلاد')
+                                ->date()
+                                ->placeholder('—'),
 
-                    TextEntry::make('workplace')
-                        ->label('مكان العمل')
-                        ->placeholder('-'),
+                            TextEntry::make('birth_place')
+                                ->label('مكان الميلاد')
+                                ->placeholder('—'),
+
+                            TextEntry::make('gender')
+                                ->label('الجنس')
+                                ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                    'male' => 'ذكر',
+                                    'female' => 'أنثى',
+                                    default => '—',
+                                }),
+
+                            TextEntry::make('marital_status')
+                                ->label('الحالة الاجتماعية')
+                                ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                    'single' => 'أعزب / عزباء',
+                                    'married' => 'متزوج / متزوجة',
+                                    'divorced' => 'مطلق / مطلقة',
+                                    'widowed' => 'أرمل / أرملة',
+                                    default => '—',
+                                }),
+
+                            TextEntry::make('nationality')
+                                ->label('الجنسية')
+                                ->placeholder('—'),
+
+                            TextEntry::make('national_id')
+                                ->label('الرقم الوطني')
+                                ->placeholder('—'),
+
+                            TextEntry::make('card_number')
+                                ->label('رقم البطاقة')
+                                ->placeholder('—'),
+
+                            TextEntry::make('residence')
+                                ->label('مكان الإقامة')
+                                ->placeholder('—'),
+
+                            TextEntry::make('profession')
+                                ->label('المهنة')
+                                ->placeholder('—'),
+
+                            TextEntry::make('permanent_address')
+                                ->label('العنوان الدائم')
+                                ->columnSpan(2)
+                                ->placeholder('—'),
+
+                            TextEntry::make('workplace')
+                                ->label('مكان العمل')
+                                ->placeholder('—'),
+                        ]),
+
+                    // Right column — contact + study type stacked
+                    Grid::make(1)
+                        ->columnSpan(1)
+                        ->components([
+
+                            Section::make('ثانياً: بيانات التواصل والقسم')
+                                ->columns(1)
+                                ->components([
+                                    TextEntry::make('user.email')
+                                        ->label('البريد الإلكتروني')
+                                        ->placeholder('—'),
+
+                                    TextEntry::make('user.phone')
+                                        ->label('رقم النقال')
+                                        ->placeholder('—'),
+
+                                    TextEntry::make('user.specialization.name')
+                                        ->label('التخصص')
+                                        ->badge()
+                                        ->color('info')
+                                        ->placeholder('—'),
+                                ]),
+
+                            Section::make('ثالثاً: نوع الدراسة')
+                                ->columns(1)
+                                ->components([
+                                    TextEntry::make('study_type')
+                                        ->label('نوع الدراسة')
+                                        ->badge()
+                                        ->color('gray')
+                                        ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                            'self_funded' => 'على حسابي الخاص',
+                                            'internally_delegated' => 'موفد بقرار إيفاد داخلي',
+                                            'faculty_assistant' => 'معيد بالكلية',
+                                            'public_delegation' => 'موفد من جهة عامة',
+                                            default => '—',
+                                        }),
+
+                                    TextEntry::make('delegation_number')
+                                        ->label('رقم قرار الإيفاد')
+                                        ->placeholder('—')
+                                        ->visible(fn ($record): bool => in_array(
+                                            $record?->study_type,
+                                            ['internally_delegated', 'faculty_assistant', 'public_delegation']
+                                        )),
+
+                                    TextEntry::make('delegation_entity')
+                                        ->label('جهة الإيفاد')
+                                        ->placeholder('—')
+                                        ->visible(fn ($record): bool => in_array(
+                                            $record?->study_type,
+                                            ['faculty_assistant', 'public_delegation']
+                                        )),
+
+                                    IconEntry::make('is_transfer')
+                                        ->label('منتقل من كلية أخرى')
+                                        ->boolean(),
+                                ]),
+                        ]),
                 ]),
 
-            // Contact & Academic
-            Section::make('ثانياً: بيانات التواصل والقسم')
-                ->columns(3)
-                ->components([
-                    TextEntry::make('user.email')
-                        ->label('البريد الإلكتروني'),
-
-                    TextEntry::make('user.phone')
-                        ->label('رقم النقال')
-                        ->placeholder('-'),
-
-                    TextEntry::make('user.specialization.name')
-                        ->label('التخصص')
-                        ->placeholder('-'),
-                ]),
-
-            // Study Type
-            Section::make('ثالثاً: نوع الدراسة')
-                ->columns(3)
-                ->components([
-                    TextEntry::make('study_type')
-                        ->label('نوع الدراسة')
-                        ->formatStateUsing(fn (?string $state): string => match ($state) {
-                            'self_funded' => 'على حسابي الخاص',
-                            'internally_delegated' => 'موفد بقرار إيفاد داخلي',
-                            'faculty_assistant' => 'معيد بالكلية',
-                            'public_delegation' => 'موفد من جهة عامة',
-                            default => '-',
-                        })
-                        ->placeholder('-'),
-
-                    TextEntry::make('delegation_number')
-                        ->label('رقم قرار الإيفاد')
-                        ->placeholder('-'),
-
-                    TextEntry::make('delegation_entity')
-                        ->label('جهة الإيفاد')
-                        ->placeholder('-'),
-
-                    \Filament\Infolists\Components\IconEntry::make('is_transfer')
-                        ->label('منتقل من كلية أخرى')
-                        ->boolean(),
-                ]),
-
-            // Documents & Admin Notes
+            // ── Documents & admin notes — full width ──────────────────────────
             Section::make('رابعاً: المستندات والملاحظات الإدارية')
                 ->columns(2)
                 ->components([
                     TextEntry::make('bachelor_certificate')
                         ->label('شهادة البكالوريوس')
-                        ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : '-')
+                        ->formatStateUsing(fn (?string $state): string => $state ? '📄 '.basename($state) : '—')
                         ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
                         ->openUrlInNewTab()
                         ->placeholder('لم يُرفق'),
 
                     TextEntry::make('remedial_statement')
                         ->label('كشف المواد التكميلية')
-                        ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : '-')
+                        ->formatStateUsing(fn (?string $state): string => $state ? '📄 '.basename($state) : '—')
                         ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
                         ->openUrlInNewTab()
                         ->placeholder('لم يُرفق'),
@@ -176,18 +198,18 @@ class ApplicationInfolist
                     TextEntry::make('notes')
                         ->label('ملاحظات')
                         ->columnSpan(2)
-                        ->placeholder('-'),
+                        ->placeholder('لا توجد ملاحظات'),
 
                     TextEntry::make('rejection_reason')
                         ->label('سبب الرفض')
                         ->columnSpan(2)
-                        ->placeholder('-')
+                        ->placeholder('—')
                         ->visible(fn ($record): bool => $record?->status === ApplicationStatus::Rejected),
 
                     TextEntry::make('exam_date')
                         ->label('تاريخ الامتحان')
                         ->dateTime()
-                        ->placeholder('-')
+                        ->placeholder('—')
                         ->visible(fn ($record): bool => $record?->status === ApplicationStatus::ProvisionallyAccepted),
                 ]),
         ]);
