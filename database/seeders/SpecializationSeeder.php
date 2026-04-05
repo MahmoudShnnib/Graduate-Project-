@@ -9,10 +9,14 @@ class SpecializationSeeder extends Seeder
 {
     public function run(): void
     {
-        Specialization::insert([
-            ['name' => 'علوم الحاسوب', 'code' => 2],
-            ['name' => 'نظم المعلومات', 'code' => 3],
-            ['name' => 'الشبكات', 'code' => 4],
-        ]);
+        $specializations = [
+            ['name' => 'الإتصالات', 'code' => 1],
+            ['name' => 'الحاسب الآلي', 'code' => 2],
+            ['name' => 'التحكم الآلي', 'code' => 3],
+        ];
+
+        foreach ($specializations as $specialization) {
+            Specialization::create($specialization);
+        }
     }
 }
