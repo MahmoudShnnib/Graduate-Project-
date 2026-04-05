@@ -20,6 +20,12 @@ class SpecializationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static ?string $navigationLabel = 'التخصصات';
+
+    protected static ?string $modelLabel = 'تخصص';
+
+    protected static ?string $pluralModelLabel = 'التخصصات';
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema
