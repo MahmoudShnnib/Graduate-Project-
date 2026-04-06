@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CourseOfferings;
 
 use App\Filament\Resources\CourseOfferings\Pages\CreateCourseOffering;
 use App\Filament\Resources\CourseOfferings\Pages\EditCourseOffering;
+use App\Filament\Resources\CourseOfferings\Pages\EnrollStudents;
 use App\Filament\Resources\CourseOfferings\Pages\ListCourseOfferings;
 use App\Models\CourseOffering;
 use BackedEnum;
@@ -80,12 +81,25 @@ class CourseOfferingResource extends Resource
                     ->label('الفصل'),
 
                 TextColumn::make('faculty.name')
-                    ->label('عضو هيئة التدريس')
-                    ->placeholder('-'),
+                    ->label('الأستاذ')
+                    ->placeholder('غير مسند')
+                    ->badge()
+                    ->color('info'),
+
+                TextColumn::make('survey_count')
+                    ->label('طلبوا المادة')
+                    ->getStateUsing(fn (CourseOffering $record): int => \App\Models\CourseSurvey::where('course_id', $record->course_id)
+                        ->where('semester_id', $record->semester_id)
+                        ->count()
+                    )
+                    ->badge()
+                    ->color('warning'),
 
                 TextColumn::make('enrollments_count')
-                    ->label('الطلاب المسجلون')
-                    ->counts('enrollments'),
+                    ->label('مسجّلون فعلاً')
+                    ->counts('enrollments')
+                    ->badge()
+                    ->color('success'),
 
                 IconColumn::make('is_open')
                     ->label('مفتوح')
@@ -97,10 +111,16 @@ class CourseOfferingResource extends Resource
                     ->relationship('semester', 'name'),
             ])
             ->recordActions([
+                Action::make('enroll')
+                    ->label('تسجيل الطلاب')
+                    ->icon(Heroicon::UserPlus)
+                    ->color('primary')
+                    ->url(fn (CourseOffering $record): string => static::getUrl('enroll', ['record' => $record])),
+
                 Action::make('toggle_open')
                     ->label(fn (CourseOffering $record) => $record->is_open ? 'إغلاق' : 'فتح')
                     ->icon(fn (CourseOffering $record) => $record->is_open ? Heroicon::LockClosed : Heroicon::LockOpen)
-                    ->color(fn (CourseOffering $record) => $record->is_open ? 'danger' : 'success')
+                    ->color(fn (CourseOffering $record) => $record->is_open ? 'warning' : 'success')
                     ->action(function (CourseOffering $record) {
                         $record->update(['is_open' => ! $record->is_open]);
                         Notification::make()
@@ -108,6 +128,7 @@ class CourseOfferingResource extends Resource
                             ->success()
                             ->send();
                     }),
+
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -122,6 +143,7 @@ class CourseOfferingResource extends Resource
             'index' => ListCourseOfferings::route('/'),
             'create' => CreateCourseOffering::route('/create'),
             'edit' => EditCourseOffering::route('/{record}/edit'),
+            'enroll' => EnrollStudents::route('/{record}/enroll'),
         ];
     }
 }

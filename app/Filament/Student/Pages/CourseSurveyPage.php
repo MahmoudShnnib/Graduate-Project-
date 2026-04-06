@@ -21,6 +21,8 @@ class CourseSurveyPage extends Page
 
     protected static ?int $navigationSort = 3;
 
+    public const int MAX_SELECTIONS = 4;
+
     /** @var array<int, int> course_id => priority */
     public array $selections = [];
 
@@ -61,13 +63,72 @@ class CourseSurveyPage extends Page
             ->get();
     }
 
+    /**
+     * Returns the enrollment status for each surveyed course in the active semester.
+     * Possible values: 'enrolled' | 'pending' | 'unavailable'
+     *
+     * @return array<int, string>
+     */
+    public function getEnrollmentStatuses(): array
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester || empty($this->selections)) {
+            return [];
+        }
+
+        $statuses = [];
+        foreach (array_keys($this->selections) as $courseId) {
+            $offering = \App\Models\CourseOffering::where('course_id', $courseId)
+                ->where('semester_id', $activeSemester->id)
+                ->first();
+
+            if (! $offering) {
+                $statuses[$courseId] = 'unavailable';
+
+                continue;
+            }
+
+            $enrolled = \App\Models\StudentEnrollment::where('student_id', $student->id)
+                ->where('course_offering_id', $offering->id)
+                ->exists();
+
+            $statuses[$courseId] = $enrolled ? 'enrolled' : 'pending';
+        }
+
+        return $statuses;
+    }
+
     public function toggleCourse(int $courseId): void
     {
+        $semester = $this->getActiveSemester();
+        if (! $semester?->survey_open) {
+            Notification::make()->title('الاستطلاع مغلق حالياً')->warning()->send();
+
+            return;
+        }
+
         if (isset($this->selections[$courseId])) {
+            // Deselect: remove then re-number remaining sequentially
             unset($this->selections[$courseId]);
+            $sorted = collect($this->selections)->sortBy(fn ($p) => $p)->keys()->values();
+            $this->selections = [];
+            foreach ($sorted as $i => $id) {
+                $this->selections[$id] = $i + 1;
+            }
         } else {
-            $max = $this->selections ? max($this->selections) : 0;
-            $this->selections[$courseId] = $max + 1;
+            if (count($this->selections) >= self::MAX_SELECTIONS) {
+                Notification::make()
+                    ->title('الحد الأقصى '.self::MAX_SELECTIONS.' مقررات')
+                    ->body('أزل مقرراً قبل إضافة آخر')
+                    ->warning()
+                    ->send();
+
+                return;
+            }
+
+            $this->selections[$courseId] = count($this->selections) + 1;
         }
     }
 
@@ -78,6 +139,22 @@ class CourseSurveyPage extends Page
 
         if (! $student || ! $activeSemester) {
             Notification::make()->title('لا يوجد فصل دراسي نشط')->danger()->send();
+
+            return;
+        }
+
+        if (! $activeSemester->survey_open) {
+            Notification::make()->title('الاستطلاع مغلق حالياً')->danger()->send();
+
+            return;
+        }
+
+        if (count($this->selections) !== self::MAX_SELECTIONS) {
+            Notification::make()
+                ->title('يجب اختيار '.self::MAX_SELECTIONS.' مقررات بالضبط')
+                ->body('اخترت '.count($this->selections).' حتى الآن')
+                ->warning()
+                ->send();
 
             return;
         }

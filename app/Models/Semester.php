@@ -20,6 +20,7 @@ class Semester extends Model
         'add_drop_start',
         'add_drop_end',
         'is_active',
+        'survey_open',
     ];
 
     protected function casts(): array
@@ -32,12 +33,18 @@ class Semester extends Model
             'add_drop_start' => 'date',
             'add_drop_end' => 'date',
             'is_active' => 'boolean',
+            'survey_open' => 'boolean',
         ];
     }
 
     public function courseOfferings(): HasMany
     {
         return $this->hasMany(CourseOffering::class);
+    }
+
+    public function surveys(): HasMany
+    {
+        return $this->hasMany(CourseSurvey::class);
     }
 
     public function isAddDropOpen(): bool
