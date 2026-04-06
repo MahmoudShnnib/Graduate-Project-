@@ -8,31 +8,35 @@
     {{-- New Request Form --}}
     @if($hasPending)
         <x-filament::section>
-            <div class="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                <x-heroicon-o-clock style="width: 1.25rem; height: 1.25rem; flex-shrink: 0;" class="text-yellow-600" />
-                <p class="text-sm text-yellow-800">لديك طلب انقطاع قيد المراجعة. لا يمكن تقديم طلب جديد حتى يتم البت في الطلب الحالي.</p>
+            <div class="flex items-start gap-3 p-4 rounded-xl bg-warning-50 dark:bg-warning-500/10 border border-warning-200 dark:border-warning-500/30">
+                <x-heroicon-o-clock style="width: 1.25rem; height: 1.25rem; flex-shrink: 0; margin-top: 0.1rem;" class="text-warning-600 dark:text-warning-400" />
+                <p class="text-sm text-warning-800 dark:text-warning-300">لديك طلب انقطاع قيد المراجعة. لا يمكن تقديم طلب جديد حتى يتم البت في الطلب الحالي.</p>
             </div>
         </x-filament::section>
     @else
         <x-filament::section heading="تقديم طلب انقطاع">
             <div class="space-y-4 max-w-lg">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">الفصل الدراسي <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        الفصل الدراسي <span class="text-danger-500">*</span>
+                    </label>
                     <select wire:model="semesterId"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm">
-                        <option value="">-- اختر الفصل --</option>
+                        class="w-full border-gray-300 dark:border-white/10 dark:bg-gray-800 dark:text-white rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm">
+                        <option value="">— اختر الفصل —</option>
                         @foreach($semesters as $semester)
                             <option value="{{ $semester->id }}">{{ $semester->name }}</option>
                         @endforeach
                     </select>
-                    @error('semesterId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    @error('semesterId') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">سبب الانقطاع <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        سبب الانقطاع <span class="text-danger-500">*</span>
+                    </label>
                     <textarea wire:model="reason" rows="4"
-                        class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
+                        class="w-full border-gray-300 dark:border-white/10 dark:bg-gray-800 dark:text-white rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
                         placeholder="اكتب سبباً واضحاً ومفصلاً لطلب الانقطاع..."></textarea>
-                    @error('reason') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    @error('reason') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
                 <x-filament::button wire:click="submit" icon="heroicon-o-paper-airplane">
                     إرسال الطلب
@@ -47,26 +51,28 @@
             <div class="space-y-3">
                 @foreach($history as $request)
                     <div @class([
-                        'p-4 rounded-lg border',
-                        'border-yellow-200 bg-yellow-50' => $request->status->value === 'pending',
-                        'border-green-200 bg-green-50' => $request->status->value === 'approved',
-                        'border-red-200 bg-red-50' => $request->status->value === 'rejected',
+                        'p-4 rounded-xl border',
+                        'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => $request->status->value === 'pending',
+                        'border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10' => $request->status->value === 'approved',
+                        'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10' => $request->status->value === 'rejected',
                     ])>
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start mb-2">
                             <div>
-                                <p class="text-sm font-medium">{{ $request->semester->name }}</p>
-                                <p class="text-xs text-gray-500 mt-1">{{ $request->created_at->format('Y/m/d') }}</p>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $request->semester->name }}</p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ $request->created_at->format('Y/m/d') }}</p>
                             </div>
                             <span @class([
-                                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                                'bg-yellow-100 text-yellow-800' => $request->status->value === 'pending',
-                                'bg-green-100 text-green-800' => $request->status->value === 'approved',
-                                'bg-red-100 text-red-800' => $request->status->value === 'rejected',
+                                'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
+                                'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $request->status->value === 'pending',
+                                'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $request->status->value === 'approved',
+                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $request->status->value === 'rejected',
                             ])>{{ $request->status->label() }}</span>
                         </div>
-                        <p class="text-sm text-gray-700 mt-2">{{ $request->reason }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ $request->reason }}</p>
                         @if($request->decision_notes)
-                            <p class="text-xs text-gray-500 mt-2 border-t pt-2">ملاحظة الإدارة: {{ $request->decision_notes }}</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 pt-2 border-t border-black/10 dark:border-white/10">
+                                ملاحظة الإدارة: {{ $request->decision_notes }}
+                            </p>
                         @endif
                     </div>
                 @endforeach
