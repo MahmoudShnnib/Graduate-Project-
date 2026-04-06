@@ -11,9 +11,8 @@
     {{-- No active semester --}}
     @if(! $semester)
         <x-filament::section>
-            <div class="py-8 text-center text-gray-500">
-                <x-filament::icon icon="heroicon-o-calendar" class="mx-auto mb-3 size-10 text-gray-400" />
-                <p>لا يوجد فصل دراسي نشط حالياً. يُرجى المراجعة لاحقاً.</p>
+            <div class="text-center py-12">
+                <p class="text-gray-400 dark:text-gray-500 text-sm">لا يوجد فصل دراسي نشط حالياً. يُرجى المراجعة لاحقاً.</p>
             </div>
         </x-filament::section>
 
@@ -71,7 +70,7 @@
     @else
         <x-filament::section
             heading="استطلاع المقررات — {{ $semester->name }}"
-            description="اختر {{ $max }} مقررات بالترتيب الذي تفضله (الأولوية 1 = الأهم). لا يمكن الإرسال إلا بعد اختيار {{ $max }} مقررات.">
+            description="اختر المقررات التي ترغب في دراستها هذا الفصل. يمكنك تعديل اختياراتك في أي وقت قبل إغلاق الاستطلاع.">
 
             {{-- Progress bar --}}
             <div class="mb-5">
@@ -114,75 +113,50 @@
 
             {{-- Course list --}}
             @if($courses->isEmpty())
-                <p class="py-4 text-center text-gray-500">لا توجد مقررات متاحة حالياً.</p>
+                <div class="text-center py-12">
+                    <p class="text-gray-400 dark:text-gray-500 text-sm">لا توجد مقررات متاحة حالياً.</p>
+                </div>
             @else
                 <div class="space-y-2">
                     @foreach($courses as $course)
-                        @php
-                            $selected  = isset($this->selections[$course->id]);
-                            $priority  = $selected ? $this->selections[$course->id] : null;
-                            $maxed     = ! $selected && $selectedCount >= $max;
-                            $pivot     = $course->specializations->first()?->pivot;
-                            $typeLabel = match($pivot?->type) {
-                                'general'    => 'عام',
-                                'specialized'=> 'تخصصي',
-                                'elective'   => 'اختياري',
-                                default      => '',
-                            };
-                        @endphp
-                        <button
-                            wire:click="toggleCourse({{ $course->id }})"
-                            type="button"
-                            @class([
-                                'w-full flex items-center justify-between rounded-lg border px-4 py-3 text-right transition-all',
-                                'border-primary-400 bg-primary-50 shadow-sm'          => $selected,
-                                'border-gray-200 hover:border-primary-300 bg-white'   => ! $selected && ! $maxed,
-                                'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed' => $maxed,
-                            ])
-                            @if($maxed) disabled @endif
-                        >
+                        @php $selected = isset($this->selections[$course->id]); @endphp
+                        <div @class([
+                            'flex items-center justify-between p-4 rounded-xl border transition-colors cursor-pointer',
+                            'border-primary-300 bg-primary-50 dark:border-primary-500/40 dark:bg-primary-500/10' => $selected,
+                            'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-white/20' => ! $selected,
+                        ])>
                             <div class="flex items-center gap-3">
-                                <div @class([
-                                    'flex size-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold',
-                                    'border-primary-600 bg-primary-600 text-white' => $selected,
-                                    'border-gray-300 bg-white text-transparent'     => ! $selected,
-                                ])>
-                                    {{ $priority ?? '' }}
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-sm font-semibold text-gray-800">{{ $course->name }}</p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $course->code }} &mdash; {{ $course->credits }} ساعة
-                                        @if($typeLabel) &mdash; {{ $typeLabel }} @endif
+                                <input type="checkbox"
+                                    wire:click="toggleCourse({{ $course->id }})"
+                                    @checked($selected)
+                                    class="rounded border-gray-300 dark:border-white/20 text-primary-600 focus:ring-primary-500 w-4 h-4"
+                                />
+                                <div>
+                                    <p class="font-medium text-sm text-gray-900 dark:text-white">{{ $course->name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        <span class="font-mono">{{ $course->code }}</span>
+                                        <span class="mx-1.5 text-gray-300 dark:text-gray-600">·</span>
+                                        {{ $course->credits }} ساعة
+                                        <span class="mx-1.5 text-gray-300 dark:text-gray-600">·</span>
+                                        {{ $course->type?->label() }}
                                     </p>
                                 </div>
                             </div>
                             @if($selected)
-                                <x-filament::icon icon="heroicon-o-x-circle"
-                                    class="size-5 shrink-0 text-primary-400 hover:text-red-500" />
-                            @else
-                                <x-filament::icon icon="heroicon-o-plus-circle"
-                                    class="size-5 shrink-0 text-gray-300" />
+                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-xs font-bold flex-shrink-0">
+                                    {{ $this->selections[$course->id] }}
+                                </span>
                             @endif
                         </button>
                     @endforeach
                 </div>
 
-                <div class="mt-5 flex items-center justify-between border-t pt-4">
-                    <p class="text-sm text-gray-500">
-                        @if($selectedCount < $max)
-                            اختر {{ $max - $selectedCount }} مقرر{{ $max - $selectedCount > 1 ? 'ات' : '' }} إضافية للمتابعة
-                        @else
-                            جاهز للإرسال ✓
-                        @endif
+                <div class="mt-6 pt-4 border-t border-gray-100 dark:border-white/10 flex justify-between items-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        تم اختيار <strong class="text-gray-900 dark:text-white">{{ count($this->selections) }}</strong> مقرر
                     </p>
-                    <x-filament::button
-                        wire:click="submit"
-                        icon="heroicon-o-check"
-                        :disabled="$selectedCount !== $max"
-                        color="{{ $selectedCount === $max ? 'success' : 'gray' }}"
-                    >
-                        إرسال الاختيارات
+                    <x-filament::button wire:click="submit" icon="heroicon-o-check">
+                        حفظ الاختيارات
                     </x-filament::button>
                 </div>
             @endif
