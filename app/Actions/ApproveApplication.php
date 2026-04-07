@@ -6,31 +6,49 @@ use App\Enums\ApplicationStatus;
 use App\Models\Application;
 use App\Models\Semester;
 use App\Models\Student;
+use App\Models\User;
 use App\Services\EnrollmentNumberService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ApproveApplication
 {
     public function __construct(
         private EnrollmentNumberService $enrollmentNumberService,
+        private NotificationService $notificationService,
     ) {}
 
     public function handle(Application $application): Application
     {
-        if (Student::where('user_id', $application->user_id)->exists()) {
+        if ($application->status === ApplicationStatus::Accepted) {
             throw new \Exception('تمت الموافقة على هذا الطلب بالفعل');
         }
 
-        DB::transaction(function () use ($application) {
+        $plainPassword = Str::random(10);
+
+        DB::transaction(function () use ($application, $plainPassword) {
             $application->update([
                 'status' => ApplicationStatus::Accepted,
             ]);
 
-            $user = $application->user;
+            // Create User account from application data
+            $user = User::create([
+                'name' => $application->name,
+                'email' => $application->email,
+                'phone' => $application->phone,
+                'password' => Hash::make($plainPassword),
+                'role' => 'student',
+                'specialization_id' => $application->specialization_id,
+                'is_active' => true,
+            ]);
+
+            $application->update(['user_id' => $user->id]);
 
             $student = Student::create([
                 'user_id' => $user->id,
-                'specialization_id' => $user->specialization_id,
+                'specialization_id' => $application->specialization_id,
                 'last_name' => $application->last_name,
                 'mother_name' => $application->mother_name,
                 'birth_date' => $application->birth_date,
@@ -56,6 +74,13 @@ class ApproveApplication
                 $this->enrollmentNumberService->generate($student, $activeSemester, (bool) $application->is_transfer);
             }
         });
+
+        $application->refresh();
+        $student = $application->user?->student;
+
+        if ($student) {
+            $this->notificationService->notifyWelcomeStudent($student, $plainPassword);
+        }
 
         return $application;
     }

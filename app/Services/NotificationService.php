@@ -13,6 +13,7 @@ use App\Models\StudentEnrollment;
 use App\Models\SuspensionRequest;
 use App\Models\ThesisRegistration;
 use App\Notifications\AddDropDecisionNotification;
+use App\Notifications\ApplicationExamPassedNotification;
 use App\Notifications\ApplicationReceivedNotification;
 use App\Notifications\ApplicationStatusChangedNotification;
 use App\Notifications\ClearanceIssuedNotification;
@@ -20,6 +21,7 @@ use App\Notifications\EnrollmentConfirmedNotification;
 use App\Notifications\GradePublishedNotification;
 use App\Notifications\SuspensionDecisionNotification;
 use App\Notifications\ThesisDecisionNotification;
+use App\Notifications\WelcomeStudentNotification;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
@@ -28,7 +30,7 @@ class NotificationService
     public function notifyApplicationReceived(Application $application): void
     {
         $this->dispatch(
-            $application->user,
+            $application,
             new ApplicationReceivedNotification($application),
             $application->user?->student,
             'application_received',
@@ -36,14 +38,36 @@ class NotificationService
         );
     }
 
+    public function notifyApplicationExamPassed(Application $application): void
+    {
+        $this->dispatch(
+            $application,
+            new ApplicationExamPassedNotification($application),
+            $application->user?->student,
+            'application_exam_passed',
+            'اجتزت اختبار القبول — تم قبولك نهائياً'
+        );
+    }
+
     public function notifyApplicationStatusChanged(Application $application): void
     {
         $this->dispatch(
-            $application->user,
+            $application,
             new ApplicationStatusChangedNotification($application),
             $application->user?->student,
             'application_status_changed',
             'تم تحديث حالة طلب القبول'
+        );
+    }
+
+    public function notifyWelcomeStudent(Student $student, ?string $plainPassword = null): void
+    {
+        $this->dispatch(
+            $student->user,
+            new WelcomeStudentNotification($student, $plainPassword),
+            $student,
+            'welcome_student',
+            'مرحباً بك في برنامج الدراسات العليا'
         );
     }
 
@@ -129,36 +153,33 @@ class NotificationService
         );
     }
 
-    /**
-     * Legacy compatibility — used by existing admin resource actions.
-     */
-    public function notifyStudent(Student $student, string $event, string $message): void
-    {
-        $this->logChannel($student, NotificationChannel::Email, $event, $message, 'sent');
-        $this->logChannel($student, NotificationChannel::Whatsapp, $event, $message, 'failed');
-    }
-
     private function dispatch(?object $notifiable, Notification $notification, ?Student $student, string $event, string $message): void
     {
-        if (! $notifiable || ! $student) {
+        if (! $notifiable) {
             return;
         }
 
+        $emailStatus = 'failed';
+        $whatsappStatus = 'skipped';
+
         try {
             $notifiable->notify($notification);
-            $this->logChannel($student, NotificationChannel::Email, $event, $message, 'sent');
+            $emailStatus = 'sent';
+
+            if (! empty($notifiable->phone) && ! empty(config('services.qonvo.api_token'))) {
+                $whatsappStatus = 'sent';
+            }
         } catch (\Throwable $e) {
-            Log::warning("Notification {$event} failed for student {$student->id}: {$e->getMessage()}");
-            $this->logChannel($student, NotificationChannel::Email, $event, $message, 'failed');
+            Log::warning("Notification {$event} failed: {$e->getMessage()}");
         }
 
-        $this->logChannel(
-            $student,
-            NotificationChannel::Whatsapp,
-            $event,
-            $message,
-            config('services.whatsapp.api_key') ? 'sent' : 'failed'
-        );
+        if ($student) {
+            $this->logChannel($student, NotificationChannel::Email, $event, $message, $emailStatus);
+
+            if ($whatsappStatus !== 'skipped') {
+                $this->logChannel($student, NotificationChannel::Whatsapp, $event, $message, $whatsappStatus);
+            }
+        }
     }
 
     private function logChannel(Student $student, NotificationChannel $channel, string $event, string $message, string $status): void

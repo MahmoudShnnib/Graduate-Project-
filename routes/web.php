@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApplicationTrackingController;
 use App\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,3 +9,5 @@ Route::get('/', function () {
 });
 Route::get('/apply', [RegistrationController::class, 'create'])->name('registration.create');
 Route::post('/apply', [RegistrationController::class, 'store'])->name('registration.store');
+Route::get('/apply/track', [ApplicationTrackingController::class, 'show'])->name('application.track.show');
+Route::post('/apply/track', [ApplicationTrackingController::class, 'track'])->name('application.track');

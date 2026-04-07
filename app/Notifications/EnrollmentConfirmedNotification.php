@@ -2,22 +2,18 @@
 
 namespace App\Notifications;
 
+use App\Channels\WhatsAppMessage;
 use App\Models\StudentEnrollment;
+use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class EnrollmentConfirmedNotification extends Notification
 {
-    use Queueable;
+    use HasWhatsAppChannel, Queueable;
 
     public function __construct(public readonly StudentEnrollment $enrollment) {}
-
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {
@@ -33,6 +29,15 @@ class EnrollmentConfirmedNotification extends Notification
             ->line('**الساعات المعتمدة:** '.($course?->credits ?? '—'))
             ->action('عرض مقرراتي', url('/portal/student-courses-page'))
             ->salutation('مع تحيات مكتب الدراسات العليا');
+    }
+
+    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    {
+        $course = $this->enrollment->courseOffering?->course;
+
+        return new WhatsAppMessage(
+            message: 'عزيزي الطالب، تم تسجيلك بنجاح في مقرر: '.($course?->name ?? '—').' ('.($course?->code ?? '—').')',
+        );
     }
 
     /** @return array<string, mixed> */

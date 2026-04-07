@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
 use App\Models\Semester;
 use Filament\Actions\Action;
@@ -35,11 +36,34 @@ class CoursesSurveyResults extends Page
         }
 
         return CourseSurvey::where('semester_id', $activeSemester->id)
-            ->with('course')
+            ->with('course.specializations')
             ->selectRaw('course_id, COUNT(*) as demand_count')
+            ->selectRaw('SUM(CASE WHEN priority = 1 THEN 1 ELSE 0 END) as priority_1_count')
+            ->selectRaw('SUM(CASE WHEN priority = 2 THEN 1 ELSE 0 END) as priority_2_count')
+            ->selectRaw('SUM(CASE WHEN priority = 3 THEN 1 ELSE 0 END) as priority_3_count')
+            ->selectRaw('SUM(CASE WHEN priority = 4 THEN 1 ELSE 0 END) as priority_4_count')
             ->groupBy('course_id')
             ->orderByDesc('demand_count')
             ->get();
+    }
+
+    public function getEnrollStudentsUrl(int $courseId): ?string
+    {
+        $semester = $this->getActiveSemester();
+
+        if (! $semester) {
+            return null;
+        }
+
+        $offering = CourseOffering::where('course_id', $courseId)
+            ->where('semester_id', $semester->id)
+            ->first();
+
+        if (! $offering) {
+            return null;
+        }
+
+        return url("/admin/course-offerings/{$offering->id}/enroll");
     }
 
     protected function getHeaderActions(): array
@@ -61,7 +85,7 @@ class CoursesSurveyResults extends Page
                     $surveyResults = $this->getSurveyResults();
 
                     foreach ($surveyResults as $result) {
-                        $offering = \App\Models\CourseOffering::firstOrCreate([
+                        $offering = CourseOffering::firstOrCreate([
                             'course_id' => $result->course_id,
                             'semester_id' => $activeSemester->id,
                         ]);

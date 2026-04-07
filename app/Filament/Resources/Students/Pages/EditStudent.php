@@ -13,7 +13,12 @@ class EditStudent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->modalHeading('حذف الطالب')
+                ->modalDescription('سيتم حذف سجل الطالب وحساب المستخدم وطلب التسجيل المرتبط به. هل أنت متأكد؟')
+                ->after(function ($record) {
+                    $record->user?->delete();
+                }),
         ];
     }
 }

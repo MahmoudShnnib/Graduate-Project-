@@ -2,22 +2,18 @@
 
 namespace App\Notifications;
 
+use App\Channels\WhatsAppMessage;
 use App\Models\ClearanceRequest;
+use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class ClearanceIssuedNotification extends Notification
 {
-    use Queueable;
+    use HasWhatsAppChannel, Queueable;
 
     public function __construct(public readonly ClearanceRequest $clearance) {}
-
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {
@@ -33,6 +29,13 @@ class ClearanceIssuedNotification extends Notification
         }
 
         return $mail->salutation('مع تحيات مكتب الدراسات العليا');
+    }
+
+    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    {
+        return new WhatsAppMessage(
+            message: 'عزيزي الطالب، تم اعتماد استماحتك من مكتب الدراسات العليا.',
+        );
     }
 
     /** @return array<string, mixed> */

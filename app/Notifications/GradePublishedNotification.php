@@ -2,22 +2,18 @@
 
 namespace App\Notifications;
 
+use App\Channels\WhatsAppMessage;
 use App\Models\Grade;
+use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class GradePublishedNotification extends Notification
 {
-    use Queueable;
+    use HasWhatsAppChannel, Queueable;
 
     public function __construct(public readonly Grade $grade) {}
-
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {
@@ -32,6 +28,15 @@ class GradePublishedNotification extends Notification
             ->line('**التقدير:** '.($this->grade->letter ?? '—'))
             ->action('عرض الدرجات', url('/portal/grades-page'))
             ->salutation('مع تحيات مكتب الدراسات العليا');
+    }
+
+    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    {
+        $course = $this->grade->enrollment?->courseOffering?->course;
+
+        return new WhatsAppMessage(
+            message: 'عزيزي الطالب، تم اعتماد درجاتك في مقرر: '.($course?->name ?? '—')."\nالمجموع: ".number_format((float) $this->grade->total, 1)."\nالتقدير: ".($this->grade->letter ?? '—'),
+        );
     }
 
     /** @return array<string, mixed> */

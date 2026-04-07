@@ -6,12 +6,14 @@ use App\Enums\Season;
 use App\Filament\Resources\Semesters\Pages\CreateSemester;
 use App\Filament\Resources\Semesters\Pages\EditSemester;
 use App\Filament\Resources\Semesters\Pages\ListSemesters;
+use App\Models\Course;
 use App\Models\Semester;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -126,18 +128,81 @@ class SemesterResource extends Resource
                     ->color('info'),
             ])
             ->recordActions([
-                Action::make('toggle_survey')
-                    ->label(fn (Semester $record) => $record->survey_open ? 'إغلاق الاستطلاع' : 'فتح الاستطلاع')
-                    ->icon(fn (Semester $record) => $record->survey_open ? Heroicon::LockClosed : Heroicon::LockOpen)
-                    ->color(fn (Semester $record) => $record->survey_open ? 'warning' : 'success')
-                    ->requiresConfirmation()
-                    ->action(function (Semester $record) {
-                        $record->update(['survey_open' => ! $record->survey_open]);
+                Action::make('open_survey')
+                    ->label('فتح الاستطلاع')
+                    ->icon(Heroicon::LockOpen)
+                    ->color('success')
+                    ->modalHeading('فتح الاستطلاع — اختيار المقررات المتاحة')
+                    ->modalDescription('اختر المقررات التي ستكون متاحة للطلاب في هذا الفصل.')
+                    ->modalSubmitActionLabel('فتح الاستطلاع')
+                    ->fillForm(fn (Semester $record): array => [
+                        'course_ids' => $record->courses()->pluck('courses.id')->toArray(),
+                    ])
+                    ->schema([
+                        CheckboxList::make('course_ids')
+                            ->label('المقررات')
+                            ->options(fn () => Course::where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->columns(2)
+                            ->searchable()
+                            ->bulkToggleable()
+                            ->required(),
+                    ])
+                    ->action(function (Semester $record, array $data) {
+                        $record->courses()->sync($data['course_ids']);
+                        $record->update(['survey_open' => true]);
+
                         Notification::make()
-                            ->title($record->survey_open ? 'تم فتح الاستطلاع للطلاب' : 'تم إغلاق الاستطلاع')
+                            ->title('تم فتح الاستطلاع وتحديد '.count($data['course_ids']).' مقرر')
                             ->success()
                             ->send();
-                    }),
+                    })
+                    ->visible(fn (Semester $record) => ! $record->survey_open),
+
+                Action::make('edit_survey_courses')
+                    ->label('تعديل المقررات')
+                    ->icon(Heroicon::Pencil)
+                    ->color('info')
+                    ->modalHeading('تعديل المقررات المتاحة للاستطلاع')
+                    ->modalSubmitActionLabel('حفظ التعديلات')
+                    ->fillForm(fn (Semester $record): array => [
+                        'course_ids' => $record->courses()->pluck('courses.id')->toArray(),
+                    ])
+                    ->schema([
+                        CheckboxList::make('course_ids')
+                            ->label('المقررات')
+                            ->options(fn () => Course::where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->columns(2)
+                            ->searchable()
+                            ->bulkToggleable()
+                            ->required(),
+                    ])
+                    ->action(function (Semester $record, array $data) {
+                        $record->courses()->sync($data['course_ids']);
+
+                        Notification::make()
+                            ->title('تم تحديث المقررات المتاحة')
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (Semester $record) => $record->survey_open),
+
+                Action::make('close_survey')
+                    ->label('إغلاق الاستطلاع')
+                    ->icon(Heroicon::LockClosed)
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('إغلاق الاستطلاع')
+                    ->modalDescription('سيتم إغلاق الاستطلاع ولن يتمكن الطلاب من تعديل اختياراتهم.')
+                    ->action(function (Semester $record) {
+                        $record->update(['survey_open' => false]);
+
+                        Notification::make()
+                            ->title('تم إغلاق الاستطلاع')
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (Semester $record) => $record->survey_open),
+
                 EditAction::make(),
                 DeleteAction::make(),
             ])

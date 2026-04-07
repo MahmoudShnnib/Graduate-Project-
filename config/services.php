@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'qonvo' => [
+        'api_token' => env('QONVO_API_TOKEN'),
+        'sender_phone' => env('QONVO_SENDER_PHONE'),
+        'base_url' => 'https://qonvo.ly/api',
+    ],
+
 ];

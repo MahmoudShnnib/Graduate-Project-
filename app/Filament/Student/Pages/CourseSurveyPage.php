@@ -51,12 +51,14 @@ class CourseSurveyPage extends Page
     public function getAvailableCourses(): Collection
     {
         $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
 
-        if (! $student) {
+        if (! $student || ! $activeSemester) {
             return collect();
         }
 
         return Course::where('is_active', true)
+            ->whereHas('semesters', fn ($q) => $q->where('semesters.id', $activeSemester->id))
             ->whereHas('specializations', fn ($q) => $q->where('specializations.id', $student->specialization_id))
             ->with(['specializations' => fn ($q) => $q->where('specializations.id', $student->specialization_id)])
             ->orderBy('name')

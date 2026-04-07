@@ -2,22 +2,18 @@
 
 namespace App\Notifications;
 
+use App\Channels\WhatsAppMessage;
 use App\Models\SuspensionRequest;
+use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class SuspensionDecisionNotification extends Notification
 {
-    use Queueable;
+    use HasWhatsAppChannel, Queueable;
 
     public function __construct(public readonly SuspensionRequest $request) {}
-
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {
@@ -38,6 +34,17 @@ class SuspensionDecisionNotification extends Notification
         return $mail
             ->action('عرض الطلبات', url('/portal/suspension-request-page'))
             ->salutation('مع تحيات مكتب الدراسات العليا');
+    }
+
+    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    {
+        $isApproved = $this->request->status?->value === 'approved';
+        $decision = $isApproved ? 'قبول' : 'رفض';
+        $semester = $this->request->semester?->name ?? '—';
+
+        return new WhatsAppMessage(
+            message: "عزيزي الطالب، تم {$decision} طلب انقطاعك للفصل الدراسي: {$semester}",
+        );
     }
 
     /** @return array<string, mixed> */

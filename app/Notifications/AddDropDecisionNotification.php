@@ -2,22 +2,18 @@
 
 namespace App\Notifications;
 
+use App\Channels\WhatsAppMessage;
 use App\Models\AddDropRequest;
+use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class AddDropDecisionNotification extends Notification
 {
-    use Queueable;
+    use HasWhatsAppChannel, Queueable;
 
     public function __construct(public readonly AddDropRequest $request) {}
-
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {
@@ -34,6 +30,18 @@ class AddDropDecisionNotification extends Notification
             )
             ->action('عرض الطلبات', url('/portal/add-drop-page'))
             ->salutation('مع تحيات مكتب الدراسات العليا');
+    }
+
+    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    {
+        $isApproved = $this->request->status === 'approved';
+        $decision = $isApproved ? 'قبول' : 'رفض';
+        $typeLabel = $this->request->type?->label() ?? '—';
+        $course = $this->request->courseOffering?->course;
+
+        return new WhatsAppMessage(
+            message: "عزيزي الطالب، تم {$decision} طلب {$typeLabel} المقرر: ".($course?->name ?? '—'),
+        );
     }
 
     /** @return array<string, mixed> */

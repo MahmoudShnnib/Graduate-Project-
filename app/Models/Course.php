@@ -38,6 +38,12 @@ class Course extends Model
             ->withTimestamps();
     }
 
+    public function semesters(): BelongsToMany
+    {
+        return $this->belongsToMany(Semester::class, 'semester_course')
+            ->withTimestamps();
+    }
+
     public function courseOfferings(): HasMany
     {
         return $this->hasMany(CourseOffering::class);

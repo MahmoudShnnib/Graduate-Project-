@@ -14,16 +14,23 @@
 
         {{-- Success --}}
         @if(session('success'))
-            <div class="mb-8 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4">
-                <svg class="mt-0.5 size-5 shrink-0 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <div>
+            <div class="mb-8 rounded-2xl border border-green-200 bg-green-50 px-5 py-4">
+                <div class="flex items-start gap-3">
+                    <svg class="mt-0.5 size-5 shrink-0 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                     <p class="font-bold text-green-700">{{ session('success') }}</p>
-                    <a href="{{ url('/portal/login') }}" class="mt-1 inline-block text-sm font-medium text-green-600 underline hover:text-green-800">
-                        الذهاب إلى بوابة الطالب ←
-                    </a>
                 </div>
+                @if(session('tracking_code'))
+                    <div class="mt-4 rounded-xl border border-green-300 bg-white px-5 py-4 text-center">
+                        <p class="text-sm text-slate-500">رقم التتبع الخاص بطلبك:</p>
+                        <p class="mt-1 text-2xl font-extrabold tracking-widest text-slate-900" dir="ltr">{{ session('tracking_code') }}</p>
+                        <p class="mt-2 text-xs text-slate-400">احتفظ بهذا الرقم لمتابعة حالة طلبك</p>
+                    </div>
+                    <a href="{{ route('application.track.show') }}" class="mt-3 inline-block text-sm font-medium text-green-600 underline hover:text-green-800">
+                        متابعة حالة الطلب ←
+                    </a>
+                @endif
             </div>
         @endif
 
@@ -238,30 +245,10 @@
                 <x-form.error name="study_type" />
             </div>
 
-            {{-- 4. Password --}}
-            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-6 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
-                    رابعاً: كلمة مرور بوابة الطالب
-                </h3>
-
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
-                        <x-form.label for="password">كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password" name="password" type="password" value="{{ old('password') }}" placeholder="8 أحرف على الأقل" required />
-                        <x-form.error name="password" />
-                    </div>
-
-                    <div>
-                        <x-form.label for="password_confirmation">تأكيد كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" value="{{ old('password_confirmation') }}" placeholder="أعد إدخال كلمة المرور" required />
-                    </div>
-                </div>
-            </div>
-
-            {{-- 5. Documents --}}
+            {{-- 4. Documents --}}
             <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
                 <h3 class="mb-1 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
-                    خامساً: المستندات المطلوبة
+                    رابعاً: المستندات المطلوبة
                 </h3>
                 <p class="mb-6 text-sm text-slate-500">الصيغ المقبولة: PDF، JPG، PNG — الحجم الأقصى 5 ميجابايت لكل ملف</p>
 
@@ -304,8 +291,8 @@
 
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-slate-500">
-                        لديك حساب بالفعل؟
-                        <a href="{{ url('/portal/login') }}" class="font-medium text-blue-600 hover:underline">تسجيل الدخول</a>
+                        قدمت طلباً سابقاً؟
+                        <a href="{{ route('application.track.show') }}" class="font-medium text-blue-600 hover:underline">متابعة حالة الطلب</a>
                     </p>
                     <x-form.button type="submit">
                         إرسال الطلب

@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateApplication;
 use App\Models\Specialization;
-use App\Models\User;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class RegistrationController extends Controller
@@ -29,13 +27,13 @@ class RegistrationController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            // Account
+            // Contact
             'name' => [
                 'bail', 'required', 'string', 'max:255',
                 new ArabicOnly,
                 new MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)'),
             ],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255'],
             'phone' => [
                 'bail', 'required',
                 function (string $attribute, mixed $value, \Closure $fail): void {
@@ -50,7 +48,6 @@ class RegistrationController extends Controller
                 },
             ],
             'specialization_id' => ['required', 'exists:specializations,id'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
             // Personal info
             'last_name' => [
                 'bail', 'required', 'string', 'max:100',
@@ -104,12 +101,8 @@ class RegistrationController extends Controller
             'last_name.required' => 'يرجى إدخال اللقب',
             'mother_name.required' => 'يرجى إدخال اسم الأم',
             'email.required' => 'يرجى إدخال البريد الإلكتروني',
-            'email.unique' => 'هذا البريد الإلكتروني مستخدم بالفعل',
             'phone.required' => 'يرجى إدخال رقم النقال',
             'specialization_id.required' => 'يرجى اختيار القسم',
-            'password.required' => 'يرجى إدخال كلمة المرور',
-            'password.min' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
-            'password.confirmed' => 'كلمة المرور وتأكيدها غير متطابقتين',
             'birth_date.required' => 'يرجى إدخال تاريخ الميلاد',
             'birth_date.before' => 'يجب أن يكون عمر المتقدم 22 سنة على الأقل',
             'birth_date.after' => 'تاريخ الميلاد المدخل غير صحيح',
@@ -129,39 +122,30 @@ class RegistrationController extends Controller
             'declaration.accepted' => 'يجب الإقرار بصحة البيانات قبل إرسال الطلب',
         ]);
 
-        DB::transaction(function () use ($validated, $request) {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'],
-                'password' => Hash::make($validated['password']),
-                'role' => 'student',
-                'specialization_id' => $validated['specialization_id'],
-            ]);
+        $data = $validated;
 
-            $data = $validated;
-            $data['is_transfer'] = (bool) ($validated['is_transfer'] ?? false);
+        // Resolve nationality
+        if ($validated['nationality'] === 'أخرى') {
+            $data['nationality'] = $validated['nationality_other'] ?? '';
+        }
+        unset($data['nationality_other'], $data['declaration']);
 
-            // Resolve nationality: if 'أخرى' use the custom text input value
-            if ($validated['nationality'] === 'أخرى') {
-                $data['nationality'] = $validated['nationality_other'] ?? '';
-            }
-            unset($data['nationality_other'], $data['declaration']);
+        if ($request->hasFile('bachelor_certificate')) {
+            $data['bachelor_certificate'] = $request->file('bachelor_certificate')
+                ->store('applications', 'public');
+        }
 
-            if ($request->hasFile('bachelor_certificate')) {
-                $data['bachelor_certificate'] = $request->file('bachelor_certificate')
-                    ->store('applications', 'public');
-            }
+        if ($request->hasFile('remedial_statement')) {
+            $data['remedial_statement'] = $request->file('remedial_statement')
+                ->store('applications', 'public');
+        }
 
-            if ($request->hasFile('remedial_statement')) {
-                $data['remedial_statement'] = $request->file('remedial_statement')
-                    ->store('applications', 'public');
-            }
+        $application = $this->createApplication->handle($data);
 
-            $this->createApplication->handle($user->id, $data);
-        });
+        app(NotificationService::class)->notifyApplicationReceived($application);
 
         return redirect()->route('registration.create')
-            ->with('success', 'تم إرسال طلبك بنجاح! يمكنك متابعة حالة طلبك من خلال بوابة الطالب.');
+            ->with('success', 'تم إرسال طلبك بنجاح!')
+            ->with('tracking_code', $application->tracking_code);
     }
 }

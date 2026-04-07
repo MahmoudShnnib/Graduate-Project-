@@ -13,23 +13,23 @@
         {{-- Status Banner --}}
         <div @class([
             'rounded-xl border p-5 flex items-center gap-4',
-            'bg-warning-50 border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30' => $application->status === 'pending',
-            'bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30' => in_array($application->status, ['reviewed', 'exam_scheduled']),
-            'bg-success-50 border-success-200 dark:bg-success-500/10 dark:border-success-500/30' => $application->status === 'accepted',
-            'bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30' => $application->status === 'rejected',
+            'bg-warning-50 border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30' => $application->status->value === 'pending',
+            'bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30' => $application->status->value === 'initially_approved',
+            'bg-success-50 border-success-200 dark:bg-success-500/10 dark:border-success-500/30' => $application->status->value === 'accepted',
+            'bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30' => $application->status->value === 'rejected',
         ])>
             <div @class([
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-                'bg-warning-100 dark:bg-warning-500/20' => $application->status === 'pending',
-                'bg-blue-100 dark:bg-blue-500/20' => in_array($application->status, ['reviewed', 'exam_scheduled']),
-                'bg-success-100 dark:bg-success-500/20' => $application->status === 'accepted',
-                'bg-danger-100 dark:bg-danger-500/20' => $application->status === 'rejected',
+                'bg-warning-100 dark:bg-warning-500/20' => $application->status->value === 'pending',
+                'bg-blue-100 dark:bg-blue-500/20' => $application->status->value === 'initially_approved',
+                'bg-success-100 dark:bg-success-500/20' => $application->status->value === 'accepted',
+                'bg-danger-100 dark:bg-danger-500/20' => $application->status->value === 'rejected',
             ])>
-                @if($application->status === 'accepted')
+                @if($application->status->value === 'accepted')
                     <x-heroicon-o-check-circle style="width: 1.25rem; height: 1.25rem;" class="text-success-600 dark:text-success-400" />
-                @elseif($application->status === 'rejected')
+                @elseif($application->status->value === 'rejected')
                     <x-heroicon-o-x-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
-                @elseif($application->status === 'exam_scheduled')
+                @elseif($application->status->value === 'initially_approved')
                     <x-heroicon-o-calendar style="width: 1.25rem; height: 1.25rem;" class="text-blue-600 dark:text-blue-400" />
                 @else
                     <x-heroicon-o-clock style="width: 1.25rem; height: 1.25rem;" class="text-warning-600 dark:text-warning-400" />
@@ -37,19 +37,18 @@
             </div>
             <div>
                 <p class="font-semibold text-gray-900 dark:text-white text-sm">
-                    @if($application->status === 'pending') قيد المراجعة
-                    @elseif($application->status === 'reviewed') تمت المراجعة
-                    @elseif($application->status === 'exam_scheduled') تم تحديد موعد الاختبار
-                    @elseif($application->status === 'accepted') تم قبول الطلب
-                    @elseif($application->status === 'rejected') تم رفض الطلب
+                    @if($application->status->value === 'pending') قيد المراجعة
+                    @elseif($application->status->value === 'initially_approved') مقبول مبدئياً — بانتظار الامتحان
+                    @elseif($application->status->value === 'accepted') تم قبول الطلب
+                    @elseif($application->status->value === 'rejected') تم رفض الطلب
                     @endif
                 </p>
-                @if($application->status === 'exam_scheduled' && $application->exam_date)
+                @if($application->status->value === 'initially_approved' && $application->exam_date)
                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                         موعد الاختبار: {{ \Carbon\Carbon::parse($application->exam_date)->format('Y/m/d H:i') }}
                     </p>
                 @endif
-                @if($application->status === 'rejected' && $application->rejection_reason)
+                @if($application->status->value === 'rejected' && $application->rejection_reason)
                     <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">{{ $application->rejection_reason }}</p>
                 @endif
             </div>
@@ -65,7 +64,7 @@
                     <h3 class="font-medium text-sm text-gray-900 dark:text-white">تقديم الطلب</h3>
                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ $application->created_at->diffForHumans() }}</p>
                 </li>
-                @if(in_array($application->status, ['exam_scheduled', 'accepted', 'rejected']))
+                @if(in_array($application->status->value, ['initially_approved', 'accepted', 'rejected']))
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
                             <x-heroicon-o-eye style="width: 0.75rem; height: 0.75rem;" class="text-blue-600 dark:text-blue-400" />
@@ -73,16 +72,16 @@
                         <h3 class="font-medium text-sm text-gray-900 dark:text-white">مراجعة الطلب</h3>
                     </li>
                 @endif
-                @if($application->status === 'exam_scheduled' && $application->exam_date)
+                @if(in_array($application->status->value, ['initially_approved', 'accepted']) && $application->exam_date)
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
                             <x-heroicon-o-calendar style="width: 0.75rem; height: 0.75rem;" class="text-blue-600 dark:text-blue-400" />
                         </span>
-                        <h3 class="font-medium text-sm text-gray-900 dark:text-white">تم تحديد موعد الاختبار</h3>
+                        <h3 class="font-medium text-sm text-gray-900 dark:text-white">مقبول مبدئياً — بانتظار الامتحان</h3>
                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ \Carbon\Carbon::parse($application->exam_date)->format('Y/m/d H:i') }}</p>
                     </li>
                 @endif
-                @if($application->status === 'accepted')
+                @if($application->status->value === 'accepted')
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-success-100 dark:bg-success-500/20">
                             <x-heroicon-o-check-circle style="width: 0.75rem; height: 0.75rem;" class="text-success-600 dark:text-success-400" />
@@ -90,7 +89,7 @@
                         <h3 class="font-medium text-sm text-success-700 dark:text-success-400">تم قبول الطلب</h3>
                     </li>
                 @endif
-                @if($application->status === 'rejected')
+                @if($application->status->value === 'rejected')
                     <li class="ms-6">
                         <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
                             <x-heroicon-o-x-circle style="width: 0.75rem; height: 0.75rem;" class="text-danger-600 dark:text-danger-400" />

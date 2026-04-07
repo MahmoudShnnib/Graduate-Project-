@@ -2,7 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Channels\WhatsAppMessage;
+use App\Enums\ApplicationStatus;
 use App\Models\Application;
+use App\Notifications\Concerns\HasWhatsAppChannel;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,33 +13,20 @@ use Illuminate\Notifications\Notification;
 
 class ApplicationStatusChangedNotification extends Notification
 {
-    use Queueable;
+    use HasWhatsAppChannel, Queueable;
 
     public function __construct(public readonly Application $application) {}
 
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
-
     public function toMail(object $notifiable): MailMessage
     {
-        $statusLabels = [
-            'pending' => 'قيد المراجعة',
-            'accepted' => 'مقبول',
-            'rejected' => 'مرفوض',
-            'exam_scheduled' => 'تم تحديد موعد الاختبار',
-        ];
-
-        $label = $statusLabels[$this->application->status] ?? $this->application->status;
+        $label = $this->application->status->label();
 
         $mail = (new MailMessage)
             ->subject('تحديث حالة طلب القبول')
             ->greeting('عزيزي المتقدم،')
             ->line("تم تحديث حالة طلب قبولك إلى: **{$label}**");
 
-        if ($this->application->status === 'exam_scheduled' && $this->application->exam_date) {
+        if ($this->application->status === ApplicationStatus::InitiallyApproved && $this->application->exam_date) {
             $mail->line('موعد الاختبار: '.Carbon::parse($this->application->exam_date)->format('Y/m/d H:i'));
         }
 
@@ -47,6 +37,22 @@ class ApplicationStatusChangedNotification extends Notification
         return $mail
             ->action('عرض الطلب', url('/portal'))
             ->salutation('مع تحيات مكتب الدراسات العليا');
+    }
+
+    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    {
+        $label = $this->application->status->label();
+        $text = "مرحباً {$notifiable->name}، تم تحديث حالة طلب قبولك إلى: {$label}.";
+
+        if ($this->application->status === ApplicationStatus::InitiallyApproved && $this->application->exam_date) {
+            $text .= "\nموعد الاختبار: ".Carbon::parse($this->application->exam_date)->format('Y/m/d H:i');
+        }
+
+        if ($this->application->rejection_reason) {
+            $text .= "\nسبب الرفض: {$this->application->rejection_reason}";
+        }
+
+        return new WhatsAppMessage(message: $text);
     }
 
     /** @return array<string, mixed> */

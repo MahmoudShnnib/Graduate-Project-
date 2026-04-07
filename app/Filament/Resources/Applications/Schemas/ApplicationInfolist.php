@@ -22,9 +22,14 @@ class ApplicationInfolist
                     ->columnSpanFull()
                     ->compact()
                     ->components([
-                        Grid::make(['default' => 2, 'sm' => 4])
+                        Grid::make(['default' => 2, 'sm' => 5])
                             ->components([
-                                TextEntry::make('user.name')
+                                TextEntry::make('tracking_code')
+                                    ->label('رقم التتبع')
+                                    ->copyable()
+                                    ->weight(\Filament\Support\Enums\FontWeight::Bold),
+
+                                TextEntry::make('name')
                                     ->label('الاسم الرباعي')
                                     ->weight(\Filament\Support\Enums\FontWeight::Bold),
 
@@ -38,7 +43,7 @@ class ApplicationInfolist
                                     ->formatStateUsing(fn (ApplicationStatus $state): string => $state->label())
                                     ->color(fn (ApplicationStatus $state): string => match ($state) {
                                         ApplicationStatus::Pending => 'warning',
-                                        ApplicationStatus::ProvisionallyAccepted => 'info',
+                                        ApplicationStatus::InitiallyApproved => 'info',
                                         ApplicationStatus::Accepted => 'success',
                                         ApplicationStatus::Rejected => 'danger',
                                     }),
@@ -120,15 +125,15 @@ class ApplicationInfolist
                     ->columnSpan(1)
                     ->columns(1)
                     ->components([
-                        TextEntry::make('user.email')
+                        TextEntry::make('email')
                             ->label('البريد الإلكتروني')
                             ->placeholder('—'),
 
-                        TextEntry::make('user.phone')
+                        TextEntry::make('phone')
                             ->label('رقم النقال')
                             ->placeholder('—'),
 
-                        TextEntry::make('user.specialization.name')
+                        TextEntry::make('specialization.name')
                             ->label('التخصص')
                             ->badge()
                             ->color('info')
@@ -207,7 +212,23 @@ class ApplicationInfolist
                             ->label('تاريخ الامتحان')
                             ->dateTime()
                             ->placeholder('—')
-                            ->visible(fn ($record): bool => $record?->status === ApplicationStatus::ProvisionallyAccepted),
+                            ->visible(fn ($record): bool => $record?->exam_date !== null),
+
+                        TextEntry::make('exam_score')
+                            ->label('درجة الامتحان')
+                            ->placeholder('—')
+                            ->visible(fn ($record): bool => $record?->exam_passed !== null),
+
+                        IconEntry::make('exam_passed')
+                            ->label('نتيجة الامتحان')
+                            ->boolean()
+                            ->visible(fn ($record): bool => $record?->exam_passed !== null),
+
+                        TextEntry::make('exam_result_date')
+                            ->label('تاريخ إعلان النتيجة')
+                            ->dateTime()
+                            ->placeholder('—')
+                            ->visible(fn ($record): bool => $record?->exam_result_date !== null),
                     ]),
             ]);
     }

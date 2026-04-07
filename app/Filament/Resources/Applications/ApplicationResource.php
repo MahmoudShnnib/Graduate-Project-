@@ -9,6 +9,7 @@ use App\Filament\Resources\Applications\Pages\ListApplications;
 use App\Filament\Resources\Applications\Pages\ViewApplication;
 use App\Filament\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Models\Application;
+use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -56,9 +57,23 @@ class ApplicationResource extends Resource
             Section::make('البيانات الشخصية')
                 ->columns(2)
                 ->components([
-                    Select::make('user_id')
-                        ->relationship('user', 'name')
-                        ->label('المتقدم')
+                    TextInput::make('name')
+                        ->label('الاسم الرباعي')
+                        ->required()
+                        ->columnSpan(2),
+
+                    TextInput::make('email')
+                        ->label('البريد الإلكتروني')
+                        ->email()
+                        ->required(),
+
+                    TextInput::make('phone')
+                        ->label('رقم النقال')
+                        ->required(),
+
+                    Select::make('specialization_id')
+                        ->relationship('specialization', 'name')
+                        ->label('التخصص')
                         ->required()
                         ->searchable()
                         ->preload()
@@ -153,7 +168,7 @@ class ApplicationResource extends Resource
 
                     DateTimePicker::make('exam_date')
                         ->label('تاريخ الامتحان')
-                        ->visible(fn ($get): bool => $get('status') === ApplicationStatus::ProvisionallyAccepted->value),
+                        ->visible(fn ($get): bool => $get('status') === ApplicationStatus::InitiallyApproved->value),
 
                     Textarea::make('notes')
                         ->label('ملاحظات')
@@ -187,7 +202,14 @@ class ApplicationResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('user.name')
+                TextColumn::make('tracking_code')
+                    ->label('رقم التتبع')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->toggleable(),
+
+                TextColumn::make('name')
                     ->label('الاسم الرباعي')
                     ->searchable()
                     ->sortable(),
@@ -203,12 +225,12 @@ class ApplicationResource extends Resource
                     ->placeholder('-')
                     ->toggleable(),
 
-                TextColumn::make('user.phone')
+                TextColumn::make('phone')
                     ->label('النقال')
                     ->placeholder('-')
                     ->toggleable(),
 
-                TextColumn::make('user.specialization.name')
+                TextColumn::make('specialization.name')
                     ->label('التخصص')
                     ->placeholder('-')
                     ->toggleable(),
@@ -232,7 +254,7 @@ class ApplicationResource extends Resource
                     ->badge()
                     ->color(fn (ApplicationStatus $state): string => match ($state) {
                         ApplicationStatus::Pending => 'warning',
-                        ApplicationStatus::ProvisionallyAccepted => 'info',
+                        ApplicationStatus::InitiallyApproved => 'info',
                         ApplicationStatus::Accepted => 'success',
                         ApplicationStatus::Rejected => 'danger',
                     })
@@ -259,11 +281,39 @@ class ApplicationResource extends Resource
                     ]),
             ])
             ->recordActions([
+                Action::make('initialApprove')
+                    ->label('قبول مبدئي')
+                    ->icon(Heroicon::ClipboardDocumentCheck)
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('قبول مبدئي')
+                    ->modalDescription('سيتم إضافة الطالب إلى قائمة الامتحان التفاضلي.')
+                    ->action(function (Application $application, NotificationService $notifier, \Livewire\Component $livewire) {
+                        $examDate = $livewire->scheduledExamDate ?? null;
+
+                        if (! $examDate) {
+                            Notification::make()->title('يجب تحديد موعد الامتحان أولاً')->danger()->send();
+
+                            return;
+                        }
+
+                        $application->update([
+                            'status' => ApplicationStatus::InitiallyApproved,
+                            'exam_date' => $examDate,
+                        ]);
+
+                        $notifier->notifyApplicationStatusChanged($application);
+
+                        Notification::make()->title('تم القبول المبدئي بنجاح')->success()->send();
+                    })
+                    ->visible(fn (Application $record) => $record->status === ApplicationStatus::Pending),
                 Action::make('approve')
-                    ->label('قبول')
+                    ->label('قبول مباشر')
                     ->icon(Heroicon::Check)
                     ->color('success')
                     ->requiresConfirmation()
+                    ->modalHeading('قبول مباشر')
+                    ->modalDescription('سيتم قبول الطالب نهائياً وإنشاء سجل طالب بدون امتحان.')
                     ->action(function (Application $application, ApproveApplication $approve) {
                         try {
                             $approve->handle($application);
@@ -278,6 +328,45 @@ class ApplicationResource extends Resource
                 DeleteAction::make(),
             ])
             ->toolbarActions([
+                \Filament\Actions\BulkAction::make('bulkInitialApprove')
+                    ->label('قبول مبدئي')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('قبول مبدئي للطلاب المحددين')
+                    ->modalDescription('سيتم إضافة الطلاب المحددين إلى قائمة الامتحان التفاضلي.')
+                    ->action(function (\Illuminate\Database\Eloquent\Collection $records, \Livewire\Component $livewire) {
+                        $examDate = $livewire->scheduledExamDate ?? null;
+
+                        if (! $examDate) {
+                            Notification::make()->title('يجب تحديد موعد الامتحان أولاً')->danger()->send();
+
+                            return;
+                        }
+
+                        $notifier = app(NotificationService::class);
+                        $count = 0;
+
+                        foreach ($records as $application) {
+                            if ($application->status !== ApplicationStatus::Pending) {
+                                continue;
+                            }
+
+                            $application->update([
+                                'status' => ApplicationStatus::InitiallyApproved,
+                                'exam_date' => $examDate,
+                            ]);
+
+                            $notifier->notifyApplicationStatusChanged($application);
+                            $count++;
+                        }
+
+                        Notification::make()
+                            ->title("تم القبول المبدئي لـ {$count} طالب")
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
                 DeleteBulkAction::make(),
             ]);
     }
