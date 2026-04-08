@@ -6,6 +6,9 @@
     @if(! $application)
         <x-filament::section>
             <div class="text-center py-12">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 mx-auto mb-3">
+                    <x-heroicon-o-inbox style="width: 1.25rem; height: 1.25rem;" class="text-gray-400 dark:text-gray-500" />
+                </div>
                 <p class="text-gray-400 dark:text-gray-500 text-sm">لا يوجد طلب قبول مسجل لهذا الحساب.</p>
             </div>
         </x-filament::section>
@@ -14,14 +17,14 @@
         <div @class([
             'rounded-xl border p-5 flex items-center gap-4',
             'bg-warning-50 border-warning-200 dark:bg-warning-500/10 dark:border-warning-500/30' => $application->status->value === 'pending',
-            'bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/30' => $application->status->value === 'initially_approved',
+            'bg-info-50 border-info-200 dark:bg-info-500/10 dark:border-info-500/30' => $application->status->value === 'initially_approved',
             'bg-success-50 border-success-200 dark:bg-success-500/10 dark:border-success-500/30' => $application->status->value === 'accepted',
             'bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30' => $application->status->value === 'rejected',
         ])>
             <div @class([
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
                 'bg-warning-100 dark:bg-warning-500/20' => $application->status->value === 'pending',
-                'bg-blue-100 dark:bg-blue-500/20' => $application->status->value === 'initially_approved',
+                'bg-info-100 dark:bg-info-500/20' => $application->status->value === 'initially_approved',
                 'bg-success-100 dark:bg-success-500/20' => $application->status->value === 'accepted',
                 'bg-danger-100 dark:bg-danger-500/20' => $application->status->value === 'rejected',
             ])>
@@ -30,7 +33,7 @@
                 @elseif($application->status->value === 'rejected')
                     <x-heroicon-o-x-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
                 @elseif($application->status->value === 'initially_approved')
-                    <x-heroicon-o-calendar style="width: 1.25rem; height: 1.25rem;" class="text-blue-600 dark:text-blue-400" />
+                    <x-heroicon-o-calendar style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
                 @else
                     <x-heroicon-o-clock style="width: 1.25rem; height: 1.25rem;" class="text-warning-600 dark:text-warning-400" />
                 @endif
@@ -55,7 +58,14 @@
         </div>
 
         {{-- Timeline --}}
-        <x-filament::section heading="مسار الطلب">
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-queue-list style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                    <span>مسار الطلب</span>
+                </div>
+            </x-slot>
+
             <ol class="relative border-r border-gray-200 dark:border-white/10 me-3 space-y-6">
                 <li class="ms-6">
                     <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-500/20">
@@ -66,16 +76,16 @@
                 </li>
                 @if(in_array($application->status->value, ['initially_approved', 'accepted', 'rejected']))
                     <li class="ms-6">
-                        <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
-                            <x-heroicon-o-eye style="width: 0.75rem; height: 0.75rem;" class="text-blue-600 dark:text-blue-400" />
+                        <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-info-100 dark:bg-info-500/20">
+                            <x-heroicon-o-eye style="width: 0.75rem; height: 0.75rem;" class="text-info-600 dark:text-info-400" />
                         </span>
                         <h3 class="font-medium text-sm text-gray-900 dark:text-white">مراجعة الطلب</h3>
                     </li>
                 @endif
                 @if(in_array($application->status->value, ['initially_approved', 'accepted']) && $application->exam_date)
                     <li class="ms-6">
-                        <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20">
-                            <x-heroicon-o-calendar style="width: 0.75rem; height: 0.75rem;" class="text-blue-600 dark:text-blue-400" />
+                        <span class="absolute -start-3 flex h-6 w-6 items-center justify-center rounded-full bg-info-100 dark:bg-info-500/20">
+                            <x-heroicon-o-calendar style="width: 0.75rem; height: 0.75rem;" class="text-info-600 dark:text-info-400" />
                         </span>
                         <h3 class="font-medium text-sm text-gray-900 dark:text-white">مقبول مبدئياً — بانتظار الامتحان</h3>
                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ \Carbon\Carbon::parse($application->exam_date)->format('Y/m/d H:i') }}</p>
@@ -101,7 +111,13 @@
         </x-filament::section>
 
         @if($application->notes)
-            <x-filament::section heading="ملاحظات">
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-chat-bubble-bottom-center-text style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                        <span>ملاحظات</span>
+                    </div>
+                </x-slot>
                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ $application->notes }}</p>
             </x-filament::section>
         @endif

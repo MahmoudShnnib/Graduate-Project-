@@ -6,9 +6,14 @@
 
     @if(! $student)
         <x-filament::section>
-            <p class="text-center text-gray-500 dark:text-gray-400 py-4">
-                لا يوجد سجل طالب مرتبط بهذا الحساب. يرجى التواصل مع الإدارة.
-            </p>
+            <div class="text-center py-12">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 mx-auto mb-3">
+                    <x-heroicon-o-user style="width: 1.25rem; height: 1.25rem;" class="text-gray-400 dark:text-gray-500" />
+                </div>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">
+                    لا يوجد سجل طالب مرتبط بهذا الحساب. يرجى التواصل مع الإدارة.
+                </p>
+            </div>
         </x-filament::section>
     @else
         {{-- Welcome Banner --}}

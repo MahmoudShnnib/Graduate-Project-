@@ -6,7 +6,14 @@
     @endphp
 
     {{-- Eligibility Status --}}
-    <x-filament::section heading="حالة التأهل">
+    <x-filament::section>
+        <x-slot name="heading">
+            <div class="flex items-center gap-2">
+                <x-heroicon-o-shield-check style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                <span>حالة التأهل</span>
+            </div>
+        </x-slot>
+
         <div @class([
             'flex items-start gap-4 p-4 rounded-xl border',
             'bg-success-50 border-success-200 dark:bg-success-500/10 dark:border-success-500/30' => $isEligible,
@@ -50,7 +57,14 @@
 
     {{-- Existing Registration --}}
     @if($registration)
-        <x-filament::section heading="طلب التسجيل">
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-document-text style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                    <span>طلب التسجيل</span>
+                </div>
+            </x-slot>
+
             @php
                 $statusConfig = [
                     'pending'  => ['label' => 'قيد المراجعة', 'color' => 'warning'],
@@ -93,34 +107,49 @@
 
     {{-- Registration Form --}}
     @elseif($isEligible)
-        <x-filament::section heading="نموذج تسجيل الرسالة">
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-pencil-square style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                    <span>نموذج تسجيل الرسالة</span>
+                </div>
+            </x-slot>
+
             <div class="space-y-4 max-w-lg">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">عنوان الرسالة <span class="text-danger-500">*</span></label>
-                    <input wire:model="thesisTitle" type="text"
-                        class="w-full border-gray-300 dark:border-white/10 dark:bg-gray-800 dark:text-white rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
-                        placeholder="أدخل عنوان الرسالة المقترح" />
+                    <label class="fi-fo-field-wrp-label text-sm font-medium text-gray-950 dark:text-white mb-2 block">
+                        عنوان الرسالة <span class="text-danger-500">*</span>
+                    </label>
+                    <x-filament::input.wrapper :valid="! $errors->has('thesisTitle')">
+                        <x-filament::input wire:model="thesisTitle" type="text" placeholder="أدخل عنوان الرسالة المقترح" />
+                    </x-filament::input.wrapper>
                     @error('thesisTitle') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">اسم المشرف <span class="text-danger-500">*</span></label>
-                    <input wire:model="supervisorName" type="text"
-                        class="w-full border-gray-300 dark:border-white/10 dark:bg-gray-800 dark:text-white rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
-                        placeholder="الاسم الكامل للمشرف" />
+                    <label class="fi-fo-field-wrp-label text-sm font-medium text-gray-950 dark:text-white mb-2 block">
+                        اسم المشرف <span class="text-danger-500">*</span>
+                    </label>
+                    <x-filament::input.wrapper :valid="! $errors->has('supervisorName')">
+                        <x-filament::input wire:model="supervisorName" type="text" placeholder="الاسم الكامل للمشرف" />
+                    </x-filament::input.wrapper>
                     @error('supervisorName') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">الدرجة العلمية للمشرف <span class="text-danger-500">*</span></label>
-                    <input wire:model="supervisorDegree" type="text"
-                        class="w-full border-gray-300 dark:border-white/10 dark:bg-gray-800 dark:text-white rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
-                        placeholder="مثال: دكتوراه، أستاذ مشارك" />
+                    <label class="fi-fo-field-wrp-label text-sm font-medium text-gray-950 dark:text-white mb-2 block">
+                        الدرجة العلمية للمشرف <span class="text-danger-500">*</span>
+                    </label>
+                    <x-filament::input.wrapper :valid="! $errors->has('supervisorDegree')">
+                        <x-filament::input wire:model="supervisorDegree" type="text" placeholder="مثال: دكتوراه، أستاذ مشارك" />
+                    </x-filament::input.wrapper>
                     @error('supervisorDegree') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">جهة عمل المشرف <span class="text-danger-500">*</span></label>
-                    <input wire:model="supervisorEmployer" type="text"
-                        class="w-full border-gray-300 dark:border-white/10 dark:bg-gray-800 dark:text-white rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 text-sm"
-                        placeholder="الجامعة أو المؤسسة" />
+                    <label class="fi-fo-field-wrp-label text-sm font-medium text-gray-950 dark:text-white mb-2 block">
+                        جهة عمل المشرف <span class="text-danger-500">*</span>
+                    </label>
+                    <x-filament::input.wrapper :valid="! $errors->has('supervisorEmployer')">
+                        <x-filament::input wire:model="supervisorEmployer" type="text" placeholder="الجامعة أو المؤسسة" />
+                    </x-filament::input.wrapper>
                     @error('supervisorEmployer') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
                 <x-filament::button wire:click="submit" icon="heroicon-o-paper-airplane">

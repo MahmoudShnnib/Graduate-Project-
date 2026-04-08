@@ -33,7 +33,14 @@
 
     {{-- Clearance Already Requested --}}
     @elseif($clearance)
-        <x-filament::section heading="حالة طلب الاستماحة">
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-document-check style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                    <span>حالة طلب الاستماحة</span>
+                </div>
+            </x-slot>
+
             @php
                 $statusConfig = [
                     'pending'  => ['label' => 'قيد المراجعة', 'color' => 'warning', 'icon' => 'clock'],
@@ -78,7 +85,14 @@
 
     {{-- Request Button --}}
     @else
-        <x-filament::section heading="طلب الاستماحة">
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-document-check style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                    <span>طلب الاستماحة</span>
+                </div>
+            </x-slot>
+
             <div class="flex flex-col items-center text-center py-8">
                 <div class="flex h-16 w-16 items-center justify-center rounded-full bg-success-100 dark:bg-success-500/20 mb-4">
                     <x-heroicon-o-check-badge style="width: 2rem; height: 2rem;" class="text-success-600 dark:text-success-400" />
