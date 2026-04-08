@@ -19,7 +19,7 @@ class AddDropPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrows-right-left';
 
-    protected static string|\UnitEnum|null $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = 'الأكاديمي';
 
     protected static ?int $navigationSort = 5;
 

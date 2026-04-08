@@ -17,7 +17,7 @@ class CourseSurveyPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static string|\UnitEnum|null $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = 'الأكاديمي';
 
     protected static ?int $navigationSort = 3;
 

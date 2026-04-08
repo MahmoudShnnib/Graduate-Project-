@@ -15,7 +15,7 @@ class StudentCoursesPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-academic-cap';
 
-    protected static string|\UnitEnum|null $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = 'الأكاديمي';
 
     protected static ?int $navigationSort = 4;
 

@@ -1,1 +1,29 @@
 @import "../../../../vendor/filament/filament/resources/css/theme.css";
+
+/* Scan student portal blade views so Tailwind generates utility classes used in them */
+@source "../../../views/filament/student/**/*.blade.php";
+
+/*
+ * Student Portal Theme
+ * Scoped styles to align custom Blade tables and form elements
+ * with Filament's admin panel visual language.
+ */
+
+/* Custom table styling to match Filament table component */
+.fi-ta-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.fi-ta-header-cell {
+    white-space: nowrap;
+}
+
+.fi-ta-row:last-child .fi-ta-cell {
+    border-bottom: none;
+}
+
+/* Textarea inside Filament input wrapper — match native input styling */
+.fi-input-wrp textarea {
+    resize: vertical;
+}

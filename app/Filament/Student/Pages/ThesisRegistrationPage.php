@@ -14,7 +14,7 @@ class ThesisRegistrationPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static string|\UnitEnum|null $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = 'الطلبات';
 
     protected static ?int $navigationSort = 8;
 
