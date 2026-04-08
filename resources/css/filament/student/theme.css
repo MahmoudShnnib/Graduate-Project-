@@ -1,5 +1,8 @@
 @import "../../../../vendor/filament/filament/resources/css/theme.css";
 
+/* Scan student portal blade views so Tailwind generates utility classes used in them */
+@source "../../../views/filament/student/**/*.blade.php";
+
 /*
  * Student Portal Theme
  * Scoped styles to align custom Blade tables and form elements
