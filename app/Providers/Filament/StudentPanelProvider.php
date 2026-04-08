@@ -7,6 +7,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -26,8 +27,13 @@ class StudentPanelProvider extends PanelProvider
             ->path('portal')
             ->viteTheme('resources/css/filament/student/theme.css')
             ->login()
+            ->brandName('بوابة الطالب')
             ->colors([
                 'primary' => Color::hex('#1F4E79'),
+            ])
+            ->navigationGroups([
+                NavigationGroup::make('الأكاديمي'),
+                NavigationGroup::make('الطلبات'),
             ])
             ->discoverResources(in: app_path('Filament/Student/Resources'), for: 'App\Filament\Student\Resources')
             ->discoverPages(in: app_path('Filament/Student/Pages'), for: 'App\Filament\Student\Pages')

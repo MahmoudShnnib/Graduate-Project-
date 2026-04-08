@@ -14,7 +14,7 @@ class ClearancePage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 
-    protected static string|\UnitEnum|null $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = 'الطلبات';
 
     protected static ?int $navigationSort = 9;
 

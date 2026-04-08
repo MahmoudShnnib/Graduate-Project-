@@ -35,29 +35,30 @@
                             $status = $statuses[$course->id] ?? 'pending';
                             $priority = $this->selections[$course->id];
                         @endphp
-                        <div class="flex items-center justify-between rounded-lg border p-3
-                            {{ $status === 'enrolled'     ? 'border-green-300 bg-green-50'  : '' }}
-                            {{ $status === 'pending'      ? 'border-yellow-300 bg-yellow-50' : '' }}
-                            {{ $status === 'unavailable'  ? 'border-red-200 bg-red-50'      : '' }}
-                        ">
+                        <div @class([
+                            'flex items-center justify-between rounded-xl border p-3 transition-colors',
+                            'border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10' => $status === 'enrolled',
+                            'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => $status === 'pending',
+                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10'     => $status === 'unavailable',
+                        ])>
                             <div class="flex items-center gap-3">
-                                <span class="inline-flex size-7 items-center justify-center rounded-full bg-gray-700 text-xs font-bold text-white">
+                                <span class="inline-flex size-7 items-center justify-center rounded-full bg-primary-600 dark:bg-primary-500 text-xs font-bold text-white">
                                     {{ $priority }}
                                 </span>
                                 <div>
-                                    <p class="text-sm font-medium">{{ $course->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $course->code }} — {{ $course->credits }} ساعة</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $course->name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $course->code }} — {{ $course->credits }} ساعة</p>
                                 </div>
                             </div>
                             <span @class([
-                                'rounded-full px-3 py-1 text-xs font-semibold',
-                                'bg-green-100 text-green-700'  => $status === 'enrolled',
-                                'bg-yellow-100 text-yellow-700' => $status === 'pending',
-                                'bg-red-100 text-red-600'      => $status === 'unavailable',
+                                'rounded-lg px-2.5 py-1 text-xs font-semibold',
+                                'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $status === 'enrolled',
+                                'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $status === 'pending',
+                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'unavailable',
                             ])>
-                                @if($status === 'enrolled')    ✅ مُسجَّل
-                                @elseif($status === 'pending')  ⏳ قيد المراجعة
-                                @else                          ❌ المادة غير متاحة هذا الفصل
+                                @if($status === 'enrolled') مُسجَّل
+                                @elseif($status === 'pending') قيد المراجعة
+                                @else المادة غير متاحة هذا الفصل
                                 @endif
                             </span>
                         </div>
@@ -147,7 +148,7 @@
                                     {{ $this->selections[$course->id] }}
                                 </span>
                             @endif
-                        </button>
+                        </div>
                     @endforeach
                 </div>
 
