@@ -26,6 +26,9 @@ class StudentSurveyView extends Page
 
     public ?Semester $semester = null;
 
+    /** @var array<int, string> */
+    public array $selected = [];
+
     public function mount(Student $student, Semester $semester): void
     {
         $this->student = $student->load(['user:id,name', 'specialization:id,name']);
@@ -67,6 +70,60 @@ class StudentSurveyView extends Page
                     'enrollment' => $enrollment,
                 ];
             });
+    }
+
+    public function enrollSelected(): void
+    {
+        if (empty($this->selected)) {
+            Notification::make()->title('الرجاء تحديد مقرر واحد على الأقل')->warning()->send();
+
+            return;
+        }
+
+        $count = 0;
+        foreach ($this->selected as $courseId) {
+            $offering = CourseOffering::firstOrCreate(
+                ['course_id' => (int) $courseId, 'semester_id' => $this->semester->id],
+                ['is_open' => true]
+            );
+
+            $created = StudentEnrollment::firstOrCreate(
+                ['student_id' => $this->student->id, 'course_offering_id' => $offering->id],
+                ['status' => EnrollmentStatus::Enrolled]
+            );
+
+            if ($created->wasRecentlyCreated) {
+                $count++;
+            }
+        }
+
+        $this->selected = [];
+        Notification::make()->title("تم تسجيل {$count} مقرر بنجاح")->success()->send();
+    }
+
+    public function unenrollSelected(): void
+    {
+        if (empty($this->selected)) {
+            Notification::make()->title('الرجاء تحديد مقرر واحد على الأقل')->warning()->send();
+
+            return;
+        }
+
+        $count = 0;
+        foreach ($this->selected as $courseId) {
+            $offering = CourseOffering::where('course_id', (int) $courseId)
+                ->where('semester_id', $this->semester->id)
+                ->first();
+
+            if ($offering) {
+                $count += StudentEnrollment::where('student_id', $this->student->id)
+                    ->where('course_offering_id', $offering->id)
+                    ->delete();
+            }
+        }
+
+        $this->selected = [];
+        Notification::make()->title("تم إلغاء تسجيل {$count} مقرر")->warning()->send();
     }
 
     public function enrollStudent(int $courseId): void

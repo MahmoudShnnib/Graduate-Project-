@@ -16,6 +16,8 @@ class SpecializationsRelationManager extends RelationManager
 {
     protected static string $relationship = 'specializations';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $title = 'التخصصات';
 
     protected static ?string $modelLabel = 'تخصص';

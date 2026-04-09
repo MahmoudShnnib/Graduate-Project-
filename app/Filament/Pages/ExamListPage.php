@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Actions\ApproveApplication;
 use App\Enums\ApplicationStatus;
 use App\Models\Application;
+use App\Models\Specialization;
 use App\Services\NotificationService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -29,10 +30,23 @@ class ExamListPage extends Page
     /** @var array<int, float|null> */
     public array $scores = [];
 
+    public ?int $activeSpecialization = null;
+
+    public function getSpecializations(): Collection
+    {
+        return Specialization::orderBy('name')->get();
+    }
+
+    public function filterBySpecialization(?int $id): void
+    {
+        $this->activeSpecialization = $this->activeSpecialization === $id ? null : $id;
+    }
+
     public function getApplications(): Collection
     {
         return Application::where('status', ApplicationStatus::InitiallyApproved)
             ->with('specialization')
+            ->when($this->activeSpecialization, fn ($q) => $q->where('specialization_id', $this->activeSpecialization))
             ->orderBy('exam_date')
             ->get();
     }

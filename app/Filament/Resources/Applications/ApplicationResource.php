@@ -217,11 +217,6 @@ class ApplicationResource extends Resource
                 TextColumn::make('last_name')
                     ->label('اللقب')
                     ->searchable()
-                    ->placeholder('-'),
-
-                TextColumn::make('national_id')
-                    ->label('الرقم الوطني')
-                    ->searchable()
                     ->placeholder('-')
                     ->toggleable(),
 
@@ -233,20 +228,6 @@ class ApplicationResource extends Resource
                 TextColumn::make('specialization.name')
                     ->label('التخصص')
                     ->placeholder('-')
-                    ->toggleable(),
-
-                TextColumn::make('study_type')
-                    ->label('نوع الدراسة')
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'self_funded' => 'حساب خاص',
-                        'internally_delegated' => 'إيفاد داخلي',
-                        'faculty_assistant' => 'معيد',
-                        'public_delegation' => 'جهة عامة',
-                        default => '-',
-                    })
-                    ->placeholder('-')
-                    ->badge()
-                    ->color('gray')
                     ->toggleable(),
 
                 TextColumn::make('status')
@@ -263,7 +244,28 @@ class ApplicationResource extends Resource
                 TextColumn::make('created_at')
                     ->label('تاريخ التقديم')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('national_id')
+                    ->label('الرقم الوطني')
+                    ->searchable()
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('study_type')
+                    ->label('نوع الدراسة')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'self_funded' => 'حساب خاص',
+                        'internally_delegated' => 'إيفاد داخلي',
+                        'faculty_assistant' => 'معيد',
+                        'public_delegation' => 'جهة عامة',
+                        default => '-',
+                    })
+                    ->placeholder('-')
+                    ->badge()
+                    ->color('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
