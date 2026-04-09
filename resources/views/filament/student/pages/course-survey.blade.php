@@ -102,13 +102,18 @@
             <div class="mb-5">
                 <div class="mb-1 flex items-center justify-between text-sm">
                     <span class="font-medium text-gray-700 dark:text-gray-300">تم اختيار {{ $selectedCount }} من {{ $max }}</span>
-                    @if($selectedCount === $max)
+                    @if($selectedCount >= $max)
                         <span class="inline-flex items-center gap-1 font-semibold text-success-600 dark:text-success-400">
                             <x-heroicon-o-check-circle style="width: 1rem; height: 1rem;" />
-                            اكتمل الاختيار
+                            الحد الأقصى
+                        </span>
+                    @elseif($selectedCount >= 1)
+                        <span class="inline-flex items-center gap-1 font-semibold text-primary-600 dark:text-primary-400">
+                            <x-heroicon-o-check-circle style="width: 1rem; height: 1rem;" />
+                            يمكنك الحفظ أو إضافة المزيد
                         </span>
                     @else
-                        <span class="text-gray-400 dark:text-gray-500">تبقى {{ $max - $selectedCount }}</span>
+                        <span class="text-gray-400 dark:text-gray-500">اختر مقرراً واحداً على الأقل</span>
                     @endif
                 </div>
                 <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
@@ -152,18 +157,24 @@
                 </div>
             @else
                 <div class="space-y-2">
+                    @php $maxReached = $this->isMaxReached(); @endphp
                     @foreach($courses as $course)
-                        @php $selected = isset($this->selections[$course->id]); @endphp
+                        @php
+                            $selected = isset($this->selections[$course->id]);
+                            $disabled = $maxReached && ! $selected;
+                        @endphp
                         <div @class([
-                            'flex items-center justify-between p-4 rounded-xl border transition-colors cursor-pointer',
-                            'border-primary-300 bg-primary-50 dark:border-primary-500/40 dark:bg-primary-500/10' => $selected,
-                            'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-white/20' => ! $selected,
+                            'flex items-center justify-between p-4 rounded-xl border transition-colors',
+                            'border-primary-300 bg-primary-50 dark:border-primary-500/40 dark:bg-primary-500/10 cursor-pointer' => $selected,
+                            'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-white/20 cursor-pointer' => ! $selected && ! $disabled,
+                            'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-gray-950 opacity-50 cursor-not-allowed' => $disabled,
                         ])>
                             <div class="flex items-center gap-3">
                                 <input type="checkbox"
                                     wire:click="toggleCourse({{ $course->id }})"
                                     @checked($selected)
-                                    class="fi-checkbox-input rounded border-gray-300 dark:border-white/20 text-primary-600 focus:ring-primary-500 w-4 h-4"
+                                    @disabled($disabled)
+                                    class="fi-checkbox-input rounded border-gray-300 dark:border-white/20 text-primary-600 focus:ring-primary-500 w-4 h-4 disabled:opacity-40 disabled:cursor-not-allowed"
                                 />
                                 <div>
                                     <p class="font-medium text-sm text-gray-900 dark:text-white">{{ $course->name }}</p>

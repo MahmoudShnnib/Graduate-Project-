@@ -141,7 +141,7 @@ class SemesterResource extends Resource
                     ->schema([
                         CheckboxList::make('course_ids')
                             ->label('المقررات')
-                            ->options(fn () => Course::where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => Course::where('is_active', true)->orderBy('name')->get()->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code]))
                             ->columns(2)
                             ->searchable()
                             ->bulkToggleable()
@@ -170,7 +170,7 @@ class SemesterResource extends Resource
                     ->schema([
                         CheckboxList::make('course_ids')
                             ->label('المقررات')
-                            ->options(fn () => Course::where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => Course::where('is_active', true)->orderBy('name')->get()->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code]))
                             ->columns(2)
                             ->searchable()
                             ->bulkToggleable()

@@ -102,6 +102,11 @@ class CourseSurveyPage extends Page
         return $statuses;
     }
 
+    public function isMaxReached(): bool
+    {
+        return count($this->selections) >= self::MAX_SELECTIONS;
+    }
+
     public function toggleCourse(int $courseId): void
     {
         $semester = $this->getActiveSemester();
@@ -151,9 +156,9 @@ class CourseSurveyPage extends Page
             return;
         }
 
-        if (count($this->selections) !== self::MAX_SELECTIONS) {
+        if (count($this->selections) < 1 || count($this->selections) > self::MAX_SELECTIONS) {
             Notification::make()
-                ->title('يجب اختيار '.self::MAX_SELECTIONS.' مقررات بالضبط')
+                ->title('يجب اختيار مقرر واحد على الأقل (بحد أقصى '.self::MAX_SELECTIONS.')')
                 ->body('اخترت '.count($this->selections).' حتى الآن')
                 ->warning()
                 ->send();
