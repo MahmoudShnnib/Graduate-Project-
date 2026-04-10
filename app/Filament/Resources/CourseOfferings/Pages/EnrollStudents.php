@@ -5,12 +5,16 @@ namespace App\Filament\Resources\CourseOfferings\Pages;
 use App\Enums\EnrollmentStatus;
 use App\Filament\Resources\CourseOfferings\CourseOfferingResource;
 use App\Models\CourseOffering;
+use App\Models\CourseSurvey;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
-use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -30,28 +34,120 @@ class EnrollStudents extends Page implements HasTable
 
     public function getTitle(): string
     {
-        return 'تسجيل الطلاب — '.$this->record->course->name;
+        return 'طلاب المقرر — '.$this->record->course->name;
     }
 
     public function getBreadcrumb(): string
     {
-        return 'تسجيل الطلاب';
+        return 'الطلاب';
+    }
+
+    private function getSurveyCount(): int
+    {
+        return CourseSurvey::where('course_id', $this->record->course_id)
+            ->where('semester_id', $this->record->semester_id)
+            ->count();
+    }
+
+    private function getSurveyStudentOptions(): array
+    {
+        return CourseSurvey::where('course_id', $this->record->course_id)
+            ->where('semester_id', $this->record->semester_id)
+            ->with('student.user')
+            ->orderBy('priority')
+            ->get()
+            ->mapWithKeys(fn (CourseSurvey $survey): array => [
+                $survey->student_id => $survey->student->enrollment_no.' — '.$survey->student->user->name.' (أولوية '.$survey->priority.')',
+            ])
+            ->toArray();
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('enroll_all')
-                ->label('تسجيل الجميع')
-                ->icon('heroicon-o-user-plus')
-                ->color('success')
-                ->requiresConfirmation()
-                ->modalHeading('تسجيل جميع الطلاب')
-                ->modalDescription('سيتم تسجيل كل الطلاب الذين اختاروا هذه المادة في الاستطلاع.')
-                ->action(function () {
-                    $count = $this->enrollAll();
+            Action::make('survey_students')
+                ->label(fn (): string => 'طلبوا المادة ('.$this->getSurveyCount().')')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->color('warning')
+                ->disabled(fn (): bool => $this->getSurveyCount() === 0)
+                ->form(fn (): array => [
+                    CheckboxList::make('student_ids')
+                        ->label('اختر الطلاب للتسجيل')
+                        ->options($this->getSurveyStudentOptions())
+                        ->columns(1)
+                        ->searchable()
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    $offeringId = $this->record->id;
+                    $count = 0;
+
+                    foreach ($data['student_ids'] as $studentId) {
+                        $enrollment = StudentEnrollment::firstOrCreate(
+                            ['student_id' => $studentId, 'course_offering_id' => $offeringId],
+                            ['status' => EnrollmentStatus::Enrolled]
+                        );
+
+                        if ($enrollment->wasRecentlyCreated) {
+                            $count++;
+                        }
+                    }
+
                     Notification::make()
-                        ->title("تم تسجيل {$count} طالب بنجاح")
+                        ->title("تم تسجيل {$count} طالب")
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('enroll_manual')
+                ->label('إضافة طالب')
+                ->icon('heroicon-o-user-plus')
+                ->color('primary')
+                ->form([
+                    Select::make('student_ids')
+                        ->label('اختر الطلاب')
+                        ->multiple()
+                        ->searchable()
+                        ->getSearchResultsUsing(function (string $search): array {
+                            return Student::with('user')
+                                ->where(function (Builder $q) use ($search): void {
+                                    $q->whereHas('user', fn (Builder $u) => $u->where('name', 'like', "%{$search}%"))
+                                        ->orWhere('enrollment_no', 'like', "%{$search}%");
+                                })
+                                ->limit(20)
+                                ->get()
+                                ->mapWithKeys(fn (Student $s): array => [
+                                    $s->id => $s->enrollment_no.' — '.$s->user->name,
+                                ])
+                                ->toArray();
+                        })
+                        ->getOptionLabelsUsing(fn (array $values): array => Student::with('user')
+                            ->whereIn('id', $values)
+                            ->get()
+                            ->mapWithKeys(fn (Student $s): array => [
+                                $s->id => $s->enrollment_no.' — '.$s->user->name,
+                            ])
+                            ->toArray()
+                        )
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    $offeringId = $this->record->id;
+                    $count = 0;
+
+                    foreach ($data['student_ids'] as $studentId) {
+                        $enrollment = StudentEnrollment::firstOrCreate(
+                            ['student_id' => $studentId, 'course_offering_id' => $offeringId],
+                            ['status' => EnrollmentStatus::Enrolled]
+                        );
+
+                        if ($enrollment->wasRecentlyCreated) {
+                            $count++;
+                        }
+                    }
+
+                    Notification::make()
+                        ->title("تم إضافة {$count} طالب")
                         ->success()
                         ->send();
                 }),
@@ -61,24 +157,12 @@ class EnrollStudents extends Page implements HasTable
     public function table(Table $table): Table
     {
         $offeringId = $this->record->id;
-        $courseId = $this->record->course_id;
-        $semesterId = $this->record->semester_id;
 
         return $table
             ->query(
                 Student::query()
-                    ->whereHas('courseSurveys', fn (Builder $q) => $q
-                        ->where('course_id', $courseId)
-                        ->where('semester_id', $semesterId)
-                    )
-                    ->with([
-                        'user:id,name',
-                        'courseSurveys' => fn ($q) => $q
-                            ->where('course_id', $courseId)
-                            ->where('semester_id', $semesterId),
-                        'enrollments' => fn ($q) => $q
-                            ->where('course_offering_id', $offeringId),
-                    ])
+                    ->whereHas('enrollments', fn (Builder $q) => $q->where('course_offering_id', $offeringId))
+                    ->with(['user:id,name'])
             )
             ->columns([
                 TextColumn::make('enrollment_no')
@@ -89,61 +173,23 @@ class EnrollStudents extends Page implements HasTable
                 TextColumn::make('user.name')
                     ->label('اسم الطالب')
                     ->searchable(),
+            ])
+            ->recordActions([
+                DeleteAction::make('unenroll')
+                    ->label('حذف')
+                    ->requiresConfirmation()
+                    ->action(function (Student $record) use ($offeringId) {
+                        StudentEnrollment::where('student_id', $record->id)
+                            ->where('course_offering_id', $offeringId)
+                            ->delete();
 
-                TextColumn::make('priority')
-                    ->label('الأولوية')
-                    ->getStateUsing(fn (Student $record): int => $record->courseSurveys->first()?->priority ?? 0)
-                    ->badge()
-                    ->color(fn (int $state): string => match ($state) {
-                        1 => 'success',
-                        2 => 'info',
-                        3 => 'warning',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn (int $state): string => "الأولوية {$state}"),
-
-                TextColumn::make('enrollment_status')
-                    ->label('حالة التسجيل')
-                    ->getStateUsing(fn (Student $record): string => $record->enrollments->isNotEmpty() ? 'enrolled' : 'not_enrolled')
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'enrolled' => '✓ مسجّل',
-                        'not_enrolled' => 'لم يُسجَّل بعد',
-                        default => $state,
-                    })
-                    ->color(fn (string $state): string => match ($state) {
-                        'enrolled' => 'success',
-                        'not_enrolled' => 'warning',
-                        default => 'gray',
+                        Notification::make()
+                            ->title('تم إلغاء تسجيل الطالب')
+                            ->warning()
+                            ->send();
                     }),
             ])
             ->bulkActions([
-                BulkAction::make('enroll_selected')
-                    ->label('تسجيل المحددين')
-                    ->icon('heroicon-o-user-plus')
-                    ->color('primary')
-                    ->requiresConfirmation()
-                    ->action(function (Collection $records) use ($offeringId) {
-                        $count = 0;
-                        foreach ($records as $student) {
-                            $created = StudentEnrollment::firstOrCreate(
-                                [
-                                    'student_id' => $student->id,
-                                    'course_offering_id' => $offeringId,
-                                ],
-                                ['status' => EnrollmentStatus::Enrolled]
-                            );
-                            if ($created->wasRecentlyCreated) {
-                                $count++;
-                            }
-                        }
-                        Notification::make()
-                            ->title("تم تسجيل {$count} طالب جديد")
-                            ->success()
-                            ->send();
-                    })
-                    ->deselectRecordsAfterCompletion(),
-
                 BulkAction::make('unenroll_selected')
                     ->label('إلغاء تسجيل المحددين')
                     ->icon('heroicon-o-user-minus')
@@ -153,46 +199,13 @@ class EnrollStudents extends Page implements HasTable
                         $count = StudentEnrollment::whereIn('student_id', $records->pluck('id'))
                             ->where('course_offering_id', $offeringId)
                             ->delete();
+
                         Notification::make()
                             ->title("تم إلغاء تسجيل {$count} طالب")
                             ->warning()
                             ->send();
                     })
                     ->deselectRecordsAfterCompletion(),
-            ])
-            ->defaultSort(fn (Builder $query) => $query
-                ->orderByRaw('(SELECT priority FROM course_surveys WHERE student_id = students.id AND course_id = ? AND semester_id = ? LIMIT 1) ASC', [
-                    $courseId,
-                    $semesterId,
-                ])
-            );
-    }
-
-    private function enrollAll(): int
-    {
-        $courseId = $this->record->course_id;
-        $semesterId = $this->record->semester_id;
-        $offeringId = $this->record->id;
-
-        $students = Student::whereHas('courseSurveys', fn (Builder $q) => $q
-            ->where('course_id', $courseId)
-            ->where('semester_id', $semesterId)
-        )->get();
-
-        $count = 0;
-        foreach ($students as $student) {
-            $enrollment = StudentEnrollment::firstOrCreate(
-                [
-                    'student_id' => $student->id,
-                    'course_offering_id' => $offeringId,
-                ],
-                ['status' => EnrollmentStatus::Enrolled]
-            );
-            if ($enrollment->wasRecentlyCreated) {
-                $count++;
-            }
-        }
-
-        return $count;
+            ]);
     }
 }

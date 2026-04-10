@@ -14,7 +14,6 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
@@ -28,8 +27,10 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ApplicationResource extends Resource
 {
@@ -201,6 +202,11 @@ class ApplicationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query, HasTable $livewire): void {
+                if (property_exists($livewire, 'activeSpecialization') && $livewire->activeSpecialization) {
+                    $query->where('specialization_id', $livewire->activeSpecialization);
+                }
+            })
             ->columns([
                 TextColumn::make('tracking_code')
                     ->label('رقم التتبع')
@@ -213,12 +219,6 @@ class ApplicationResource extends Resource
                     ->label('الاسم الرباعي')
                     ->searchable()
                     ->sortable(),
-
-                TextColumn::make('last_name')
-                    ->label('اللقب')
-                    ->searchable()
-                    ->placeholder('-')
-                    ->toggleable(),
 
                 TextColumn::make('phone')
                     ->label('النقال')
@@ -246,6 +246,12 @@ class ApplicationResource extends Resource
                     ->date()
                     ->sortable()
                     ->toggleable(),
+
+                TextColumn::make('last_name')
+                    ->label('اللقب')
+                    ->searchable()
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('national_id')
                     ->label('الرقم الوطني')
@@ -326,7 +332,6 @@ class ApplicationResource extends Resource
                     })
                     ->visible(fn (Application $record) => $record->status === ApplicationStatus::Pending),
                 ViewAction::make(),
-                EditAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

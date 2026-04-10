@@ -53,12 +53,6 @@
                     </div>
 
                     <div>
-                        <x-form.label for="last_name">اللقب <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="last_name" name="last_name" type="text" value="{{ old('last_name') }}" placeholder="اللقب العائلي بالعربية" required />
-                        <x-form.error name="last_name" />
-                    </div>
-
-                    <div>
                         <x-form.label for="mother_name">اسم الأم <span class="text-red-500">*</span></x-form.label>
                         <x-form.input id="mother_name" name="mother_name" type="text" value="{{ old('mother_name') }}" placeholder="الاسم الأول والثاني على الأقل" required />
                         <x-form.error name="mother_name" />
@@ -198,6 +192,17 @@
                             @endforeach
                         </x-form.select>
                         <x-form.error name="specialization_id" />
+                    </div>
+
+                    <div>
+                        <x-form.label for="password">كلمة المرور <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="password" name="password" type="password" placeholder="8 أحرف على الأقل" required />
+                        <x-form.error name="password" />
+                    </div>
+
+                    <div>
+                        <x-form.label for="password_confirmation">تأكيد كلمة المرور <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" placeholder="أعد كتابة كلمة المرور" required />
                     </div>
                 </div>
             </div>

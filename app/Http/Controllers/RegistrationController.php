@@ -9,6 +9,7 @@ use App\Rules\MinArabicWords;
 use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class RegistrationController extends Controller
@@ -49,10 +50,6 @@ class RegistrationController extends Controller
             ],
             'specialization_id' => ['required', 'exists:specializations,id'],
             // Personal info
-            'last_name' => [
-                'bail', 'required', 'string', 'max:100',
-                new ArabicOnly,
-            ],
             'mother_name' => [
                 'bail', 'required', 'string', 'max:255',
                 new ArabicOnly,
@@ -93,12 +90,13 @@ class RegistrationController extends Controller
             'delegation_entity' => ['nullable', 'required_if:study_type,public_delegation,faculty_assistant', 'string', 'max:255'],
             'is_transfer' => ['required', 'in:0,1'],
             'declaration' => ['required', 'accepted'],
+            // Password
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             // Documents
             'bachelor_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'remedial_statement' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
             'name.required' => 'يرجى إدخال الاسم الرباعي',
-            'last_name.required' => 'يرجى إدخال اللقب',
             'mother_name.required' => 'يرجى إدخال اسم الأم',
             'email.required' => 'يرجى إدخال البريد الإلكتروني',
             'phone.required' => 'يرجى إدخال رقم النقال',
@@ -120,15 +118,24 @@ class RegistrationController extends Controller
             'is_transfer.required' => 'يرجى تحديد ما إذا كنت منتقلاً من كلية أخرى',
             'declaration.required' => 'يجب الإقرار بصحة البيانات قبل إرسال الطلب',
             'declaration.accepted' => 'يجب الإقرار بصحة البيانات قبل إرسال الطلب',
+            'password.required' => 'يرجى إدخال كلمة المرور',
+            'password.min' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
+            'password.confirmed' => 'كلمة المرور وتأكيدها غير متطابقتين',
         ]);
 
         $data = $validated;
+
+        // Extract last word from the 4-part name as last_name
+        $nameParts = preg_split('/\s+/', trim($validated['name']));
+        $data['last_name'] = end($nameParts);
 
         // Resolve nationality
         if ($validated['nationality'] === 'أخرى') {
             $data['nationality'] = $validated['nationality_other'] ?? '';
         }
         unset($data['nationality_other'], $data['declaration']);
+
+        $data['password'] = Hash::make($validated['password']);
 
         if ($request->hasFile('bachelor_certificate')) {
             $data['bachelor_certificate'] = $request->file('bachelor_certificate')

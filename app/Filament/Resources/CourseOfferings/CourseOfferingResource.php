@@ -110,13 +110,8 @@ class CourseOfferingResource extends Resource
                     ->label('الفصل')
                     ->relationship('semester', 'name'),
             ])
+            ->recordUrl(fn (CourseOffering $record): string => static::getUrl('enroll', ['record' => $record]))
             ->recordActions([
-                Action::make('enroll')
-                    ->label('تسجيل الطلاب')
-                    ->icon(Heroicon::UserPlus)
-                    ->color('primary')
-                    ->url(fn (CourseOffering $record): string => static::getUrl('enroll', ['record' => $record])),
-
                 Action::make('toggle_open')
                     ->label(fn (CourseOffering $record) => $record->is_open ? 'إغلاق' : 'فتح')
                     ->icon(fn (CourseOffering $record) => $record->is_open ? Heroicon::LockClosed : Heroicon::LockOpen)

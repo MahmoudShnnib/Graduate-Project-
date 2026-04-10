@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Applications\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -14,36 +14,21 @@ class ApplicationsTable
     {
         return $table
             ->columns([
-                TextColumn::make('application_number')
+                TextColumn::make('last_name')
+                    ->label('اللقب')
                     ->searchable(),
-                TextColumn::make('full_name')
+                TextColumn::make('national_id')
+                    ->label('الرقم الوطني')
                     ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
+                TextColumn::make('study_type')
+                    ->label('نوع الدراسة')
                     ->searchable(),
-                TextColumn::make('phone')
-                    ->searchable(),
-                TextColumn::make('specialization')
-                    ->searchable(),
-                TextColumn::make('submitted_at')
-                    ->date()
-                    ->sortable(),
-                TextColumn::make('status')
-                    ->searchable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                ViewAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

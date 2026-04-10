@@ -12,10 +12,13 @@ class Application extends Model
 {
     use HasFactory, Notifiable;
 
+    protected $hidden = ['password'];
+
     protected $fillable = [
         'user_id',
         'name',
         'email',
+        'password',
         'phone',
         'specialization_id',
         'tracking_code',
