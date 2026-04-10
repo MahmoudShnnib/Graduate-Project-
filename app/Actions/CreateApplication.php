@@ -20,6 +20,7 @@ class CreateApplication
         return Application::create([
             'name' => $data['name'],
             'email' => $data['email'],
+            'password' => $data['password'] ?? null,
             'phone' => $data['phone'],
             'specialization_id' => $data['specialization_id'],
             'tracking_code' => $this->trackingCodeService->generate(),

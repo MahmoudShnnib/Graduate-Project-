@@ -26,9 +26,7 @@ class ApproveApplication
             throw new \Exception('تمت الموافقة على هذا الطلب بالفعل');
         }
 
-        $plainPassword = Str::random(10);
-
-        DB::transaction(function () use ($application, $plainPassword) {
+        DB::transaction(function () use ($application) {
             $application->update([
                 'status' => ApplicationStatus::Accepted,
             ]);
@@ -38,7 +36,7 @@ class ApproveApplication
                 'name' => $application->name,
                 'email' => $application->email,
                 'phone' => $application->phone,
-                'password' => Hash::make($plainPassword),
+                'password' => $application->password ?? Hash::make(Str::random(10)),
                 'role' => 'student',
                 'specialization_id' => $application->specialization_id,
                 'is_active' => true,
@@ -79,7 +77,7 @@ class ApproveApplication
         $student = $application->user?->student;
 
         if ($student) {
-            $this->notificationService->notifyWelcomeStudent($student, $plainPassword);
+            $this->notificationService->notifyWelcomeStudent($student);
         }
 
         return $application;

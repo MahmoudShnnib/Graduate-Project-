@@ -22,6 +22,9 @@ class CoursesSurveyResults extends Page
 
     protected static ?int $navigationSort = 10;
 
+    /** @var array<int, int> */
+    public array $selectedCourses = [];
+
     public function getActiveSemester(): ?Semester
     {
         return Semester::where('is_active', true)->first();
@@ -74,6 +77,12 @@ class CoursesSurveyResults extends Page
                 ->color('success')
                 ->requiresConfirmation()
                 ->action(function () {
+                    if (empty($this->selectedCourses)) {
+                        Notification::make()->title('الرجاء تحديد مقرر واحد على الأقل')->warning()->send();
+
+                        return;
+                    }
+
                     $activeSemester = $this->getActiveSemester();
 
                     if (! $activeSemester) {
@@ -82,16 +91,16 @@ class CoursesSurveyResults extends Page
                         return;
                     }
 
-                    $surveyResults = $this->getSurveyResults();
-
-                    foreach ($surveyResults as $result) {
+                    foreach ($this->selectedCourses as $courseId) {
                         $offering = CourseOffering::firstOrCreate([
-                            'course_id' => $result->course_id,
+                            'course_id' => $courseId,
                             'semester_id' => $activeSemester->id,
                         ]);
 
                         $offering->update(['is_open' => true]);
                     }
+
+                    $this->selectedCourses = [];
 
                     Notification::make()->title('تم فتح المقررات بنجاح')->success()->send();
                 }),

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Actions\CreateApplication;
 use App\Models\Specialization;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class ApplicationSeeder extends Seeder
 {
@@ -180,6 +181,7 @@ class ApplicationSeeder extends Seeder
 
         foreach ($this->applicants as $i => $data) {
             $data['specialization_id'] = $specializations[$i % count($specializations)];
+            $data['password'] = Hash::make('12345678');
             $createApplication->handle($data);
         }
     }

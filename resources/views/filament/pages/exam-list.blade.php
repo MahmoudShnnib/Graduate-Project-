@@ -37,37 +37,37 @@
                 <table class="fi-ta-table w-full table-auto divide-y divide-gray-200 text-start dark:divide-white/5">
                     <thead class="divide-y divide-gray-200 dark:divide-white/5">
                         <tr>
-                            <th class="fi-ta-header-cell px-4 py-2 w-10 print-hidden">
+                            <th class="fi-ta-header-cell w-10 print-hidden">
                                 <input type="checkbox" x-data x-on:change="document.querySelectorAll('.exam-cb').forEach(c=>{c.checked=$event.target.checked;c.dispatchEvent(new Event('change'))})"
                                     class="rounded border-gray-300 dark:border-gray-600 text-primary-600" />
                             </th>
-                            <th class="fi-ta-header-cell px-4 py-2 w-10 text-sm font-semibold text-gray-500 dark:text-gray-400">م</th>
-                            <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">الاسم الرباعي</th>
+                            <th class="fi-ta-header-cell w-10">م</th>
+                            <th class="fi-ta-header-cell">الاسم الرباعي</th>
                             @if(! $activeSpec)
-                                <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">التخصص</th>
+                                <th class="fi-ta-header-cell">التخصص</th>
                             @endif
-                            <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">الرقم الوطني</th>
-                            <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">موعد الامتحان</th>
-                            <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 print-hidden">الدرجة</th>
+                            <th class="fi-ta-header-cell">الرقم الوطني</th>
+                            <th class="fi-ta-header-cell">موعد الامتحان</th>
+                            <th class="fi-ta-header-cell print-hidden">الدرجة</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                         @foreach($applications as $i => $app)
                             <tr class="fi-ta-row transition hover:bg-gray-50 dark:hover:bg-white/5">
-                                <td class="fi-ta-cell px-4 py-3 print-hidden">
+                                <td class="fi-ta-cell px-3 py-4 print-hidden">
                                     <input type="checkbox" value="{{ $app->id }}" wire:model="selected"
                                         class="exam-cb rounded border-gray-300 dark:border-gray-600 text-primary-600" />
                                 </td>
-                                <td class="fi-ta-cell px-4 py-3 text-xs text-gray-400 font-mono">{{ $i + 1 }}</td>
-                                <td class="fi-ta-cell px-4 py-3 font-medium text-gray-950 dark:text-white" data-print-name>{{ $app->name }}</td>
+                                <td class="fi-ta-cell px-3 py-4 text-xs text-gray-400 font-mono">{{ $i + 1 }}</td>
+                                <td class="fi-ta-cell px-3 py-4 font-medium text-gray-950 dark:text-white" data-print-name>{{ $app->name }}</td>
                                 @if(! $activeSpec)
-                                    <td class="fi-ta-cell px-4 py-3">
+                                    <td class="fi-ta-cell px-3 py-4">
                                         <x-admin.badge color="gray">{{ $app->specialization?->name ?? '—' }}</x-admin.badge>
                                     </td>
                                 @endif
-                                <td class="fi-ta-cell px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">{{ $app->national_id ?? '—' }}</td>
-                                <td class="fi-ta-cell px-4 py-3 text-gray-500 dark:text-gray-400">{{ $app->exam_date?->format('Y/m/d H:i') ?? '—' }}</td>
-                                <td class="fi-ta-cell px-4 py-3 print-hidden">
+                                <td class="fi-ta-cell px-3 py-4 font-mono text-xs text-gray-500 dark:text-gray-400">{{ $app->national_id ?? '—' }}</td>
+                                <td class="fi-ta-cell px-3 py-4 text-gray-500 dark:text-gray-400">{{ $app->exam_date?->format('Y/m/d H:i') ?? '—' }}</td>
+                                <td class="fi-ta-cell px-3 py-4 print-hidden">
                                     <input type="number" step="0.01" min="0" max="100"
                                         wire:model="scores.{{ $app->id }}" placeholder="—"
                                         class="w-20 rounded-lg border-gray-200 dark:border-gray-700 bg-transparent dark:text-white text-sm text-center focus:border-primary-500 focus:ring-primary-500" />
