@@ -92,6 +92,11 @@ class StudentSurveyView extends Page
                 ['status' => EnrollmentStatus::Enrolled]
             );
 
+            CourseSurvey::where('student_id', $this->student->id)
+                ->where('semester_id', $this->semester->id)
+                ->where('course_id', (int) $courseId)
+                ->update(['is_processed' => true]);
+
             if ($created->wasRecentlyCreated) {
                 $count++;
             }
@@ -143,6 +148,11 @@ class StudentSurveyView extends Page
             ],
             ['status' => EnrollmentStatus::Enrolled]
         );
+
+        CourseSurvey::where('student_id', $this->student->id)
+            ->where('semester_id', $this->semester->id)
+            ->where('course_id', $courseId)
+            ->update(['is_processed' => true]);
 
         if ($created->wasRecentlyCreated) {
             Notification::make()->title('تم تسجيل الطالب في المقرر بنجاح')->success()->send();

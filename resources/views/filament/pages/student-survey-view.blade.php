@@ -40,7 +40,7 @@
 
             <div class="space-y-3">
                 @foreach($entries as $entry)
-                    @php $isEnrolled = $entry->enrollment !== null; @endphp
+                    @php $isEnrolled = $entry->enrollment !== null; $isProcessed = $entry->survey->is_processed; @endphp
 
                     <div @class([
                         'flex items-center gap-4 rounded-xl border p-4 transition',

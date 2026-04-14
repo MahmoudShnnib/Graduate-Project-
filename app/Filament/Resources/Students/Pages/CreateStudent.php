@@ -7,6 +7,7 @@ use App\Models\Semester;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\EnrollmentNumberService;
+use App\Services\GradeCalculationService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
@@ -60,6 +61,20 @@ class CreateStudent extends CreateRecord
                 $activeSemester,
                 (bool) ($data['is_transfer'] ?? false)
             );
+        }
+
+        $transferCourses = $data['transfer_courses'] ?? [];
+
+        if (! empty($transferCourses) && $data['is_transfer']) {
+            foreach ($transferCourses as $courseData) {
+                $student->transferCourses()->create([
+                    'course_id' => $courseData['course_id'],
+                    'coursework_grade' => $courseData['coursework_grade'],
+                    'final_grade' => $courseData['final_grade'],
+                ]);
+            }
+
+            app(GradeCalculationService::class)->recalculateStudentGPA($student);
         }
 
         return $student;

@@ -33,6 +33,7 @@
                             <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">اسم الطالب</th>
                             <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400">التخصص</th>
                             <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 text-center">الاختيارات</th>
+                            <th class="fi-ta-header-cell px-4 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 text-center">الحالة</th>
                             <th class="fi-ta-header-cell px-4 py-2"></th>
                         </tr>
                     </thead>
@@ -50,6 +51,15 @@
                                 </td>
                                 <td class="fi-ta-cell px-4 py-3 text-center">
                                     <x-admin.badge color="primary">{{ $student->course_surveys_count }} / 4</x-admin.badge>
+                                </td>
+                                <td class="fi-ta-cell px-4 py-3 text-center">
+                                    @if($student->processed_surveys_count >= $student->course_surveys_count)
+                                        <x-admin.badge color="success">مكتمل</x-admin.badge>
+                                    @elseif($student->processed_surveys_count > 0)
+                                        <x-admin.badge color="warning">جزئي {{ $student->processed_surveys_count }}/{{ $student->course_surveys_count }}</x-admin.badge>
+                                    @else
+                                        <x-admin.badge color="gray">معلّق</x-admin.badge>
+                                    @endif
                                 </td>
                                 <td class="fi-ta-cell px-4 py-3">
                                     <a href="{{ $this->getSurveyUrl($student->id) }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline">

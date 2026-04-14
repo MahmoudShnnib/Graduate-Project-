@@ -37,7 +37,10 @@ class StudentSurveysList extends Page
 
         return Student::whereHas('courseSurveys', fn ($q) => $q->where('semester_id', $semester->id))
             ->with(['user:id,name', 'specialization:id,name'])
-            ->withCount(['courseSurveys' => fn ($q) => $q->where('semester_id', $semester->id)])
+            ->withCount([
+                'courseSurveys as course_surveys_count' => fn ($q) => $q->where('semester_id', $semester->id),
+                'courseSurveys as processed_surveys_count' => fn ($q) => $q->where('semester_id', $semester->id)->where('is_processed', true),
+            ])
             ->orderBy('id')
             ->get();
     }

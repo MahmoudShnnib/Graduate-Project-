@@ -3,6 +3,11 @@
         $isOpen = $this->isAddDropOpen();
         $enrollments = $this->getEnrollments();
         $available = $this->getAvailableOfferings();
+        $dropCount = $this->getDropCount();
+        $addCount = $this->getAddCount();
+        $maxDrops = \App\Filament\Student\Pages\AddDropPage::MAX_DROPS;
+        $maxAdds = \App\Filament\Student\Pages\AddDropPage::MAX_ADDS;
+        $alreadySubmitted = $this->hasSubmittedThisSemester();
     @endphp
 
     @if(! $isOpen)
@@ -16,15 +21,26 @@
             </div>
         </x-filament::section>
     @else
+        {{-- Already submitted notice --}}
+        @if($alreadySubmitted)
+            <x-filament::section>
+                <div class="flex items-center gap-3 py-2">
+                    <x-heroicon-o-information-circle style="width: 1.25rem; height: 1.25rem;" class="text-warning-500 shrink-0" />
+                    <p class="text-sm text-gray-700 dark:text-gray-300">لديك طلبات إضافة/حذف قائمة لهذا الفصل. لا يمكنك تقديم طلبات جديدة حتى يتم البت في الطلبات الحالية.</p>
+                </div>
+            </x-filament::section>
+        @endif
+
         {{-- Drop --}}
         <x-filament::section>
             <x-slot name="heading">
                 <div class="flex items-center gap-2">
                     <x-heroicon-o-minus-circle style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
                     <span>حذف مقرر</span>
+                    <span class="text-xs font-normal text-gray-400">({{ $dropCount }} / {{ $maxDrops }})</span>
                 </div>
             </x-slot>
-            <x-slot name="description">طلب حذف مقرر مسجّل في الفصل الحالي</x-slot>
+            <x-slot name="description">طلب حذف مقرر مسجّل في الفصل الحالي — الحد الأقصى {{ $maxDrops }} مقررات</x-slot>
 
             @if($enrollments->isEmpty())
                 <div class="text-center py-8">
@@ -52,6 +68,7 @@
                                 color="danger"
                                 size="sm"
                                 icon="heroicon-o-minus-circle"
+                                :disabled="$alreadySubmitted || $dropCount >= $maxDrops"
                             >
                                 طلب حذف
                             </x-filament::button>
@@ -67,9 +84,10 @@
                 <div class="flex items-center gap-2">
                     <x-heroicon-o-plus-circle style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
                     <span>إضافة مقرر</span>
+                    <span class="text-xs font-normal text-gray-400">({{ $addCount }} / {{ $maxAdds }})</span>
                 </div>
             </x-slot>
-            <x-slot name="description">طلب إضافة مقرر جديد للفصل الحالي</x-slot>
+            <x-slot name="description">طلب إضافة مقرر من تخصصك — الحد الأقصى {{ $maxAdds }} مقررات</x-slot>
 
             @if($available->isEmpty())
                 <div class="text-center py-8">
@@ -104,7 +122,8 @@
                                 placeholder="اذكر سبب الإضافة إن وجد"></textarea>
                         </x-filament::input.wrapper>
                     </div>
-                    <x-filament::button wire:click="requestAdd" icon="heroicon-o-plus-circle">
+                    <x-filament::button wire:click="requestAdd" icon="heroicon-o-plus-circle"
+                        :disabled="$alreadySubmitted || $addCount >= $maxAdds">
                         إرسال طلب الإضافة
                     </x-filament::button>
                 </div>

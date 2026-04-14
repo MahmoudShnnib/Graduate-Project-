@@ -32,6 +32,18 @@ class GradeCalculationService
             $totalCredits += $credits;
         }
 
+        $transferCourses = $student->transferCourses()
+            ->whereNotNull('points')
+            ->with('course')
+            ->get();
+
+        foreach ($transferCourses as $transferCourse) {
+            $credits = $transferCourse->course->credits;
+            $points = (float) $transferCourse->points;
+            $totalPoints += $points * $credits;
+            $totalCredits += $credits;
+        }
+
         $student->gpa = $totalCredits > 0
             ? round($totalPoints / $totalCredits, 2)
             : 0.00;

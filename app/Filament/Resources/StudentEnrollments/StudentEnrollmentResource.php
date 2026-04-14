@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\StudentEnrollments;
 
-use App\Enums\EnrollmentStatus;
 use App\Filament\Resources\StudentEnrollments\Pages\ListStudentEnrollments;
+use App\Filament\Resources\StudentEnrollments\Pages\ViewCourseEnrollments;
+use App\Models\CourseOffering;
 use App\Models\StudentEnrollment;
 use BackedEnum;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -38,48 +38,52 @@ class StudentEnrollmentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->query(
+                CourseOffering::query()
+                    ->with(['course', 'semester', 'faculty'])
+                    ->withCount('enrollments')
+            )
             ->columns([
-                TextColumn::make('student.user.name')
-                    ->label('الطالب')
-                    ->searchable(),
+                TextColumn::make('course.name')
+                    ->label('المقرر')
+                    ->searchable()
+                    ->sortable(),
 
-                TextColumn::make('student.enrollment_no')
-                    ->label('رقم القيد'),
-
-                TextColumn::make('courseOffering.course.name')
-                    ->label('المقرر'),
-
-                TextColumn::make('courseOffering.semester.name')
-                    ->label('الفصل'),
-
-                TextColumn::make('status')
-                    ->label('الحالة')
+                TextColumn::make('course.code')
+                    ->label('الرمز')
                     ->badge()
-                    ->formatStateUsing(fn (EnrollmentStatus $state): string => $state->label())
-                    ->color(fn (EnrollmentStatus $state): string => match ($state) {
-                        EnrollmentStatus::Enrolled => 'success',
-                        EnrollmentStatus::Dropped => 'warning',
-                        EnrollmentStatus::Withdrawn => 'danger',
-                    }),
+                    ->color('gray'),
+
+                TextColumn::make('semester.name')
+                    ->label('الفصل الدراسي')
+                    ->sortable(),
+
+                TextColumn::make('faculty.name')
+                    ->label('عضو هيئة التدريس')
+                    ->placeholder('غير مسند')
+                    ->badge()
+                    ->color('warning'),
+
+                TextColumn::make('enrollments_count')
+                    ->label('عدد الطلاب المسجلين')
+                    ->badge()
+                    ->color('success'),
             ])
             ->filters([
-                SelectFilter::make('status')
-                    ->label('الحالة')
-                    ->options(EnrollmentStatus::class),
-
-                SelectFilter::make('semester')
+                SelectFilter::make('semester_id')
                     ->label('الفصل')
-                    ->relationship('courseOffering.semester', 'name'),
+                    ->relationship('semester', 'name'),
             ])
-            ->toolbarActions([
-                DeleteBulkAction::make(),
-            ]);
+            ->recordUrl(fn (CourseOffering $record): string => static::getUrl('students', ['record' => $record]))
+            ->emptyStateHeading('لا توجد مواد مفتوحة')
+            ->emptyStateDescription('افتح مواد من صفحة الفصول الدراسية أولاً.');
     }
 
     public static function getPages(): array
     {
         return [
             'index' => ListStudentEnrollments::route('/'),
+            'students' => ViewCourseEnrollments::route('/{record}/students'),
         ];
     }
 }

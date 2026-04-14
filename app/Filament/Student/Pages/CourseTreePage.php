@@ -7,6 +7,7 @@ use App\Enums\GradeStatus;
 use App\Models\Course;
 use App\Models\Semester;
 use App\Models\Student;
+use App\Models\TransferCourse;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
@@ -126,6 +127,32 @@ class CourseTreePage extends Page
                 ] : null,
                 'semester_name' => $enrollment->courseOffering->semester->name,
             ];
+        }
+
+        // Include transfer (equated) courses as passed
+        if ($student->is_transfer) {
+            $transferCourses = TransferCourse::where('student_id', $student->id)
+                ->whereNotNull('letter')
+                ->where('letter', '!=', 'F')
+                ->get();
+
+            foreach ($transferCourses as $transfer) {
+                if (isset($map[$transfer->course_id]) && $map[$transfer->course_id]['status'] === 'passed') {
+                    continue;
+                }
+
+                $map[$transfer->course_id] = [
+                    'status' => 'passed',
+                    'grade' => [
+                        'coursework_grade' => $transfer->coursework_grade,
+                        'final_grade' => $transfer->final_grade,
+                        'total' => $transfer->total,
+                        'letter' => $transfer->letter,
+                        'points' => $transfer->points,
+                    ],
+                    'semester_name' => 'معادل',
+                ];
+            }
         }
 
         return $map;
