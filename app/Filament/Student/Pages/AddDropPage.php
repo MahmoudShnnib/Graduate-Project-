@@ -23,6 +23,10 @@ class AddDropPage extends Page
 
     protected static ?int $navigationSort = 5;
 
+    public const int MAX_DROPS = 3;
+
+    public const int MAX_ADDS = 3;
+
     public ?int $addOfferingId = null;
 
     public string $dropReason = '';
@@ -72,14 +76,74 @@ class AddDropPage extends Page
         return CourseOffering::where('semester_id', $activeSemester->id)
             ->where('is_open', true)
             ->whereNotIn('id', $enrolledOfferingIds)
+            ->whereHas('course.specializations', fn ($q) => $q->where('specializations.id', $student->specialization_id))
             ->with('course')
             ->get();
+    }
+
+    public function getDropCount(): int
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return 0;
+        }
+
+        return AddDropRequest::where('student_id', $student->id)
+            ->where('type', AddDropType::Drop)
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->whereIn('status', ['pending', 'approved'])
+            ->count();
+    }
+
+    public function getAddCount(): int
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return 0;
+        }
+
+        return AddDropRequest::where('student_id', $student->id)
+            ->where('type', AddDropType::Add)
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->whereIn('status', ['pending', 'approved'])
+            ->count();
+    }
+
+    public function hasSubmittedThisSemester(): bool
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return false;
+        }
+
+        return AddDropRequest::where('student_id', $student->id)
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->whereIn('status', ['pending', 'approved'])
+            ->exists();
     }
 
     public function requestDrop(int $enrollmentId): void
     {
         if (! $this->isAddDropOpen()) {
             Notification::make()->title('فترة الإضافة والحذف مغلقة')->danger()->send();
+
+            return;
+        }
+
+        if ($this->hasSubmittedThisSemester()) {
+            Notification::make()->title('لديك طلب قائم بالفعل لهذا الفصل')->warning()->send();
+
+            return;
+        }
+
+        if ($this->getDropCount() >= self::MAX_DROPS) {
+            Notification::make()->title('وصلت للحد الأقصى ('.self::MAX_DROPS.') لطلبات الحذف')->warning()->send();
 
             return;
         }
@@ -110,13 +174,36 @@ class AddDropPage extends Page
             return;
         }
 
+        if ($this->hasSubmittedThisSemester()) {
+            Notification::make()->title('لديك طلب قائم بالفعل لهذا الفصل')->warning()->send();
+
+            return;
+        }
+
         if (! $this->addOfferingId) {
             Notification::make()->title('يرجى اختيار مقرر')->warning()->send();
 
             return;
         }
 
+        if ($this->getAddCount() >= self::MAX_ADDS) {
+            Notification::make()->title('وصلت للحد الأقصى ('.self::MAX_ADDS.') لطلبات الإضافة')->warning()->send();
+
+            return;
+        }
+
         $student = auth()->user()->student;
+
+        // Verify the offering belongs to the student's specialization
+        $offering = CourseOffering::where('id', $this->addOfferingId)
+            ->whereHas('course.specializations', fn ($q) => $q->where('specializations.id', $student->specialization_id))
+            ->first();
+
+        if (! $offering) {
+            Notification::make()->title('المقرر المختار غير متاح لتخصصك')->danger()->send();
+
+            return;
+        }
 
         AddDropRequest::create([
             'student_id' => $student->id,

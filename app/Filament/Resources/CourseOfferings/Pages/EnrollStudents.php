@@ -103,6 +103,7 @@ class EnrollStudents extends Page implements HasTable
                 ->label('إضافة طالب')
                 ->icon('heroicon-o-user-plus')
                 ->color('primary')
+                ->slideOver()
                 ->form([
                     Select::make('student_ids')
                         ->label('اختر الطلاب')

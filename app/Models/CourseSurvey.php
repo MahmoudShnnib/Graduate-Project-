@@ -12,6 +12,7 @@ class CourseSurvey extends Model
         'semester_id',
         'course_id',
         'priority',
+        'is_processed',
     ];
 
     protected function casts(): array

@@ -90,15 +90,27 @@ class Student extends Model
         return $this->hasOne(ClearanceRequest::class);
     }
 
+    public function transferCourses(): HasMany
+    {
+        return $this->hasMany(TransferCourse::class);
+    }
+
     public function completedCoursesCount(): int
     {
-        return $this->enrollments()
+        $enrollmentCount = $this->enrollments()
             ->whereHas('grade', function ($query) {
                 $query->where('status', GradeStatus::Approved)
                     ->whereNotNull('letter')
                     ->where('letter', '!=', 'F');
             })
             ->count();
+
+        $transferCount = $this->transferCourses()
+            ->whereNotNull('letter')
+            ->where('letter', '!=', 'F')
+            ->count();
+
+        return $enrollmentCount + $transferCount;
     }
 
     public function isEligibleForThesis(): bool

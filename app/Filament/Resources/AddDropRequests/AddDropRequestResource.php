@@ -119,7 +119,7 @@ class AddDropRequestResource extends Resource
                             'decided_at' => now(),
                         ]);
 
-                        $notifier->notifyStudent($student, 'add_drop_decision', 'تم قبول طلب الإضافة/الحذف الخاص بك');
+                        $notifier->notifyAddDropDecision($record);
                         Notification::make()->title('تم قبول الطلب')->success()->send();
                     }),
 
@@ -136,7 +136,7 @@ class AddDropRequestResource extends Resource
                             'decided_at' => now(),
                         ]);
 
-                        $notifier->notifyStudent($record->student, 'add_drop_decision', 'تم رفض طلب الإضافة/الحذف الخاص بك');
+                        $notifier->notifyAddDropDecision($record);
                         Notification::make()->title('تم رفض الطلب')->success()->send();
                     }),
             ]);

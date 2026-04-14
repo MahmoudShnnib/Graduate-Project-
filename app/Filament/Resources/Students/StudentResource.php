@@ -6,19 +6,29 @@ use App\Enums\StudentStatus;
 use App\Filament\Resources\Students\Pages\CreateStudent;
 use App\Filament\Resources\Students\Pages\EditStudent;
 use App\Filament\Resources\Students\Pages\ListStudents;
+use App\Filament\Resources\Students\Pages\ViewStudent;
+use App\Models\Course;
 use App\Models\Student;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -186,16 +196,61 @@ class StudentResource extends Resource
                     ->columnSpanFull()
                     ->columns(2)
                     ->components([
-                        TextEntry::make('degree_image')
+                        ImageEntry::make('degree_image')
                             ->label('صورة الشهادة')
+                            ->disk('public')
+                            ->height(200)
+                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
+                            ->openUrlInNewTab()
+                            ->hidden(fn (Student $record): bool => ! $record->degree_image || str_ends_with(strtolower($record->degree_image), '.pdf')),
+
+                        TextEntry::make('degree_image')
+                            ->label('صورة الشهادة (PDF)')
                             ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : '-')
                             ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
                             ->openUrlInNewTab()
-                            ->placeholder('لم يُرفق'),
+                            ->placeholder('لم يُرفق')
+                            ->hidden(fn (Student $record): bool => ! $record->degree_image || ! str_ends_with(strtolower($record->degree_image), '.pdf')),
 
                         TextEntry::make('gpa')
                             ->label('المعدل التراكمي')
                             ->placeholder('-'),
+                    ]),
+
+                Section::make('خامساً: مواد المعادلة')
+                    ->columnSpanFull()
+                    ->hidden(fn (Student $record): bool => ! $record->is_transfer || $record->transferCourses()->doesntExist())
+                    ->components([
+                        RepeatableEntry::make('transferCourses')
+                            ->label('')
+                            ->schema([
+                                TextEntry::make('course.name')
+                                    ->label('اسم المادة'),
+
+                                TextEntry::make('coursework_grade')
+                                    ->label('أعمال الفصل'),
+
+                                TextEntry::make('final_grade')
+                                    ->label('الامتحان النهائي'),
+
+                                TextEntry::make('total')
+                                    ->label('المجموع'),
+
+                                TextEntry::make('letter')
+                                    ->label('التقدير')
+                                    ->badge()
+                                    ->color(fn (?string $state): string => match ($state) {
+                                        'A' => 'success',
+                                        'B+', 'B' => 'info',
+                                        'C+', 'C' => 'warning',
+                                        'D+', 'D' => 'gray',
+                                        default => 'danger',
+                                    }),
+
+                                TextEntry::make('points')
+                                    ->label('النقاط'),
+                            ])
+                            ->columns(6),
                     ]),
             ]);
     }
@@ -315,7 +370,65 @@ class StudentResource extends Resource
 
                     Toggle::make('is_transfer')
                         ->label('منتقل من كلية أخرى؟')
-                        ->columnSpan(2),
+                        ->columnSpan(2)
+                        ->live(),
+
+                    Actions::make([
+                        Action::make('manage_transfer_courses')
+                            ->label('معادلة مواد')
+                            ->icon(Heroicon::AcademicCap)
+                            ->color('warning')
+                            ->slideOver()
+                            ->modalHeading('إدخال مواد المعادلة')
+                            ->modalDescription('أدخل المواد التي درسها الطالب في الكلية الأخرى مع درجاتها.')
+                            ->form([
+                                Repeater::make('courses')
+                                    ->label('المواد المعادلة')
+                                    ->schema([
+                                        Select::make('course_id')
+                                            ->label('المادة')
+                                            ->options(fn () => Course::query()->where('is_active', true)->pluck('name', 'id'))
+                                            ->required()
+                                            ->columnSpan(2),
+                                        TextInput::make('coursework_grade')
+                                            ->label('أعمال الفصل (من 40)')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(40)
+                                            ->required(),
+                                        TextInput::make('final_grade')
+                                            ->label('الامتحان النهائي (من 60)')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(60)
+                                            ->required(),
+                                    ])
+                                    ->columns(4)
+                                    ->addActionLabel('إضافة مادة')
+                                    ->defaultItems(0)
+                                    ->reorderable(false),
+                            ])
+                            ->fillForm(fn (Get $schemaGet): array => [
+                                'courses' => $schemaGet('transfer_courses') ?? [],
+                            ])
+                            ->action(fn (array $data, Set $schemaSet) => $schemaSet('transfer_courses', $data['courses']))
+                            ->visible(fn (Get $get): bool => (bool) $get('is_transfer')),
+                    ])->columnSpan(2),
+
+                    Placeholder::make('transfer_courses_summary')
+                        ->label('')
+                        ->content(function (Get $get): string {
+                            $courses = $get('transfer_courses') ?? [];
+
+                            return count($courses) > 0
+                                ? 'تم إضافة '.count($courses).' مادة للمعادلة'
+                                : '';
+                        })
+                        ->columnSpan(2)
+                        ->visible(fn (Get $get): bool => (bool) $get('is_transfer')),
+
+                    \Filament\Forms\Components\Hidden::make('transfer_courses')
+                        ->default([]),
                 ]),
 
             Section::make('الوثيقة العلمية')
@@ -405,6 +518,7 @@ class StudentResource extends Resource
         return [
             'index' => ListStudents::route('/'),
             'create' => CreateStudent::route('/create'),
+            'view' => ViewStudent::route('/{record}'),
             'edit' => EditStudent::route('/{record}/edit'),
         ];
     }
