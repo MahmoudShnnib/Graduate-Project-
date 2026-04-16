@@ -33,6 +33,10 @@ class ApplicationInfolist
                                     ->label('الاسم الرباعي')
                                     ->weight(\Filament\Support\Enums\FontWeight::Bold),
 
+                                TextEntry::make('name_en')
+                                    ->label('الاسم بالإنجليزية')
+                                    ->placeholder('—'),
+
                                 TextEntry::make('last_name')
                                     ->label('اللقب')
                                     ->placeholder('—'),

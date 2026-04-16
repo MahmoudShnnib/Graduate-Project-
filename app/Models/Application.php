@@ -17,6 +17,7 @@ class Application extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'name_en',
         'email',
         'password',
         'phone',

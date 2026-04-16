@@ -59,8 +59,14 @@ class ApplicationResource extends Resource
                 ->columns(2)
                 ->components([
                     TextInput::make('name')
-                        ->label('الاسم الرباعي')
+                        ->label('الاسم الرباعي واللقب')
+                        ->helperText('الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)')
                         ->required()
+                        ->columnSpan(2),
+
+                    TextInput::make('name_en')
+                        ->label('الاسم بالإنجليزية (كما في جواز السفر)')
+                        ->placeholder('Full name as in passport')
                         ->columnSpan(2),
 
                     TextInput::make('email')
@@ -219,6 +225,12 @@ class ApplicationResource extends Resource
                     ->label('الاسم الرباعي')
                     ->searchable()
                     ->sortable(),
+
+                TextColumn::make('name_en')
+                    ->label('الاسم بالإنجليزية')
+                    ->searchable()
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('phone')
                     ->label('النقال')

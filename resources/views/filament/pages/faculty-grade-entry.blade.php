@@ -19,8 +19,51 @@
         </div>
     </x-filament::section>
 
-    {{-- Grade Entry Table --}}
+    {{-- Grade Distribution Settings --}}
     @if($this->selectedOfferingId)
+        <x-filament::section heading="توزيع الدرجات" collapsible collapsed>
+            <p class="text-xs text-gray-500 mb-4">حدد كيفية توزيع الدرجة من 100 بين أعمال الفصل والاختبار النهائي.</p>
+            <div class="flex items-end gap-4 flex-wrap">
+                <div class="w-40">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">أعمال الفصل</label>
+                    <input
+                        wire:model="courseworkMax"
+                        type="number"
+                        min="1"
+                        max="99"
+                        class="w-full border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                    />
+                </div>
+                <div class="w-40">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">الاختبار النهائي</label>
+                    <input
+                        wire:model="finalMax"
+                        type="number"
+                        min="1"
+                        max="99"
+                        class="w-full border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                    />
+                </div>
+                <div class="flex items-center gap-3">
+                    <span @class([
+                        'text-sm font-bold px-3 py-2 rounded-lg',
+                        'bg-green-100 text-green-700' => ($this->courseworkMax + $this->finalMax) === 100,
+                        'bg-red-100 text-red-700' => ($this->courseworkMax + $this->finalMax) !== 100,
+                    ])>
+                        المجموع: {{ $this->courseworkMax + $this->finalMax }}
+                    </span>
+                    <x-filament::button
+                        wire:click="saveDistribution"
+                        size="sm"
+                        :disabled="($this->courseworkMax + $this->finalMax) !== 100"
+                    >
+                        حفظ التوزيع
+                    </x-filament::button>
+                </div>
+            </div>
+        </x-filament::section>
+
+        {{-- Grade Entry Table --}}
         @if($enrollments->isEmpty())
             <x-filament::section>
                 <p class="text-center text-gray-500 py-4">لا يوجد طلاب مسجلون في هذا المقرر.</p>
@@ -28,7 +71,7 @@
         @else
             <x-filament::section heading="إدخال درجات الطلاب">
                 <div class="text-xs text-gray-500 mb-4">
-                    أعمال الفصل: من 0 إلى 60 — الاختبار النهائي: من 0 إلى 40 — المجموع الكلي: 100
+                    أعمال الفصل: من 0 إلى {{ $this->courseworkMax }} — الاختبار النهائي: من 0 إلى {{ $this->finalMax }} — المجموع الكلي: 100
                 </div>
 
                 <div class="overflow-x-auto">
@@ -37,8 +80,8 @@
                             <tr>
                                 <th class="px-4 py-3 font-medium">الطالب</th>
                                 <th class="px-4 py-3 font-medium">رقم القيد</th>
-                                <th class="px-4 py-3 font-medium w-36">أعمال الفصل (/60)</th>
-                                <th class="px-4 py-3 font-medium w-36">الاختبار النهائي (/40)</th>
+                                <th class="px-4 py-3 font-medium w-36">أعمال الفصل (/{{ $this->courseworkMax }})</th>
+                                <th class="px-4 py-3 font-medium w-36">الاختبار النهائي (/{{ $this->finalMax }})</th>
                                 <th class="px-4 py-3 font-medium text-center">المجموع</th>
                                 <th class="px-4 py-3 font-medium text-center">التقدير</th>
                                 <th class="px-4 py-3 font-medium text-center">الحالة</th>
@@ -57,10 +100,10 @@
                                                 wire:model="gradeInputs.{{ $enrollment->id }}.coursework"
                                                 type="number"
                                                 min="0"
-                                                max="60"
+                                                max="{{ $this->courseworkMax }}"
                                                 step="0.5"
                                                 class="w-full border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
-                                                placeholder="0–60"
+                                                placeholder="0–{{ $this->courseworkMax }}"
                                             />
                                             @error("gradeInputs.{$enrollment->id}.coursework")
                                                 <p class="text-xs text-red-600 mt-0.5">{{ $message }}</p>
@@ -75,10 +118,10 @@
                                                 wire:model="gradeInputs.{{ $enrollment->id }}.final"
                                                 type="number"
                                                 min="0"
-                                                max="40"
+                                                max="{{ $this->finalMax }}"
                                                 step="0.5"
                                                 class="w-full border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
-                                                placeholder="0–40"
+                                                placeholder="0–{{ $this->finalMax }}"
                                             />
                                             @error("gradeInputs.{$enrollment->id}.final")
                                                 <p class="text-xs text-red-600 mt-0.5">{{ $message }}</p>
