@@ -9,7 +9,8 @@ use App\Models\Grade;
 use App\Services\GradeCalculationService;
 use App\Services\NotificationService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Placeholder;
+use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
@@ -18,7 +19,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
-use Illuminate\Support\HtmlString;
+use Illuminate\Database\Eloquent\Collection;
 
 class ViewCourseGrades extends Page implements HasTable
 {
@@ -96,52 +97,16 @@ class ViewCourseGrades extends Page implements HasTable
                     }),
             ])
             ->recordActions([
-                Action::make('review')
-                    ->label('مراجعة واعتماد')
-                    ->icon(Heroicon::CheckBadge)
+                Action::make('approve')
+                    ->label('اعتماد')
+                    ->icon(Heroicon::Check)
                     ->color('success')
-                    ->visible(fn (Grade $record): bool => $record->status === GradeStatus::PendingApproval)
-                    ->modalHeading('مراجعة الدرجة واعتمادها')
-                    ->form([
-                        Placeholder::make('paper_sheet_preview')
-                            ->label('ورقة الدرجات')
-                            ->content(function (Grade $record): HtmlString|string {
-                                if (! $record->paper_sheet_path) {
-                                    return 'لا يوجد مرفق';
-                                }
-
-                                $url = asset('storage/'.$record->paper_sheet_path);
-                                $name = basename($record->paper_sheet_path);
-
-                                return new HtmlString(
-                                    '<a href="'.$url.'" target="_blank" class="text-primary-600 hover:underline flex items-center gap-1">'.
-                                    '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"/></svg>'.
-                                    ' '.$name.'</a>'
-                                );
-                            }),
-
-                        TextInput::make('coursework_grade')
-                            ->label('درجة أعمال الفصل')
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(40)
-                            ->required(),
-
-                        TextInput::make('final_grade')
-                            ->label('درجة الامتحان النهائي')
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(60)
-                            ->required(),
-                    ])
-                    ->fillForm(fn (Grade $record): array => [
-                        'coursework_grade' => $record->coursework_grade,
-                        'final_grade' => $record->final_grade,
-                    ])
-                    ->action(function (Grade $record, array $data, GradeCalculationService $calculator, NotificationService $notifier): void {
+                    ->visible(fn (Grade $record): bool => $record->status !== GradeStatus::Approved)
+                    ->requiresConfirmation()
+                    ->modalHeading('اعتماد الدرجة')
+                    ->modalDescription('هل تريد اعتماد هذه الدرجة؟ لن يمكن تعديلها بعد الاعتماد.')
+                    ->action(function (Grade $record, GradeCalculationService $calculator, NotificationService $notifier): void {
                         $record->update([
-                            'coursework_grade' => $data['coursework_grade'],
-                            'final_grade' => $data['final_grade'],
                             'status' => GradeStatus::Approved,
                             'approved_by' => auth()->id(),
                             'approved_at' => now(),
@@ -153,6 +118,111 @@ class ViewCourseGrades extends Page implements HasTable
 
                         Notification::make()->title('تم اعتماد الدرجة بنجاح')->success()->send();
                     }),
+
+                Action::make('change_status')
+                    ->label('تغيير الحالة')
+                    ->icon(Heroicon::ArrowPath)
+                    ->color('warning')
+                    ->form([
+                        Select::make('status')
+                            ->label('الحالة الجديدة')
+                            ->options([
+                                GradeStatus::Draft->value => GradeStatus::Draft->label(),
+                                GradeStatus::PendingApproval->value => GradeStatus::PendingApproval->label(),
+                                GradeStatus::Approved->value => GradeStatus::Approved->label(),
+                            ])
+                            ->required(),
+                    ])
+                    ->fillForm(fn (Grade $record): array => [
+                        'status' => $record->status->value,
+                    ])
+                    ->action(function (Grade $record, array $data, GradeCalculationService $calculator, NotificationService $notifier): void {
+                        $newStatus = GradeStatus::from($data['status']);
+                        $wasApproved = $record->status === GradeStatus::Approved;
+
+                        $updateData = ['status' => $newStatus];
+
+                        if ($newStatus === GradeStatus::Approved && ! $wasApproved) {
+                            $updateData['approved_by'] = auth()->id();
+                            $updateData['approved_at'] = now();
+                        }
+
+                        $record->update($updateData);
+
+                        if ($newStatus === GradeStatus::Approved && ! $wasApproved) {
+                            $student = $record->enrollment->student;
+                            $calculator->recalculateStudentGPA($student);
+                            $notifier->notifyGradePublished($record);
+                        }
+
+                        Notification::make()->title('تم تغيير الحالة بنجاح')->success()->send();
+                    }),
+
+                Action::make('edit_grade')
+                    ->label('تعديل')
+                    ->icon(Heroicon::Pencil)
+                    ->color('gray')
+                    ->visible(fn (Grade $record): bool => $record->status !== GradeStatus::Approved)
+                    ->modalHeading('تعديل الدرجة')
+                    ->form(fn (): array => [
+                        TextInput::make('coursework_grade')
+                            ->label('درجة أعمال الفصل (/'.$this->record->coursework_max.')')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue($this->record->coursework_max)
+                            ->required(),
+
+                        TextInput::make('final_grade')
+                            ->label('درجة الامتحان النهائي (/'.$this->record->final_max.')')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue($this->record->final_max)
+                            ->required(),
+                    ])
+                    ->fillForm(fn (Grade $record): array => [
+                        'coursework_grade' => $record->coursework_grade,
+                        'final_grade' => $record->final_grade,
+                    ])
+                    ->action(function (Grade $record, array $data): void {
+                        $record->update([
+                            'coursework_grade' => $data['coursework_grade'],
+                            'final_grade' => $data['final_grade'],
+                        ]);
+
+                        Notification::make()->title('تم تعديل الدرجة')->success()->send();
+                    }),
+            ])
+            ->bulkActions([
+                BulkAction::make('approve_all')
+                    ->label('اعتماد المحددين')
+                    ->icon(Heroicon::CheckBadge)
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('اعتماد الدرجات المحددة')
+                    ->modalDescription('سيتم اعتماد جميع الدرجات المحددة. لن يمكن تعديلها بعد الاعتماد.')
+                    ->action(function (Collection $records, GradeCalculationService $calculator, NotificationService $notifier): void {
+                        $count = 0;
+
+                        foreach ($records as $grade) {
+                            if ($grade->status === GradeStatus::Approved) {
+                                continue;
+                            }
+
+                            $grade->update([
+                                'status' => GradeStatus::Approved,
+                                'approved_by' => auth()->id(),
+                                'approved_at' => now(),
+                            ]);
+
+                            $student = $grade->enrollment->student;
+                            $calculator->recalculateStudentGPA($student);
+                            $notifier->notifyGradePublished($grade);
+                            $count++;
+                        }
+
+                        Notification::make()->title("تم اعتماد {$count} درجة")->success()->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ])
             ->emptyStateHeading('لا توجد درجات مدخلة')
             ->emptyStateDescription('لم يقم عضو هيئة التدريس بإدخال الدرجات بعد.');

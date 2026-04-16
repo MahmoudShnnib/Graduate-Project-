@@ -25,6 +25,10 @@ class FacultyGradeEntry extends Page
 
     public ?int $selectedOfferingId = null;
 
+    public int $courseworkMax = 60;
+
+    public int $finalMax = 40;
+
     /** @var array<int, array{coursework: string|null, final: string|null}> enrollment_id => grades */
     public array $gradeInputs = [];
 
@@ -38,6 +42,15 @@ class FacultyGradeEntry extends Page
         return CourseOffering::where('faculty_id', auth()->id())
             ->with('course', 'semester')
             ->get();
+    }
+
+    public function getSelectedOffering(): ?CourseOffering
+    {
+        if (! $this->selectedOfferingId) {
+            return null;
+        }
+
+        return CourseOffering::find($this->selectedOfferingId);
     }
 
     public function getEnrollments(): Collection
@@ -55,6 +68,13 @@ class FacultyGradeEntry extends Page
     {
         $this->gradeInputs = [];
 
+        $offering = $this->getSelectedOffering();
+
+        if ($offering) {
+            $this->courseworkMax = $offering->coursework_max;
+            $this->finalMax = $offering->final_max;
+        }
+
         foreach ($this->getEnrollments() as $enrollment) {
             $this->gradeInputs[$enrollment->id] = [
                 'coursework' => $enrollment->grade?->coursework_grade !== null
@@ -67,6 +87,39 @@ class FacultyGradeEntry extends Page
         }
     }
 
+    public function saveDistribution(): void
+    {
+        $this->validate([
+            'courseworkMax' => 'required|integer|min:1|max:99',
+            'finalMax' => 'required|integer|min:1|max:99',
+        ]);
+
+        if (($this->courseworkMax + $this->finalMax) !== 100) {
+            Notification::make()
+                ->title('مجموع التوزيع يجب أن يساوي 100')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $offering = $this->getSelectedOffering();
+
+        if (! $offering) {
+            return;
+        }
+
+        $offering->update([
+            'coursework_max' => $this->courseworkMax,
+            'final_max' => $this->finalMax,
+        ]);
+
+        Notification::make()
+            ->title('تم حفظ توزيع الدرجات بنجاح')
+            ->success()
+            ->send();
+    }
+
     public function saveGrades(GradeCalculationService $gradeService, NotificationService $notifier): void
     {
         if (! $this->selectedOfferingId) {
@@ -75,12 +128,12 @@ class FacultyGradeEntry extends Page
 
         $this->validate(
             collect($this->gradeInputs)->flatMap(fn ($_, $id) => [
-                "gradeInputs.{$id}.coursework" => 'nullable|numeric|min:0|max:60',
-                "gradeInputs.{$id}.final" => 'nullable|numeric|min:0|max:40',
+                "gradeInputs.{$id}.coursework" => "nullable|numeric|min:0|max:{$this->courseworkMax}",
+                "gradeInputs.{$id}.final" => "nullable|numeric|min:0|max:{$this->finalMax}",
             ])->toArray(),
             [
-                'gradeInputs.*.coursework.max' => 'أعمال الفصل يجب ألا تتجاوز 60',
-                'gradeInputs.*.final.max' => 'الاختبار النهائي يجب ألا يتجاوز 40',
+                'gradeInputs.*.coursework.max' => "أعمال الفصل يجب ألا تتجاوز {$this->courseworkMax}",
+                'gradeInputs.*.final.max' => "الاختبار النهائي يجب ألا يتجاوز {$this->finalMax}",
                 'gradeInputs.*.coursework.min' => 'الدرجة لا يمكن أن تكون سالبة',
                 'gradeInputs.*.final.min' => 'الدرجة لا يمكن أن تكون سالبة',
             ]
@@ -102,7 +155,7 @@ class FacultyGradeEntry extends Page
                 [
                     'coursework_grade' => $inputs['coursework'],
                     'final_grade' => $inputs['final'],
-                    'status' => 'pending',
+                    'status' => 'draft',
                 ]
             );
         }

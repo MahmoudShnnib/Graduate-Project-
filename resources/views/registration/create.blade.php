@@ -46,10 +46,18 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {{-- Full name --}}
                     <div class="md:col-span-2">
-                        <x-form.label for="name">اسم الطالب الرباعي <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول والثاني والثالث والرابع (بالعربية)" required />
-                        <p class="mt-1 text-xs text-slate-400">يجب إدخال أربعة أسماء على الأقل باللغة العربية</p>
+                        <x-form.label for="name">الاسم الرباعي واللقب <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)" required />
+                        <p class="mt-1 text-xs text-slate-400">يجب إدخال الاسم الرباعي كاملاً بما في ذلك اللقب (اسم العائلة) باللغة العربية — مثال: محمد أحمد علي الشنيب</p>
                         <x-form.error name="name" />
+                    </div>
+
+                    {{-- English name --}}
+                    <div class="md:col-span-2">
+                        <x-form.label for="name_en">الاسم باللغة الإنجليزية (كما في جواز السفر) <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="name_en" name="name_en" type="text" value="{{ old('name_en') }}" placeholder="Full name as it appears in your passport" dir="ltr" required />
+                        <p class="mt-1 text-xs text-slate-400">يرجى كتابة الاسم كما هو مدوّن في جواز السفر بالضبط</p>
+                        <x-form.error name="name_en" />
                     </div>
 
                     <div>

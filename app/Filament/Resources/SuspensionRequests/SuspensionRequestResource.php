@@ -25,11 +25,11 @@ class SuspensionRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPauseCircle;
 
-    protected static ?string $navigationLabel = 'طلبات التوقف';
+    protected static ?string $navigationLabel = 'طلبات إيقاف قيد';
 
-    protected static ?string $modelLabel = 'طلب توقف';
+    protected static ?string $modelLabel = 'طلب إيقاف قيد';
 
-    protected static ?string $pluralModelLabel = 'طلبات التوقف';
+    protected static ?string $pluralModelLabel = 'طلبات إيقاف قيد';
 
     protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
 
@@ -98,9 +98,9 @@ class SuspensionRequestResource extends Resource
                         $student->update(['status' => StudentStatus::Suspended]);
 
                         $audit->log('suspension_approved', $record, ['status' => $oldStatus->value], ['status' => StudentStatus::Suspended->value]);
-                        $notifier->notifyStudent($student, 'suspension_decision', 'تم قبول طلب التوقف الخاص بك');
+                        $notifier->notifyStudent($student, 'suspension_decision', 'تم قبول طلب إيقاف القيد الخاص بك');
 
-                        Notification::make()->title('تم قبول طلب التوقف')->success()->send();
+                        Notification::make()->title('تم قبول طلب إيقاف القيد')->success()->send();
                     }),
 
                 Action::make('reject')
@@ -121,7 +121,7 @@ class SuspensionRequestResource extends Resource
                             'decision_notes' => $data['decision_notes'],
                         ]);
 
-                        $notifier->notifyStudent($record->student, 'suspension_decision', 'تم رفض طلب التوقف الخاص بك');
+                        $notifier->notifyStudent($record->student, 'suspension_decision', 'تم رفض طلب إيقاف القيد الخاص بك');
 
                         Notification::make()->title('تم رفض الطلب')->success()->send();
                     }),

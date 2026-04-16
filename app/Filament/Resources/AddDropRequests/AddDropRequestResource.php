@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AddDropRequests;
 
 use App\Enums\AddDropType;
 use App\Enums\EnrollmentStatus;
+use App\Enums\StudentStatus;
 use App\Filament\Resources\AddDropRequests\Pages\ListAddDropRequests;
 use App\Models\AddDropRequest;
 use App\Models\Semester;
@@ -16,7 +17,10 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AddDropRequestResource extends Resource
 {
@@ -34,13 +38,6 @@ class AddDropRequestResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        $activeSemester = Semester::where('is_active', true)->first();
-
-        return $activeSemester?->isAddDropOpen() ?? false;
-    }
-
     public static function form(Schema $schema): Schema
     {
         return $schema->components([]);
@@ -48,11 +45,32 @@ class AddDropRequestResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $activeSemester = Semester::where('is_active', true)->first();
+
         return $table
+            ->modifyQueryUsing(function (Builder $query, HasTable $livewire): void {
+                if (property_exists($livewire, 'activeTab') && $livewire->activeTab === 'active_semester') {
+                    $active = Semester::where('is_active', true)->first();
+                    if ($active) {
+                        $query->whereHas('courseOffering', fn (Builder $q) => $q->where('semester_id', $active->id));
+                    }
+                }
+            })
             ->columns([
                 TextColumn::make('student.user.name')
                     ->label('الطالب')
                     ->searchable(),
+
+                TextColumn::make('student.status')
+                    ->label('حالة الطالب')
+                    ->badge()
+                    ->formatStateUsing(fn (StudentStatus $state): string => $state->label())
+                    ->color(fn (StudentStatus $state): string => match ($state) {
+                        StudentStatus::Active => 'success',
+                        StudentStatus::Suspended => 'danger',
+                        StudentStatus::Withdrawn => 'warning',
+                        StudentStatus::Graduated => 'info',
+                    }),
 
                 TextColumn::make('courseOffering.course.name')
                     ->label('المقرر'),
@@ -90,12 +108,49 @@ class AddDropRequestResource extends Resource
                     ->date()
                     ->sortable(),
             ])
+            ->filters([
+                SelectFilter::make('semester')
+                    ->label('الفصل الدراسي')
+                    ->options(
+                        Semester::query()
+                            ->orderByDesc('year')
+                            ->orderByDesc('id')
+                            ->pluck('name', 'id')
+                    )
+                    ->default($activeSemester?->id)
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (! $data['value']) {
+                            return $query;
+                        }
+
+                        return $query->whereHas(
+                            'courseOffering',
+                            fn (Builder $q) => $q->where('semester_id', $data['value'])
+                        );
+                    }),
+
+                SelectFilter::make('status')
+                    ->label('الحالة')
+                    ->options([
+                        'pending' => 'قيد المراجعة',
+                        'approved' => 'مقبول',
+                        'rejected' => 'مرفوض',
+                    ]),
+            ])
             ->recordActions([
                 Action::make('approve')
                     ->label('قبول')
                     ->icon(Heroicon::Check)
                     ->color('success')
-                    ->visible(fn (AddDropRequest $record) => $record->status === 'pending')
+                    ->visible(function (AddDropRequest $record) {
+                        if ($record->status !== 'pending') {
+                            return false;
+                        }
+
+                        $semester = $record->courseOffering?->semester;
+
+                        return $semester?->is_active && $semester?->isAddDropOpen();
+                    })
                     ->requiresConfirmation()
                     ->action(function (AddDropRequest $record, NotificationService $notifier) {
                         $student = $record->student;
@@ -127,7 +182,15 @@ class AddDropRequestResource extends Resource
                     ->label('رفض')
                     ->icon(Heroicon::XMark)
                     ->color('danger')
-                    ->visible(fn (AddDropRequest $record) => $record->status === 'pending')
+                    ->visible(function (AddDropRequest $record) {
+                        if ($record->status !== 'pending') {
+                            return false;
+                        }
+
+                        $semester = $record->courseOffering?->semester;
+
+                        return $semester?->is_active && $semester?->isAddDropOpen();
+                    })
                     ->requiresConfirmation()
                     ->action(function (AddDropRequest $record, NotificationService $notifier) {
                         $record->update([
@@ -139,7 +202,8 @@ class AddDropRequestResource extends Resource
                         $notifier->notifyAddDropDecision($record);
                         Notification::make()->title('تم رفض الطلب')->success()->send();
                     }),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getPages(): array

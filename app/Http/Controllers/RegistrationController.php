@@ -34,6 +34,7 @@ class RegistrationController extends Controller
                 new ArabicOnly,
                 new MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)'),
             ],
+            'name_en' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => [
                 'bail', 'required',
@@ -96,7 +97,9 @@ class RegistrationController extends Controller
             'bachelor_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'remedial_statement' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
-            'name.required' => 'يرجى إدخال الاسم الرباعي',
+            'name.required' => 'يرجى إدخال الاسم الرباعي واللقب',
+            'name_en.required' => 'يرجى إدخال الاسم باللغة الإنجليزية كما في جواز السفر',
+            'name_en.regex' => 'الاسم الإنجليزي يجب أن يحتوي على حروف إنجليزية فقط',
             'mother_name.required' => 'يرجى إدخال اسم الأم',
             'email.required' => 'يرجى إدخال البريد الإلكتروني',
             'phone.required' => 'يرجى إدخال رقم النقال',

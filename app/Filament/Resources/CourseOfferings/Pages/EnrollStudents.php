@@ -10,7 +10,6 @@ use App\Models\Student;
 use App\Models\StudentEnrollment;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
-use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -65,6 +64,13 @@ class EnrollStudents extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('print_students')
+                ->label('طباعة كشف الطلاب')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->url(fn (): string => route('course-offering.print-students', $this->record))
+                ->openUrlInNewTab(),
+
             Action::make('survey_students')
                 ->label(fn (): string => 'طلبوا المادة ('.$this->getSurveyCount().')')
                 ->icon('heroicon-o-clipboard-document-list')
@@ -162,7 +168,8 @@ class EnrollStudents extends Page implements HasTable
         return $table
             ->query(
                 Student::query()
-                    ->whereHas('enrollments', fn (Builder $q) => $q->where('course_offering_id', $offeringId))
+                    ->whereHas('enrollments', fn (Builder $q) => $q->where('course_offering_id', $offeringId)
+                        ->where('status', EnrollmentStatus::Enrolled))
                     ->with(['user:id,name'])
             )
             ->columns([
@@ -176,8 +183,10 @@ class EnrollStudents extends Page implements HasTable
                     ->searchable(),
             ])
             ->recordActions([
-                DeleteAction::make('unenroll')
+                Action::make('unenroll')
                     ->label('حذف')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
                     ->requiresConfirmation()
                     ->action(function (Student $record) use ($offeringId) {
                         StudentEnrollment::where('student_id', $record->id)

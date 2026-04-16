@@ -16,12 +16,16 @@ class CourseOffering extends Model
         'semester_id',
         'faculty_id',
         'is_open',
+        'coursework_max',
+        'final_max',
     ];
 
     protected function casts(): array
     {
         return [
             'is_open' => 'boolean',
+            'coursework_max' => 'integer',
+            'final_max' => 'integer',
         ];
     }
 
