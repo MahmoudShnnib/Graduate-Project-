@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\EnrollmentStatus;
 use App\Enums\GradeStatus;
 use App\Enums\StudentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -70,6 +72,25 @@ class Student extends Model
         return $this->hasMany(StudentEnrollment::class);
     }
 
+    public function activeEnrollments(): HasMany
+    {
+        return $this->hasMany(StudentEnrollment::class)
+            ->where('status', EnrollmentStatus::Enrolled);
+    }
+
+    public function courseOfferings(): BelongsToMany
+    {
+        return $this->belongsToMany(CourseOffering::class, 'student_enrollments')
+            ->withPivot('status')
+            ->withTimestamps();
+    }
+
+    public function activeCourseOfferings(): BelongsToMany
+    {
+        return $this->courseOfferings()
+            ->wherePivot('status', EnrollmentStatus::Enrolled->value);
+    }
+
     public function courseSurveys(): HasMany
     {
         return $this->hasMany(CourseSurvey::class);
@@ -97,7 +118,7 @@ class Student extends Model
 
     public function completedCoursesCount(): int
     {
-        $enrollmentCount = $this->enrollments()
+        $enrollmentCount = $this->activeEnrollments()
             ->whereHas('grade', function ($query) {
                 $query->where('status', GradeStatus::Approved)
                     ->whereNotNull('letter')

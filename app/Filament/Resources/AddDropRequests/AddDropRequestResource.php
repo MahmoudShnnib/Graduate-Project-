@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\AddDropRequests;
 
+use App\Actions\Enrollment\DropStudentFromOffering;
+use App\Actions\Enrollment\EnrollStudentInOffering;
 use App\Enums\AddDropType;
-use App\Enums\EnrollmentStatus;
 use App\Enums\StudentStatus;
 use App\Filament\Resources\AddDropRequests\Pages\ListAddDropRequests;
 use App\Models\AddDropRequest;
 use App\Models\Semester;
-use App\Models\StudentEnrollment;
 use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -152,20 +152,19 @@ class AddDropRequestResource extends Resource
                         return $semester?->is_active && $semester?->isAddDropOpen();
                     })
                     ->requiresConfirmation()
-                    ->action(function (AddDropRequest $record, NotificationService $notifier) {
+                    ->action(function (
+                        AddDropRequest $record,
+                        NotificationService $notifier,
+                        EnrollStudentInOffering $enroll,
+                        DropStudentFromOffering $drop,
+                    ) {
                         $student = $record->student;
                         $offering = $record->courseOffering;
 
                         if ($record->type === AddDropType::Add) {
-                            StudentEnrollment::firstOrCreate([
-                                'student_id' => $student->id,
-                                'course_offering_id' => $offering->id,
-                            ], ['status' => EnrollmentStatus::Enrolled]);
+                            $enroll($student, $offering);
                         } else {
-                            StudentEnrollment::where([
-                                'student_id' => $student->id,
-                                'course_offering_id' => $offering->id,
-                            ])->update(['status' => EnrollmentStatus::Dropped]);
+                            $drop($student, $offering);
                         }
 
                         $record->update([

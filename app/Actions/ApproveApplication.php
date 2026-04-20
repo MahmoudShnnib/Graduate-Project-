@@ -34,6 +34,7 @@ class ApproveApplication
             // Create User account from application data
             $user = User::create([
                 'name' => $application->name,
+                'name_en' => $application->name_en,
                 'email' => $application->email,
                 'phone' => $application->phone,
                 'password' => $application->password ?? Hash::make(Str::random(10)),

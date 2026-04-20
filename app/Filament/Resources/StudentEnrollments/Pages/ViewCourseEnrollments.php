@@ -38,6 +38,7 @@ class ViewCourseEnrollments extends Page implements HasTable
             ->query(
                 StudentEnrollment::query()
                     ->where('course_offering_id', $this->record->id)
+                    ->active()
                     ->with(['student.user'])
             )
             ->columns([

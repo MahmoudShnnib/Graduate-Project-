@@ -264,9 +264,20 @@ class StudentResource extends Resource
                 ->visibleOn('create')
                 ->components([
                     TextInput::make('user_name')
-                        ->label('الاسم الرباعي')
+                        ->label('الاسم الرباعي واللقب')
+                        ->helperText('الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)')
                         ->required()
-                        ->maxLength(255),
+                        ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)')])
+                        ->maxLength(255)
+                        ->columnSpan(2),
+
+                    TextInput::make('user_name_en')
+                        ->label('الاسم بالإنجليزية (كما في جواز السفر)')
+                        ->placeholder('Full name as in passport')
+                        ->required()
+                        ->regex('/^[a-zA-Z\s]+$/')
+                        ->maxLength(255)
+                        ->columnSpan(2),
 
                     TextInput::make('user_email')
                         ->label('البريد الإلكتروني')
@@ -294,9 +305,6 @@ class StudentResource extends Resource
                         ->label('التخصص')
                         ->required()
                         ->columnSpan(2),
-
-                    TextInput::make('last_name')
-                        ->label('اللقب'),
 
                     TextInput::make('mother_name')
                         ->label('اسم الأم'),
@@ -474,11 +482,6 @@ class StudentResource extends Resource
                 TextColumn::make('user.name')
                     ->label('اسم الطالب')
                     ->searchable(),
-
-                TextColumn::make('last_name')
-                    ->label('اللقب')
-                    ->placeholder('-')
-                    ->toggleable(),
 
                 TextColumn::make('specialization.name')
                     ->label('التخصص'),

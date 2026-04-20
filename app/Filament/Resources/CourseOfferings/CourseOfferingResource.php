@@ -95,9 +95,9 @@ class CourseOfferingResource extends Resource
                     ->badge()
                     ->color('warning'),
 
-                TextColumn::make('enrollments_count')
+                TextColumn::make('active_enrollments_count')
                     ->label('مسجّلون فعلاً')
-                    ->counts('enrollments')
+                    ->counts('activeEnrollments')
                     ->badge()
                     ->color('success'),
 

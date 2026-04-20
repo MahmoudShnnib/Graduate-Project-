@@ -84,7 +84,7 @@ class CourseTreePage extends Page
 
         $activeSemester = $this->getActiveSemester();
 
-        $enrollments = $student->enrollments()
+        $enrollments = $student->activeEnrollments()
             ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
             ->get();
 

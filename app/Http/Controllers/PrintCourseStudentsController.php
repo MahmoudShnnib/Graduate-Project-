@@ -12,11 +12,15 @@ class PrintCourseStudentsController extends Controller
         $courseOffering->load([
             'course',
             'semester',
-            'enrollments.student.user',
+            'activeEnrollments.student.user',
+            'activeEnrollments.student.specialization',
         ]);
 
-        $students = $courseOffering->enrollments
-            ->sortBy(fn ($e) => $e->student->user->name)
+        $students = $courseOffering->activeEnrollments
+            ->sortBy([
+                ['student.specialization.name', 'asc'],
+                ['student.user.name', 'asc'],
+            ])
             ->values();
 
         return view('prints.course-students', [

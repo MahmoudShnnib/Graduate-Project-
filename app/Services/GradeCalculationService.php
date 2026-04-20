@@ -14,7 +14,7 @@ class GradeCalculationService
             return;
         }
 
-        $enrollments = $student->enrollments()
+        $enrollments = $student->activeEnrollments()
             ->whereHas('grade', function ($query) {
                 $query->where('status', GradeStatus::Approved)
                     ->whereNotNull('letter');

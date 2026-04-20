@@ -2,7 +2,8 @@
 
 namespace App\Filament\Pages;
 
-use App\Enums\EnrollmentStatus;
+use App\Actions\Enrollment\DropStudentFromOffering;
+use App\Actions\Enrollment\EnrollStudentInOffering;
 use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
 use App\Models\Semester;
@@ -60,6 +61,7 @@ class StudentSurveyView extends Page
                 if ($offering) {
                     $enrollment = StudentEnrollment::where('student_id', $this->student->id)
                         ->where('course_offering_id', $offering->id)
+                        ->active()
                         ->first();
                 }
 
@@ -74,6 +76,7 @@ class StudentSurveyView extends Page
 
     public function enrollSelected(): void
     {
+        $enroll = app(EnrollStudentInOffering::class);
         if (empty($this->selected)) {
             Notification::make()->title('الرجاء تحديد مقرر واحد على الأقل')->warning()->send();
 
@@ -81,33 +84,44 @@ class StudentSurveyView extends Page
         }
 
         $count = 0;
+        $missing = 0;
+
         foreach ($this->selected as $courseId) {
-            $offering = CourseOffering::firstOrCreate(
-                ['course_id' => (int) $courseId, 'semester_id' => $this->semester->id],
-                ['is_open' => true]
-            );
-
-            $created = StudentEnrollment::firstOrCreate(
-                ['student_id' => $this->student->id, 'course_offering_id' => $offering->id],
-                ['status' => EnrollmentStatus::Enrolled]
-            );
-
-            CourseSurvey::where('student_id', $this->student->id)
-                ->where('semester_id', $this->semester->id)
+            $offering = CourseOffering::query()
                 ->where('course_id', (int) $courseId)
-                ->update(['is_processed' => true]);
+                ->where('semester_id', $this->semester->id)
+                ->first();
 
-            if ($created->wasRecentlyCreated) {
+            if (! $offering) {
+                $missing++;
+
+                continue;
+            }
+
+            $enrollment = $enroll($this->student, $offering);
+
+            if ($enrollment->wasRecentlyCreated || $enrollment->wasChanged('status')) {
                 $count++;
             }
         }
 
         $this->selected = [];
+
+        if ($missing > 0) {
+            Notification::make()
+                ->title("تم تسجيل {$count} مقرر. ({$missing} مقرر غير مفتوح هذا الفصل)")
+                ->warning()
+                ->send();
+
+            return;
+        }
+
         Notification::make()->title("تم تسجيل {$count} مقرر بنجاح")->success()->send();
     }
 
     public function unenrollSelected(): void
     {
+        $drop = app(DropStudentFromOffering::class);
         if (empty($this->selected)) {
             Notification::make()->title('الرجاء تحديد مقرر واحد على الأقل')->warning()->send();
 
@@ -115,15 +129,15 @@ class StudentSurveyView extends Page
         }
 
         $count = 0;
+
         foreach ($this->selected as $courseId) {
-            $offering = CourseOffering::where('course_id', (int) $courseId)
+            $offering = CourseOffering::query()
+                ->where('course_id', (int) $courseId)
                 ->where('semester_id', $this->semester->id)
                 ->first();
 
-            if ($offering) {
-                $count += StudentEnrollment::where('student_id', $this->student->id)
-                    ->where('course_offering_id', $offering->id)
-                    ->delete();
+            if ($offering && $drop($this->student, $offering)) {
+                $count++;
             }
         }
 
@@ -133,28 +147,21 @@ class StudentSurveyView extends Page
 
     public function enrollStudent(int $courseId): void
     {
-        $offering = CourseOffering::firstOrCreate(
-            [
-                'course_id' => $courseId,
-                'semester_id' => $this->semester->id,
-            ],
-            ['is_open' => true]
-        );
-
-        $created = StudentEnrollment::firstOrCreate(
-            [
-                'student_id' => $this->student->id,
-                'course_offering_id' => $offering->id,
-            ],
-            ['status' => EnrollmentStatus::Enrolled]
-        );
-
-        CourseSurvey::where('student_id', $this->student->id)
-            ->where('semester_id', $this->semester->id)
+        $enroll = app(EnrollStudentInOffering::class);
+        $offering = CourseOffering::query()
             ->where('course_id', $courseId)
-            ->update(['is_processed' => true]);
+            ->where('semester_id', $this->semester->id)
+            ->first();
 
-        if ($created->wasRecentlyCreated) {
+        if (! $offering) {
+            Notification::make()->title('المقرر غير مفتوح في هذا الفصل')->danger()->send();
+
+            return;
+        }
+
+        $enrollment = $enroll($this->student, $offering);
+
+        if ($enrollment->wasRecentlyCreated || $enrollment->wasChanged('status')) {
             Notification::make()->title('تم تسجيل الطالب في المقرر بنجاح')->success()->send();
         } else {
             Notification::make()->title('الطالب مسجل بالفعل في هذا المقرر')->warning()->send();
@@ -163,7 +170,9 @@ class StudentSurveyView extends Page
 
     public function unenrollStudent(int $courseId): void
     {
-        $offering = CourseOffering::where('course_id', $courseId)
+        $drop = app(DropStudentFromOffering::class);
+        $offering = CourseOffering::query()
+            ->where('course_id', $courseId)
             ->where('semester_id', $this->semester->id)
             ->first();
 
@@ -171,11 +180,7 @@ class StudentSurveyView extends Page
             return;
         }
 
-        $deleted = StudentEnrollment::where('student_id', $this->student->id)
-            ->where('course_offering_id', $offering->id)
-            ->delete();
-
-        if ($deleted) {
+        if ($drop($this->student, $offering)) {
             Notification::make()->title('تم إلغاء تسجيل الطالب')->warning()->send();
         }
     }

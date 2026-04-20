@@ -27,7 +27,11 @@ class AddDropPage extends Page
 
     public const int MAX_ADDS = 3;
 
-    public ?int $addOfferingId = null;
+    /** @var array<int, bool> */
+    public array $selectedDropEnrollments = [];
+
+    /** @var array<int, bool> */
+    public array $selectedAddOfferings = [];
 
     public string $dropReason = '';
 
@@ -55,6 +59,7 @@ class AddDropPage extends Page
         }
 
         return StudentEnrollment::where('student_id', $student->id)
+            ->active()
             ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
             ->with(['courseOffering.course'])
             ->get();
@@ -70,6 +75,7 @@ class AddDropPage extends Page
         }
 
         $enrolledOfferingIds = StudentEnrollment::where('student_id', $student->id)
+            ->active()
             ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
             ->pluck('course_offering_id');
 
@@ -128,7 +134,23 @@ class AddDropPage extends Page
             ->exists();
     }
 
-    public function requestDrop(int $enrollmentId): void
+    /**
+     * @return array<int>
+     */
+    private function selectedDropIds(): array
+    {
+        return array_keys(array_filter($this->selectedDropEnrollments));
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function selectedAddIds(): array
+    {
+        return array_keys(array_filter($this->selectedAddOfferings));
+    }
+
+    public function submitRequests(): void
     {
         if (! $this->isAddDropOpen()) {
             Notification::make()->title('فترة الإضافة والحذف مغلقة')->danger()->send();
@@ -142,80 +164,74 @@ class AddDropPage extends Page
             return;
         }
 
-        if ($this->getDropCount() >= self::MAX_DROPS) {
-            Notification::make()->title('وصلت للحد الأقصى ('.self::MAX_DROPS.') لطلبات الحذف')->warning()->send();
+        $dropIds = $this->selectedDropIds();
+        $addIds = $this->selectedAddIds();
+
+        if (empty($dropIds) && empty($addIds)) {
+            Notification::make()->title('يرجى اختيار مقرر واحد على الأقل للإضافة أو الحذف')->warning()->send();
 
             return;
         }
 
-        $enrollment = StudentEnrollment::findOrFail($enrollmentId);
         $student = auth()->user()->student;
 
-        if ($enrollment->student_id !== $student->id) {
+        if (count($dropIds) + $this->getDropCount() > self::MAX_DROPS) {
+            Notification::make()->title('اخترت عدداً يتجاوز الحد الأقصى ('.self::MAX_DROPS.') لطلبات الحذف')->warning()->send();
+
+            return;
+        }
+
+        if (count($addIds) + $this->getAddCount() > self::MAX_ADDS) {
+            Notification::make()->title('اخترت عدداً يتجاوز الحد الأقصى ('.self::MAX_ADDS.') لطلبات الإضافة')->warning()->send();
+
+            return;
+        }
+
+        $dropEnrollments = StudentEnrollment::whereIn('id', $dropIds)
+            ->where('student_id', $student->id)
+            ->get();
+
+        if ($dropEnrollments->count() !== count($dropIds)) {
             abort(403);
         }
 
-        AddDropRequest::create([
-            'student_id' => $student->id,
-            'course_offering_id' => $enrollment->course_offering_id,
-            'type' => AddDropType::Drop,
-            'status' => 'pending',
-            'reason' => $this->dropReason ?: null,
-        ]);
-
-        Notification::make()->title('تم إرسال طلب الحذف للمراجعة')->success()->send();
-    }
-
-    public function requestAdd(): void
-    {
-        if (! $this->isAddDropOpen()) {
-            Notification::make()->title('فترة الإضافة والحذف مغلقة')->danger()->send();
-
-            return;
-        }
-
-        if ($this->hasSubmittedThisSemester()) {
-            Notification::make()->title('لديك طلب قائم بالفعل لهذا الفصل')->warning()->send();
-
-            return;
-        }
-
-        if (! $this->addOfferingId) {
-            Notification::make()->title('يرجى اختيار مقرر')->warning()->send();
-
-            return;
-        }
-
-        if ($this->getAddCount() >= self::MAX_ADDS) {
-            Notification::make()->title('وصلت للحد الأقصى ('.self::MAX_ADDS.') لطلبات الإضافة')->warning()->send();
-
-            return;
-        }
-
-        $student = auth()->user()->student;
-
-        // Verify the offering belongs to the student's specialization
-        $offering = CourseOffering::where('id', $this->addOfferingId)
+        $validAddOfferings = CourseOffering::whereIn('id', $addIds)
             ->whereHas('course.specializations', fn ($q) => $q->where('specializations.id', $student->specialization_id))
-            ->first();
+            ->pluck('id')
+            ->all();
 
-        if (! $offering) {
-            Notification::make()->title('المقرر المختار غير متاح لتخصصك')->danger()->send();
+        if (count($validAddOfferings) !== count($addIds)) {
+            Notification::make()->title('أحد المقررات المختارة غير متاح لتخصصك')->danger()->send();
 
             return;
         }
 
-        AddDropRequest::create([
-            'student_id' => $student->id,
-            'course_offering_id' => $this->addOfferingId,
-            'type' => AddDropType::Add,
-            'status' => 'pending',
-            'reason' => $this->addReason ?: null,
-        ]);
+        foreach ($dropEnrollments as $enrollment) {
+            AddDropRequest::create([
+                'student_id' => $student->id,
+                'course_offering_id' => $enrollment->course_offering_id,
+                'type' => AddDropType::Drop,
+                'status' => 'pending',
+                'reason' => $this->dropReason ?: null,
+            ]);
+        }
 
-        $this->addOfferingId = null;
+        foreach ($validAddOfferings as $offeringId) {
+            AddDropRequest::create([
+                'student_id' => $student->id,
+                'course_offering_id' => $offeringId,
+                'type' => AddDropType::Add,
+                'status' => 'pending',
+                'reason' => $this->addReason ?: null,
+            ]);
+        }
+
+        $this->selectedDropEnrollments = [];
+        $this->selectedAddOfferings = [];
+        $this->dropReason = '';
         $this->addReason = '';
 
-        Notification::make()->title('تم إرسال طلب الإضافة للمراجعة')->success()->send();
+        $total = count($dropIds) + count($addIds);
+        Notification::make()->title("تم إرسال {$total} طلب للمراجعة")->success()->send();
     }
 }

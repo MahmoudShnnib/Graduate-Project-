@@ -46,7 +46,8 @@ class ViewCourseGrades extends Page implements HasTable
         return $table
             ->query(
                 Grade::query()
-                    ->whereHas('enrollment', fn ($q) => $q->where('course_offering_id', $this->record->id))
+                    ->whereHas('enrollment', fn ($q) => $q->where('course_offering_id', $this->record->id)
+                        ->where('status', \App\Enums\EnrollmentStatus::Enrolled))
                     ->with(['enrollment.student.user'])
             )
             ->columns([

@@ -22,12 +22,15 @@ class EnrollmentNumberService
 
         $prefix = "{$yy}{$specCode}{$s}";
 
-        $count = Student::where('specialization_id', $student->specialization_id)
+        $maxEnrollmentNo = Student::withTrashed()
+            ->where('specialization_id', $student->specialization_id)
             ->whereNotNull('enrollment_no')
             ->where('enrollment_no', 'like', "{$prefix}%")
-            ->count();
+            ->max('enrollment_no');
 
-        $seq = str_pad($count + 1, 2, '0', STR_PAD_LEFT);
+        $lastSeq = $maxEnrollmentNo ? (int) substr((string) $maxEnrollmentNo, strlen($prefix)) : 0;
+
+        $seq = str_pad($lastSeq + 1, 2, '0', STR_PAD_LEFT);
 
         $enrollmentNo = "{$prefix}{$seq}";
 

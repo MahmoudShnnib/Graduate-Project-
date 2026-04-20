@@ -77,9 +77,9 @@ class CourseOfferingsRelationManager extends RelationManager
                     ->badge()
                     ->color('warning'),
 
-                TextColumn::make('enrollments_count')
+                TextColumn::make('active_enrollments_count')
                     ->label('عدد الطلاب')
-                    ->counts('enrollments')
+                    ->counts('activeEnrollments')
                     ->badge()
                     ->color('success'),
 

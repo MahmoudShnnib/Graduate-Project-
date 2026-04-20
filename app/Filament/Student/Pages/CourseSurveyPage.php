@@ -94,6 +94,7 @@ class CourseSurveyPage extends Page
 
             $enrolled = \App\Models\StudentEnrollment::where('student_id', $student->id)
                 ->where('course_offering_id', $offering->id)
+                ->active()
                 ->exists();
 
             $statuses[$courseId] = $enrolled ? 'enrolled' : 'pending';

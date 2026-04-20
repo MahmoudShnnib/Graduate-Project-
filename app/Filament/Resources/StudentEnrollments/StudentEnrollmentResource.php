@@ -41,7 +41,7 @@ class StudentEnrollmentResource extends Resource
             ->query(
                 CourseOffering::query()
                     ->with(['course', 'semester', 'faculty'])
-                    ->withCount('enrollments')
+                    ->withCount('activeEnrollments')
             )
             ->columns([
                 TextColumn::make('course.name')
@@ -64,7 +64,7 @@ class StudentEnrollmentResource extends Resource
                     ->badge()
                     ->color('warning'),
 
-                TextColumn::make('enrollments_count')
+                TextColumn::make('active_enrollments_count')
                     ->label('عدد الطلاب المسجلين')
                     ->badge()
                     ->color('success'),
