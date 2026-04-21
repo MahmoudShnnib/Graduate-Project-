@@ -10,6 +10,19 @@
                 استمارة طلب التحاق بالدراسات العليا
             </h2>
             <p class="mt-3 text-base text-slate-500">الإجازة العليا (الماجستير)</p>
+
+            {{-- Testing helper: generate sample applicant data --}}
+            <div class="mt-6 inline-flex">
+                <button type="button"
+                        id="fill-sample-btn"
+                        class="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">
+                    <svg id="fill-sample-icon" class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18 7.5v3m0 0v3m0-3h3m-3 0h-3" />
+                    </svg>
+                    <span id="fill-sample-label">توليد بيانات تجريبية</span>
+                </button>
+            </div>
+            <p class="mt-2 text-xs text-slate-400">يملأ الاستمارة ببيانات عشوائية للاختبار — ما عدا الملفات (يجب اختيارها يدوياً).</p>
         </div>
 
         {{-- Success --}}
@@ -150,21 +163,6 @@
                         <x-form.label for="workplace">مكان العمل</x-form.label>
                         <x-form.input id="workplace" name="workplace" type="text" value="{{ old('workplace') }}" />
                         <x-form.error name="workplace" />
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <x-form.label>هل أنت منتقل من كلية أخرى؟ <span class="text-red-500">*</span></x-form.label>
-                        <div class="mt-2 flex gap-6">
-                            <label class="flex cursor-pointer items-center gap-2">
-                                <input type="radio" name="is_transfer" value="0" @checked(old('is_transfer', '0') === '0') class="size-4 accent-blue-600" />
-                                <span class="font-medium text-slate-700">لا</span>
-                            </label>
-                            <label class="flex cursor-pointer items-center gap-2">
-                                <input type="radio" name="is_transfer" value="1" @checked(old('is_transfer') === '1') class="size-4 accent-blue-600" />
-                                <span class="font-medium text-slate-700">نعم</span>
-                            </label>
-                        </div>
-                        <x-form.error name="is_transfer" />
                     </div>
                 </div>
             </div>
@@ -342,5 +340,59 @@
         });
 
         updateDelegationFields();
+
+        // Testing helper: fetch sample applicant data from the server and
+        // fill every matching field. File inputs are skipped (browser
+        // security — cannot be set programmatically) and the declaration
+        // checkbox is auto-ticked for convenience.
+        const fillSampleBtn = document.getElementById('fill-sample-btn');
+        const fillSampleLabel = document.getElementById('fill-sample-label');
+        const defaultFillLabel = fillSampleLabel?.textContent ?? 'توليد بيانات تجريبية';
+
+        fillSampleBtn?.addEventListener('click', async () => {
+            fillSampleBtn.disabled = true;
+            fillSampleLabel.textContent = 'جاري التوليد...';
+
+            try {
+                const response = await fetch('{{ route('registration.sample') }}', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (! response.ok) throw new Error('sample endpoint returned ' + response.status);
+
+                const data = await response.json();
+
+                // Fill each named field if it exists on this form.
+                for (const [name, value] of Object.entries(data)) {
+                    const radios = document.querySelectorAll(`input[name="${name}"][type="radio"]`);
+                    if (radios.length > 0) {
+                        radios.forEach(r => { r.checked = String(r.value) === String(value); });
+                        radios.forEach(r => r.dispatchEvent(new Event('change', { bubbles: true })));
+                        continue;
+                    }
+                    const el = document.querySelector(`[name="${name}"]`);
+                    if (! el) continue;
+                    if (el.type === 'file') continue;      // can't programmatically set
+                    if (el.type === 'checkbox') { el.checked = !! value; continue; }
+                    el.value = value ?? '';
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
+                // Tick the declaration checkbox so the form is submittable in one click.
+                const decl = document.querySelector('input[name="declaration"]');
+                if (decl) decl.checked = true;
+
+                // Re-run conditional-visibility handlers now that study_type is set.
+                updateDelegationFields();
+                updateNationalityField();
+            } catch (err) {
+                console.error(err);
+                alert('فشل توليد البيانات. راجع الكونسول.');
+            } finally {
+                fillSampleBtn.disabled = false;
+                fillSampleLabel.textContent = defaultFillLabel;
+            }
+        });
     </script>
 </x-layout.app>

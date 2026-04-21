@@ -7,6 +7,7 @@ use App\Actions\Enrollment\EnrollStudentInOffering;
 use App\Exceptions\CourseOfferingClosedException;
 use App\Exceptions\CourseOutsideSpecializationException;
 use App\Exceptions\EnrollmentCapReachedException;
+use App\Exceptions\StudentNotActiveException;
 use App\Exceptions\StudentSuspendedInSemesterException;
 use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
@@ -123,6 +124,14 @@ class StudentSurveyView extends Page
                 $closed++;
 
                 continue;
+            } catch (StudentNotActiveException $e) {
+                Notification::make()
+                    ->title('الطالب غير نشط')
+                    ->body('لا يمكن تسجيل هذا الطالب لأن حسابه ليس في حالة نشطة.')
+                    ->danger()
+                    ->send();
+
+                return;
             } catch (StudentSuspendedInSemesterException $e) {
                 // Unreachable given the upfront check, but defensive.
                 Notification::make()->title('قيد الطالب موقوف')->danger()->send();
@@ -269,6 +278,14 @@ class StudentSurveyView extends Page
             Notification::make()
                 ->title('المقرر مغلق للتسجيل')
                 ->body('لا يمكن تسجيل الطالب في هذه المادة حتى يتم فتحها.')
+                ->danger()
+                ->send();
+
+            return;
+        } catch (StudentNotActiveException $e) {
+            Notification::make()
+                ->title('الطالب غير نشط')
+                ->body('لا يمكن تسجيل هذا الطالب لأن حسابه ليس في حالة نشطة.')
                 ->danger()
                 ->send();
 

@@ -67,12 +67,48 @@ class SuspensionRequestPage extends Page
             ->exists();
     }
 
+    /**
+     * @return array<int>
+     */
+    public function getApprovedSemesterIds(): array
+    {
+        $student = auth()->user()->student;
+
+        if (! $student) {
+            return [];
+        }
+
+        return SuspensionRequest::where('student_id', $student->id)
+            ->where('status', SuspensionStatus::Approved)
+            ->pluck('semester_id')
+            ->all();
+    }
+
+    public function isSelectedSemesterAlreadyApproved(): bool
+    {
+        if (! $this->semesterId) {
+            return false;
+        }
+
+        return in_array((int) $this->semesterId, $this->getApprovedSemesterIds(), true);
+    }
+
     public function submit(): void
     {
         $student = auth()->user()->student;
 
         if (! $student) {
             Notification::make()->title('لا يوجد سجل طالب')->danger()->send();
+
+            return;
+        }
+
+        if (! $student->canPerformActions()) {
+            Notification::make()
+                ->title('لا يمكنك تقديم هذا الطلب')
+                ->body('حسابك ليس في حالة نشطة حالياً.')
+                ->danger()
+                ->send();
 
             return;
         }
@@ -91,6 +127,16 @@ class SuspensionRequestPage extends Page
             'reason.min' => 'يجب أن يكون السبب 10 أحرف على الأقل',
             'semesterId.required' => 'يرجى اختيار الفصل الدراسي',
         ]);
+
+        if ($this->isSelectedSemesterAlreadyApproved()) {
+            Notification::make()
+                ->title('لا يمكن تقديم طلب انقطاع جديد لهذا الفصل')
+                ->body('تمت الموافقة مسبقاً على طلب انقطاع لهذا الفصل الدراسي.')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         SuspensionRequest::create([
             'student_id' => $student->id,

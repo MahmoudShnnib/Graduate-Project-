@@ -2,10 +2,19 @@
 
 namespace App\Filament\Resources\Students\Pages;
 
+use App\Enums\StudentStatus;
+use App\Enums\SuspensionStatus;
 use App\Filament\Resources\Students\StudentResource;
+use App\Models\Semester;
+use App\Models\SuspensionRequest;
 use App\Services\GradeCalculationService;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Model;
 
 class EditStudent extends EditRecord
@@ -15,6 +24,7 @@ class EditStudent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->changeStatusAction(),
             DeleteAction::make()
                 ->modalHeading('حذف الطالب')
                 ->modalDescription('سيتم حذف سجل الطالب وحساب المستخدم وطلب التسجيل المرتبط به. هل أنت متأكد؟')
@@ -22,6 +32,85 @@ class EditStudent extends EditRecord
                     $record->user?->delete();
                 }),
         ];
+    }
+
+    /**
+     * Dedicated header action for changing {@see \App\Models\Student::$status}.
+     * Built as a standalone action (not wired into the form save) so it gets
+     * a proper Filament modal with a Select + live consequence warning.
+     * Save-button on the main form stays untouched (no confirmation on save
+     * unless the status changed, which can't happen here because the status
+     * Select is removed from the main form).
+     */
+    protected function changeStatusAction(): Action
+    {
+        return Action::make('changeStatus')
+            ->label('تغيير الحالة')
+            ->icon('heroicon-o-arrow-path')
+            ->color('warning')
+            ->modalHeading('تغيير حالة الطالب')
+            ->modalIcon('heroicon-o-exclamation-triangle')
+            ->modalIconColor('warning')
+            ->modalSubmitActionLabel('تأكيد')
+            ->modalCancelActionLabel('إلغاء')
+            ->fillForm(fn () => ['status' => $this->record->status?->value])
+            ->form([
+                Placeholder::make('current_status')
+                    ->label('الحالة الحالية')
+                    ->content(fn () => $this->record->getDisplayStatusLabel()),
+
+                Select::make('status')
+                    ->label('الحالة الجديدة')
+                    ->options(StudentStatus::class)
+                    ->required()
+                    ->searchable()
+                    ->preload()
+                    ->live(),
+
+                Placeholder::make('consequence')
+                    ->label('ما الذي سيحدث؟')
+                    ->content(fn (Get $get): string => $this->getStatusChangeWarning(
+                        $get('status') instanceof StudentStatus
+                            ? $get('status')->value
+                            : $get('status')
+                    )),
+            ])
+            ->action(function (array $data): void {
+                $rawStatus = $data['status'] ?? null;
+                $newStatus = $rawStatus instanceof StudentStatus
+                    ? $rawStatus
+                    : StudentStatus::from((string) $rawStatus);
+
+                if ($newStatus === $this->record->status) {
+                    Notification::make()->title('لم يتم تغيير الحالة')->warning()->send();
+
+                    return;
+                }
+
+                $this->record->update(['status' => $newStatus]);
+                $this->rescindActiveSemesterSuspensionIfOverridden($this->record);
+
+                Notification::make()
+                    ->title('تم تحديث حالة الطالب')
+                    ->body('الحالة الجديدة: '.$newStatus->label())
+                    ->success()
+                    ->send();
+
+                $this->refreshFormData(['status']);
+            });
+    }
+
+    private function getStatusChangeWarning(?string $newStatusValue): string
+    {
+        $newStatus = $newStatusValue ? StudentStatus::tryFrom($newStatusValue) : null;
+
+        return match ($newStatus) {
+            StudentStatus::Active => 'سيتم تغيير حالة الطالب إلى "نشط". إذا كان لديه إيقاف قيد معتمد للفصل الحالي فسيتم إلغاؤه، وسيتمكن الطالب من استخدام جميع الخدمات.',
+            StudentStatus::Inactive => 'سيتم إيقاف قيد الطالب مؤقتًا. سيتم سحب جميع تسجيلاته النشطة في المقررات. سيتمكن من الاطلاع على بياناته فقط.',
+            StudentStatus::Withdrawn => 'سيتم سحب قيد الطالب من الكلية. سيتم سحب جميع تسجيلاته النشطة في المقررات. هذا الإجراء يؤثر على ملفه الأكاديمي.',
+            StudentStatus::Graduated => 'سيتم تسجيل تخرج الطالب. سيتم سحب جميع تسجيلاته النشطة. لن يتمكن من تقديم أي طلبات جديدة.',
+            default => 'اختر الحالة الجديدة لعرض الأثر.',
+        };
     }
 
     /**
@@ -75,9 +164,48 @@ class EditStudent extends EditRecord
         }
 
         // Recalculate GPA — transfer courses count toward it per
-        // GradeCalculationService. Suspended students are skipped inside the service.
+        // GradeCalculationService. Non-Active students are skipped inside the service.
         app(GradeCalculationService::class)->recalculateStudentGPA($record);
 
+        // Admin-override: if the saved status is Active and there's still an
+        // approved semester-scoped suspension for the active semester, the
+        // admin's explicit Save means "this student should be active now".
+        // Rescind the suspension (flip to Rejected with an explanatory note)
+        // so canPerformActions / display helpers / portal gates all agree
+        // with the admin's intent immediately.
+        $this->rescindActiveSemesterSuspensionIfOverridden($record);
+
         return $record;
+    }
+
+    private function rescindActiveSemesterSuspensionIfOverridden(Model $record): void
+    {
+        if ($record->status !== StudentStatus::Active) {
+            return;
+        }
+
+        $activeSemester = Semester::where('is_active', true)->first();
+
+        if (! $activeSemester) {
+            return;
+        }
+
+        $affected = SuspensionRequest::where('student_id', $record->id)
+            ->where('semester_id', $activeSemester->id)
+            ->where('status', SuspensionStatus::Approved)
+            ->update([
+                'status' => SuspensionStatus::Rejected,
+                'decided_by' => auth()->id(),
+                'decided_at' => now(),
+                'decision_notes' => 'تم إلغاء إيقاف القيد من قبل الإدارة عبر تحرير الطالب.',
+            ]);
+
+        if ($affected > 0) {
+            Notification::make()
+                ->title('تم إلغاء إيقاف القيد لهذا الفصل')
+                ->body('تم إعادة الطالب إلى الحالة النشطة. لإعادة تسجيله في المقررات، يرجى استخدام شاشة إدارة المقرر.')
+                ->success()
+                ->send();
+        }
     }
 }

@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Students\Pages;
 use App\Enums\EnrollmentStatus;
 use App\Enums\GradeStatus;
 use App\Filament\Resources\Students\StudentResource;
-use App\Models\Semester;
 use App\Models\StudentEnrollment;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
@@ -14,7 +13,6 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 
 class ViewStudent extends ViewRecord implements HasTable
 {
@@ -24,8 +22,6 @@ class ViewStudent extends ViewRecord implements HasTable
 
     protected string $view = 'filament.resources.students.pages.view-student';
 
-    public ?int $selectedSemesterId = null;
-
     protected function getHeaderActions(): array
     {
         return [
@@ -33,40 +29,22 @@ class ViewStudent extends ViewRecord implements HasTable
         ];
     }
 
-    public function getStudentSemesters(): Collection
-    {
-        return Semester::query()
-            ->whereHas('courseOfferings.enrollments', function ($query) {
-                $query->where('student_id', $this->record->id)
-                    ->where('status', EnrollmentStatus::Enrolled);
-            })
-            ->orderByDesc('year')
-            ->orderByDesc('id')
-            ->get();
-    }
-
-    public function updatedSelectedSemesterId(): void
-    {
-        $this->resetTable();
-    }
-
     public function table(Table $table): Table
     {
         return $table
-            ->query(function (): Builder {
-                $query = StudentEnrollment::query()
-                    ->where('student_id', $this->record->id)
-                    ->active()
-                    ->with(['courseOffering.course', 'grade']);
-
-                if ($this->selectedSemesterId) {
-                    $query->whereHas('courseOffering', fn (Builder $q) => $q->where('semester_id', $this->selectedSemesterId));
-                } else {
-                    $query->whereRaw('0 = 1');
-                }
-
-                return $query;
-            })
+            ->query(fn (): Builder => StudentEnrollment::query()
+                ->where('student_id', $this->record->id)
+                ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
+                ->reorder()
+                ->orderByRaw(
+                    'CASE WHEN student_enrollments.status = ? '
+                    .'AND NOT EXISTS (SELECT 1 FROM grades '
+                    .'WHERE grades.enrollment_id = student_enrollments.id '
+                    .'AND grades.status = ?) THEN 0 ELSE 1 END ASC',
+                    [EnrollmentStatus::Enrolled->value, GradeStatus::Approved->value]
+                )
+                ->orderByDesc('course_offering_id')
+            )
             ->columns([
                 TextColumn::make('courseOffering.course.name')
                     ->label('المادة')
@@ -78,9 +56,11 @@ class ViewStudent extends ViewRecord implements HasTable
                     ->badge()
                     ->color('gray'),
 
-                TextColumn::make('courseOffering.course.credits')
-                    ->label('الساعات')
-                    ->alignCenter(),
+                TextColumn::make('courseOffering.semester.name')
+                    ->label('الفصل الدراسي')
+                    ->alignCenter()
+                    ->badge()
+                    ->color('info'),
 
                 TextColumn::make('grade.coursework_grade')
                     ->label('أعمال الفصل')
@@ -110,28 +90,54 @@ class ViewStudent extends ViewRecord implements HasTable
                     })
                     ->placeholder('—'),
 
-                TextColumn::make('grade.points')
-                    ->label('النقاط')
-                    ->alignCenter()
-                    ->placeholder('—'),
-
-                TextColumn::make('grade.status')
+                TextColumn::make('enrollment_status_chip')
                     ->label('الحالة')
                     ->alignCenter()
                     ->badge()
-                    ->formatStateUsing(fn (mixed $state): string => $state instanceof GradeStatus ? $state->label() : 'لم تُدخل')
-                    ->color(fn (mixed $state): string => match (true) {
-                        $state === GradeStatus::Approved => 'success',
-                        $state === GradeStatus::PendingApproval => 'warning',
-                        $state === GradeStatus::Draft => 'info',
-                        default => 'gray',
-                    }),
+                    ->state(fn (StudentEnrollment $record): string => self::computeStatusLabel($record))
+                    ->color(fn (StudentEnrollment $record): string => self::computeStatusColor($record)),
             ])
             ->paginated(false)
-            ->emptyStateHeading(fn (): string => $this->selectedSemesterId
-                ? 'لا توجد مواد مسجلة في هذا الفصل.'
-                : 'اختر فصلاً دراسياً لعرض الدرجات.')
+            ->emptyStateHeading('لا توجد مقررات مسجلة لهذا الطالب.')
             ->emptyStateDescription(null)
             ->emptyStateIcon('heroicon-o-academic-cap');
+    }
+
+    private static function computeStatusLabel(StudentEnrollment $record): string
+    {
+        if ($record->status === EnrollmentStatus::Dropped) {
+            return 'محذوف';
+        }
+
+        if ($record->status === EnrollmentStatus::Withdrawn) {
+            return 'منسحب';
+        }
+
+        $approved = $record->grade && $record->grade->status === GradeStatus::Approved;
+
+        if (! $approved) {
+            return 'يدرس حالياً';
+        }
+
+        return $record->grade->letter === 'F' ? 'راسب' : 'ناجح';
+    }
+
+    private static function computeStatusColor(StudentEnrollment $record): string
+    {
+        if ($record->status === EnrollmentStatus::Dropped) {
+            return 'gray';
+        }
+
+        if ($record->status === EnrollmentStatus::Withdrawn) {
+            return 'gray';
+        }
+
+        $approved = $record->grade && $record->grade->status === GradeStatus::Approved;
+
+        if (! $approved) {
+            return 'warning';
+        }
+
+        return $record->grade->letter === 'F' ? 'danger' : 'success';
     }
 }

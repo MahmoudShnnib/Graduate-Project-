@@ -10,7 +10,7 @@ class GradeCalculationService
 {
     public function recalculateStudentGPA(Student $student): void
     {
-        if ($student->status === StudentStatus::Suspended) {
+        if ($student->status !== StudentStatus::Active) {
             return;
         }
 

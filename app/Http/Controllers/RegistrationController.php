@@ -7,6 +7,8 @@ use App\Models\Specialization;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
 use App\Services\NotificationService;
+use App\Support\SampleApplicantData;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +25,20 @@ class RegistrationController extends Controller
         $specializations = Specialization::orderBy('name')->get();
 
         return view('registration.create', compact('specializations'));
+    }
+
+    /**
+     * Returns a synthetic applicant payload to pre-fill the /apply form
+     * for testing. Powered by {@see SampleApplicantData::forPublicApplication}
+     * which shares its name pools with the admin CreateStudent generator.
+     *
+     * File inputs (bachelor_certificate, remedial_statement) cannot be
+     * programmatically filled by the browser — the user must attach files
+     * manually before submitting.
+     */
+    public function sample(): JsonResponse
+    {
+        return response()->json(SampleApplicantData::forPublicApplication());
     }
 
     public function store(Request $request): RedirectResponse
@@ -89,7 +105,6 @@ class RegistrationController extends Controller
             'study_type' => ['required', 'in:self_funded,internally_delegated,faculty_assistant,public_delegation'],
             'delegation_number' => ['nullable', 'required_if:study_type,internally_delegated', 'string', 'max:100'],
             'delegation_entity' => ['nullable', 'required_if:study_type,public_delegation,faculty_assistant', 'string', 'max:255'],
-            'is_transfer' => ['required', 'in:0,1'],
             'declaration' => ['required', 'accepted'],
             // Password
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -118,7 +133,6 @@ class RegistrationController extends Controller
             'study_type.required' => 'يرجى تحديد نوع الدراسة',
             'delegation_number.required_if' => 'يرجى إدخال رقم قرار الإيفاد',
             'delegation_entity.required_if' => 'يرجى إدخال جهة الإيفاد',
-            'is_transfer.required' => 'يرجى تحديد ما إذا كنت منتقلاً من كلية أخرى',
             'declaration.required' => 'يجب الإقرار بصحة البيانات قبل إرسال الطلب',
             'declaration.accepted' => 'يجب الإقرار بصحة البيانات قبل إرسال الطلب',
             'password.required' => 'يرجى إدخال كلمة المرور',

@@ -217,13 +217,17 @@ For any `wire:model` binding that drives an action's `->disabled()` / `->visible
 
 **Reference:** [courses-survey-results.blade.php:54](../../resources/views/filament/pages/courses-survey-results.blade.php) — checkbox `wire:model.live="selectedCourses"` drives the header action's disabled state.
 
-## 12. Relationship Select fields — always `searchable`+`preload`
+**Extends to `requiresConfirmation()` too:** if a form action's `->requiresConfirmation(Closure)` depends on a field's value, that field's Filament component must call `->live()`. Otherwise the render-time closure sees the unchanged state and Filament doesn't wire the modal handler.
 
-**Convention:** any `Select::make('x_id')->relationship(...)` uses `->searchable()->preload()`. Matches Filament's themed dropdown and avoids native `<select>` styling quirks (which caused the invisible-specialization-field bug in T14).
+**BUT — `requiresConfirmation()` doesn't work on EditRecord's Save button at all.** The save action renders as a form-submit button (via `->submit('save')`) or a direct `wire:click="save"` call when `hasFormWrapper=false` — neither triggers the action-mount system that opens modals. Modals only show on buttons whose click handler is `wire:click="mountAction('<name>')"`, which is what regular page/header/table Actions use. **If you need a confirmation modal on a save-like flow, build a dedicated Filament Action and trigger it separately from the form's Save button.** Example pattern: [EditStudent::changeStatusAction()](../../app/Filament/Resources/Students/Pages/EditStudent.php) — status changes were moved from the inline form to a header action with a proper modal.
 
-**Reference:** [ApplicationResource.php:81](../../app/Filament/Resources/Applications/ApplicationResource.php), [UserForm.php:45](../../app/Filament/Resources/Users/Schemas/UserForm.php), [StudentResource.php:303](../../app/Filament/Resources/Students/StudentResource.php).
+## 12. Select fields — always `searchable`+`preload` (relationship AND enum)
 
-Plain native selects (no `searchable`) are fine for small fixed enum options (gender, marital_status) but **never** for relationship queries.
+**Convention:** any non-trivial `Select::make(...)` uses `->searchable()->preload()` — applies to both relationship Selects (`->relationship(...)`) AND enum-bound Selects (`->options(EnumClass::class)`). Matches Filament's themed dropdown and avoids the native-`<select>` invisible-text bug (first hit in T14 specialization, again in the T6 follow-up status change modal — same root cause both times).
+
+**References:** [ApplicationResource.php:81](../../app/Filament/Resources/Applications/ApplicationResource.php), [UserForm.php:45](../../app/Filament/Resources/Users/Schemas/UserForm.php), [StudentResource.php:303](../../app/Filament/Resources/Students/StudentResource.php), [EditStudent::changeStatusAction](../../app/Filament/Resources/Students/Pages/EditStudent.php).
+
+Plain native selects (no `searchable`) are only fine for tiny 2-3 option enums whose label isn't badge-styled (e.g. `gender`, `marital_status`). For anything with ≥4 options OR anything rendered as a badge/colored chip, use `->searchable()->preload()`.
 
 ## 13. Back-link pattern
 
@@ -240,7 +244,35 @@ At the bottom of every drill-in / detail page:
 - Arrow icon is `arrow-right` (visually points back in RTL layout).
 - Label is `العودة لـ{noun}` — noun matches the destination page title.
 
-## 14. Page routing
+## 14. "Generate test data" buttons (shared data source)
+
+Two forms currently offer a "توليد بيانات تجريبية" button — one on `/admin/students/create` (Filament/Livewire) and one on `/apply` (public Blade). Both must share the same pool of Arabic names / cities / streets so they stay consistent.
+
+**Single source of truth:** [`app/Support/SampleApplicantData.php`](../../app/Support/SampleApplicantData.php). Private const arrays of name pools; two public generators that shape to each form's field keys.
+
+### Pattern — adding a new "generate" button somewhere
+
+1. **Add a new generator method** on `SampleApplicantData` (e.g. `forFacultyCreate()`). Don't duplicate pool arrays inline; always call `generateBase()` (or extract a new shared core if a different shape of data is needed).
+2. **Wire the UI:**
+   - **Filament/Livewire page:** header `Action` with `->action(fn () => $this->form->fill(SampleApplicantData::forX()))`. Icon: `Heroicon::Sparkles`. Color: `warning`.
+   - **Public (non-Livewire) Blade:** button in the header + GET JSON endpoint on the controller + `<script>` that fetches + fills. See `/apply/sample` + `registration/create.blade.php` for the canonical example.
+3. **Public endpoints always rate-limited:** `->middleware('throttle:20,1')` minimum.
+4. **File inputs are never populated** — browsers reject programmatic file writes. Skip them in the fill loop + tell the user via helper text.
+5. **Re-run conditional-visibility handlers** after filling — form fields like `study_type` or `nationality` show/hide extra rows based on JS; those handlers need to re-evaluate.
+
+**Button styling (non-Filament pages, Tailwind):**
+```html
+<button class="inline-flex items-center gap-2 rounded-xl border border-amber-200
+               bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm
+               transition hover:bg-amber-100 hover:text-amber-800
+               disabled:cursor-not-allowed disabled:opacity-60">
+    {sparkles icon} توليد بيانات تجريبية
+</button>
+```
+
+**Helper text below the button:** always explain that files must be attached manually.
+
+## 15. Page routing
 
 - **Resource pages** (`list`, `view`, `edit`, `create`): standard Filament Resource with `getPages()` wiring. URL auto-generated from resource slug.
 - **Cross-cutting detail Pages** (drill-ins into entities not scoped by the resource's model): plain `Filament\Pages\Page` with custom `getRoutePath()`. URL convention `/admin/{noun}-{operation}/{student}/{semester}`. Set `$shouldRegisterNavigation = false`.
@@ -388,6 +420,8 @@ All pass the model; the service fetches the notifiable + dispatches via `HasWhat
 3. **Don't place domain invariants in Filament page action closures.** They belong on Actions.
 4. **Don't propagate an unreviewed call shape from existing code.** Verify the method exists — `grep -n 'public function ...' app/Services/...` is 2 seconds.
 5. **Don't call `Resource::table($table)` from a standalone Page without `->query(fn => ...)`.** Error will be `Table must have a [query(), relationship(), or records()]`.
+5b. **Don't use `$getRecord()` inside a Blade view rendered by `Filament\Schemas\Components\View::make()`.** Use `$record` directly — it's exposed via `Component::getExtraViewData()`, while `$getRecord()` is only for closure evaluation in PHP. Silent no-op if misused (view renders without the data-driven content).
+5c. **Don't assume `$this->form->getRawState()[$enumField]` is a backing-value string.** For Select fields bound to enum classes, Filament hydrates the form state to the **enum case** on initial mount (not its string value). Subsequent Livewire round-trips may pass the string. Use a normalizer helper like `StudentStatus::tryFrom((string) $raw)` with an `instanceof StudentStatus` short-circuit. See [EditStudent::resolveFormStatus()](../../app/Filament/Resources/Students/Pages/EditStudent.php) for the pattern.
 6. **Don't swap between two icons for toggle states.** Use one icon + CSS rotation.
 7. **Don't mix `defaultSort()` with `getEloquentQuery` orderBy for multi-tier sorts.** Use `->modifyQueryUsing` + `$query->reorder()`.
 8. **Don't loosen a new Action guard because existing test fixtures don't set up the full domain state.** Fix the fixtures — they were always incomplete.

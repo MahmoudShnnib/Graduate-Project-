@@ -29,11 +29,17 @@
                     </div>
                 </div>
                 @if($semester)
-                    <div class="flex items-center gap-2 text-sm">
+                    <div class="flex items-center gap-2 text-sm flex-wrap">
                         <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-primary-200 dark:border-primary-500/30 text-primary-700 dark:text-primary-300 font-medium">
                             <x-heroicon-o-calendar-days style="width: 1rem; height: 1rem;" />
                             {{ $semester->name }}
                         </span>
+                        @if($semester->survey_open)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success-100 dark:bg-success-500/20 border border-success-200 dark:border-success-500/30 text-success-700 dark:text-success-400 text-xs font-medium">
+                                <span class="w-1.5 h-1.5 rounded-full bg-success-500 animate-pulse flex-shrink-0"></span>
+                                استطلاع مفتوح
+                            </span>
+                        @endif
                         @if($semester->isAddDropOpen())
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success-100 dark:bg-success-500/20 border border-success-200 dark:border-success-500/30 text-success-700 dark:text-success-400 text-xs font-medium">
                                 <span class="w-1.5 h-1.5 rounded-full bg-success-500 animate-pulse flex-shrink-0"></span>
@@ -89,39 +95,46 @@
             </div>
 
             @php
-                // A semester-scoped approved suspension for the CURRENT active semester
-                // takes precedence over the permanent Student.status value in the dashboard
-                // pill — this is the user-visible "what's my current standing this term" badge.
-                $isSuspendedNow = $semester && $student->isSuspendedInSemester($semester);
+                // Centralized in Student model — same precedence applied on the admin
+                // student view and in the Students table. Semester-scoped approved
+                // suspension wins over the permanent Student.status for display.
+                $displayLabel = $student->getDisplayStatusLabel();
+                $displayColor = $student->getDisplayStatusColor();
+                $isSuspendedNow = $displayColor === 'danger' && $student->status?->value === 'active';
             @endphp
             <div class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-5 flex items-center gap-4">
                 <div @class([
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-                    'bg-danger-100 dark:bg-danger-500/20' => $isSuspendedNow,
-                    'bg-info-100 dark:bg-info-500/20' => ! $isSuspendedNow,
+                    'bg-success-100 dark:bg-success-500/20' => $displayColor === 'success',
+                    'bg-danger-100 dark:bg-danger-500/20' => $displayColor === 'danger',
+                    'bg-info-100 dark:bg-info-500/20' => $displayColor === 'info',
+                    'bg-gray-100 dark:bg-white/10' => $displayColor === 'gray',
                 ])>
                     @if($isSuspendedNow)
-                        <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
+                        <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" @class([
+                            'text-success-600 dark:text-success-400' => $displayColor === 'success',
+                            'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
+                            'text-info-600 dark:text-info-400' => $displayColor === 'info',
+                            'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
+                        ]) />
                     @else
-                        <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
+                        <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" @class([
+                            'text-success-600 dark:text-success-400' => $displayColor === 'success',
+                            'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
+                            'text-info-600 dark:text-info-400' => $displayColor === 'info',
+                            'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
+                        ]) />
                     @endif
                 </div>
                 <div>
                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">الحالة</p>
-                    @if($isSuspendedNow)
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400">
-                            القيد موقوف مؤقتًا
-                        </span>
-                    @else
-                        <span @class([
-                            'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold',
-                            'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $student->status?->value === 'active',
-                            'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $student->status?->value === 'suspended',
-                            'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $student->status?->value === 'withdrawn',
-                            'bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400' => $student->status?->value === 'graduated',
-                            'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400' => ! in_array($student->status?->value, ['active', 'suspended', 'withdrawn', 'graduated']),
-                        ])>{{ $student->status?->label() ?? '—' }}</span>
-                    @endif
+                    <span @class([
+                        'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold',
+                        'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $displayColor === 'success',
+                        'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $displayColor === 'danger',
+                        'bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400' => $displayColor === 'info',
+                        'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400' => $displayColor === 'gray',
+                    ])>{{ $displayLabel }}</span>
                 </div>
             </div>
         </div>

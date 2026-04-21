@@ -84,7 +84,13 @@ class CourseTreePage extends Page
 
         $activeSemester = $this->getActiveSemester();
 
-        $enrollments = $student->activeEnrollments()
+        // Walk all enrollments (not just active) so past approved grades
+        // remain visible in the tree after a status cascade — e.g. when the
+        // student is flipped to Inactive / Withdrawn / Graduated, the cascade
+        // withdraws their enrollments but the tree should still show past
+        // passed courses. The isPassed / isCurrentlyTaking predicates below
+        // do the status filtering semantically.
+        $enrollments = $student->enrollments()
             ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
             ->get();
 

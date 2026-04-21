@@ -4,9 +4,11 @@ namespace App\Filament\Resources\CourseOfferings\Pages;
 
 use App\Actions\Enrollment\DropStudentFromOffering;
 use App\Actions\Enrollment\EnrollStudentInOffering;
+use App\Enums\StudentStatus;
 use App\Exceptions\CourseOfferingClosedException;
 use App\Exceptions\CourseOutsideSpecializationException;
 use App\Exceptions\EnrollmentCapReachedException;
+use App\Exceptions\StudentNotActiveException;
 use App\Exceptions\StudentSuspendedInSemesterException;
 use App\Filament\Resources\CourseOfferings\CourseOfferingResource;
 use App\Models\CourseOffering;
@@ -60,6 +62,7 @@ class EnrollStudents extends Page implements HasTable
         return CourseSurvey::where('course_id', $this->record->course_id)
             ->where('semester_id', $this->record->semester_id)
             ->where('is_processed', false)
+            ->whereHas('student', fn ($q) => $q->where('status', StudentStatus::Active))
             ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
             ->count();
     }
@@ -67,7 +70,9 @@ class EnrollStudents extends Page implements HasTable
     /**
      * Survey entries still awaiting a decision. Accepted or rejected
      * students disappear from this list (is_processed = true). Students
-     * already enrolled via any other path are also excluded.
+     * already enrolled via any other path are also excluded. Non-Active
+     * students (Inactive / Withdrawn / Graduated) are filtered out so admins
+     * don't see them as candidates.
      *
      * @return array<int, string>
      */
@@ -78,6 +83,7 @@ class EnrollStudents extends Page implements HasTable
         return CourseSurvey::where('course_id', $this->record->course_id)
             ->where('semester_id', $this->record->semester_id)
             ->where('is_processed', false)
+            ->whereHas('student', fn ($q) => $q->where('status', StudentStatus::Active))
             ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
             ->with('student.user')
             ->orderBy('priority')
@@ -119,6 +125,7 @@ class EnrollStudents extends Page implements HasTable
                     $capped = 0;
                     $outOfSpec = 0;
                     $suspended = 0;
+                    $notActive = 0;
 
                     foreach ($data['student_ids'] as $studentId) {
                         $student = Student::find($studentId);
@@ -138,6 +145,10 @@ class EnrollStudents extends Page implements HasTable
                                 ->send();
 
                             return;
+                        } catch (StudentNotActiveException $e) {
+                            $notActive++;
+
+                            continue;
                         } catch (StudentSuspendedInSemesterException $e) {
                             $suspended++;
 
@@ -157,7 +168,7 @@ class EnrollStudents extends Page implements HasTable
                         }
                     }
 
-                    if ($capped > 0 || $outOfSpec > 0 || $suspended > 0) {
+                    if ($capped > 0 || $outOfSpec > 0 || $suspended > 0 || $notActive > 0) {
                         $bodyParts = [];
                         if ($capped > 0) {
                             $bodyParts[] = "تخطى {$capped} طالب الحد الأقصى (".EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER.' مقررات).';
@@ -167,6 +178,9 @@ class EnrollStudents extends Page implements HasTable
                         }
                         if ($suspended > 0) {
                             $bodyParts[] = "{$suspended} طالب قيده موقوف لهذا الفصل.";
+                        }
+                        if ($notActive > 0) {
+                            $bodyParts[] = "{$notActive} طالب حسابه غير نشط — لا يمكن تسجيلهم.";
                         }
 
                         Notification::make()
@@ -201,12 +215,13 @@ class EnrollStudents extends Page implements HasTable
                             // matches one of the offering's course specializations,
                             // AND who are not already actively enrolled in this
                             // offering (no point showing students you can't add).
-                            // This is a UI-layer filter; the action-layer guard
-                            // still enforces the same invariants server-side.
+                            // Only Active students are shown — Inactive / Withdrawn /
+                            // Graduated cannot be enrolled.
                             $specIds = $this->record->course->specializations()->pluck('specializations.id');
                             $offeringId = $this->record->id;
 
                             return Student::with('user')
+                                ->where('status', StudentStatus::Active)
                                 ->whereIn('specialization_id', $specIds)
                                 ->whereDoesntHave('activeEnrollments', fn (Builder $q) => $q->where('course_offering_id', $offeringId))
                                 ->where(function (Builder $q) use ($search): void {
@@ -235,6 +250,7 @@ class EnrollStudents extends Page implements HasTable
                     $capped = 0;
                     $outOfSpec = 0;
                     $suspended = 0;
+                    $notActive = 0;
 
                     foreach ($data['student_ids'] as $studentId) {
                         $student = Student::find($studentId);
@@ -254,6 +270,10 @@ class EnrollStudents extends Page implements HasTable
                                 ->send();
 
                             return;
+                        } catch (StudentNotActiveException $e) {
+                            $notActive++;
+
+                            continue;
                         } catch (StudentSuspendedInSemesterException $e) {
                             $suspended++;
 
@@ -273,7 +293,7 @@ class EnrollStudents extends Page implements HasTable
                         }
                     }
 
-                    if ($capped > 0 || $outOfSpec > 0 || $suspended > 0) {
+                    if ($capped > 0 || $outOfSpec > 0 || $suspended > 0 || $notActive > 0) {
                         $bodyParts = [];
                         if ($capped > 0) {
                             $bodyParts[] = "تخطى {$capped} طالب الحد الأقصى (".EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER.' مقررات).';
@@ -283,6 +303,9 @@ class EnrollStudents extends Page implements HasTable
                         }
                         if ($suspended > 0) {
                             $bodyParts[] = "{$suspended} طالب قيده موقوف لهذا الفصل.";
+                        }
+                        if ($notActive > 0) {
+                            $bodyParts[] = "{$notActive} طالب حسابه غير نشط — لا يمكن تسجيلهم.";
                         }
 
                         Notification::make()

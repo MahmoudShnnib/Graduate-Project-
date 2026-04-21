@@ -16,6 +16,10 @@
         $allRequests = $this->getAllRequestsThisSemester();
     @endphp
 
+    @if($student)
+        @include('filament.components.status-block-banner', ['student' => $student])
+    @endif
+
     @if($isSuspended)
         <x-filament::section>
             <div class="flex items-start gap-4 p-4 rounded-xl border bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30">

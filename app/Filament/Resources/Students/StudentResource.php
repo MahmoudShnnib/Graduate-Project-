@@ -75,7 +75,8 @@ class StudentResource extends Resource
                                 TextEntry::make('status')
                                     ->label('الحالة')
                                     ->badge()
-                                    ->formatStateUsing(fn (StudentStatus $state): string => $state->label()),
+                                    ->state(fn (Student $record): string => $record->getDisplayStatusLabel())
+                                    ->color(fn (Student $record): string => $record->getDisplayStatusColor()),
                             ]),
                     ]),
 
@@ -469,7 +470,14 @@ class StudentResource extends Resource
                         ->label('الحالة')
                         ->options(StudentStatus::class)
                         ->default(StudentStatus::Active)
-                        ->required(),
+                        ->required()
+                        ->searchable()
+                        ->preload()
+                        ->disabledOn('edit')
+                        ->dehydratedWhenHidden()
+                        ->helperText(fn (string $operation): ?string => $operation === 'edit'
+                            ? 'لتغيير الحالة، استخدم زر "تغيير الحالة" في أعلى الصفحة.'
+                            : null),
 
                     TextInput::make('enrollment_no')
                         ->label('رقم القيد')
@@ -513,7 +521,8 @@ class StudentResource extends Resource
                 TextColumn::make('status')
                     ->label('الحالة')
                     ->badge()
-                    ->formatStateUsing(fn (StudentStatus $state): string => $state->label()),
+                    ->state(fn (Student $record): string => $record->getDisplayStatusLabel())
+                    ->color(fn (Student $record): string => $record->getDisplayStatusColor()),
             ])
             ->filters([
                 SelectFilter::make('status')
