@@ -28,6 +28,8 @@ related: [[_brain/project-context/README]]
 
 6. **Learn from past mistakes.** Before starting Filament / Livewire / testing work, scan [[_brain/research/2026-04-20-agent-mistakes-and-lessons]] for the anti-patterns already encountered in this repo. It catalogues known traps (wrong Filament component namespaces, `wire:model` reactivity gaps, Vite-manifest issues after `optimize:clear`, etc.) and their correct defaults.
 
+7. **Match existing design conventions — don't invent.** [[_brain/project-context/design-conventions]] is the reference for every visual and structural pattern (colors, badges, banners, buttons, drill-ins, grouped lists, exceptions, observers, etc.). When you need to add a button, banner, modal, or anything user-facing, open that file and pick the existing pattern. When in doubt, match — don't invent.
+
 ## Project Overview
 
 A **Libyan graduate-studies admissions, enrollment, and academic-lifecycle management system** for a single faculty, built as a graduation project. It is an Arabic-first (RTL), multi-panel Laravel + Filament application covering the full student journey:

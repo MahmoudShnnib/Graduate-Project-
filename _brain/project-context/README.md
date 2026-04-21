@@ -15,3 +15,4 @@ Unlike [[daily-notes]], these notes don't need date prefixes — name them by to
 - [[project-overview]] — what the system does, how the pieces fit, key files, what's incomplete
 - [[architecture]] — text diagram of components, data layer, observer wiring, communication flows
 - [[gotchas]] — non-obvious behavior, landmines, and things to check before editing
+- [[design-conventions]] — visual + structural + code conventions (colors, badges, banners, modals, drill-ins, exceptions, observers). **Match don't invent** — the reference for every UI pattern the project uses.
