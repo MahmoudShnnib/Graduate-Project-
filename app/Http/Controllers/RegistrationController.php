@@ -7,6 +7,8 @@ use App\Models\Specialization;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
 use App\Services\NotificationService;
+use App\Support\SampleApplicantData;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +25,20 @@ class RegistrationController extends Controller
         $specializations = Specialization::orderBy('name')->get();
 
         return view('registration.create', compact('specializations'));
+    }
+
+    /**
+     * Returns a synthetic applicant payload to pre-fill the /apply form
+     * for testing. Powered by {@see SampleApplicantData::forPublicApplication}
+     * which shares its name pools with the admin CreateStudent generator.
+     *
+     * File inputs (bachelor_certificate, remedial_statement) cannot be
+     * programmatically filled by the browser — the user must attach files
+     * manually before submitting.
+     */
+    public function sample(): JsonResponse
+    {
+        return response()->json(SampleApplicantData::forPublicApplication());
     }
 
     public function store(Request $request): RedirectResponse

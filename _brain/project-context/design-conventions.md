@@ -240,7 +240,35 @@ At the bottom of every drill-in / detail page:
 - Arrow icon is `arrow-right` (visually points back in RTL layout).
 - Label is `العودة لـ{noun}` — noun matches the destination page title.
 
-## 14. Page routing
+## 14. "Generate test data" buttons (shared data source)
+
+Two forms currently offer a "توليد بيانات تجريبية" button — one on `/admin/students/create` (Filament/Livewire) and one on `/apply` (public Blade). Both must share the same pool of Arabic names / cities / streets so they stay consistent.
+
+**Single source of truth:** [`app/Support/SampleApplicantData.php`](../../app/Support/SampleApplicantData.php). Private const arrays of name pools; two public generators that shape to each form's field keys.
+
+### Pattern — adding a new "generate" button somewhere
+
+1. **Add a new generator method** on `SampleApplicantData` (e.g. `forFacultyCreate()`). Don't duplicate pool arrays inline; always call `generateBase()` (or extract a new shared core if a different shape of data is needed).
+2. **Wire the UI:**
+   - **Filament/Livewire page:** header `Action` with `->action(fn () => $this->form->fill(SampleApplicantData::forX()))`. Icon: `Heroicon::Sparkles`. Color: `warning`.
+   - **Public (non-Livewire) Blade:** button in the header + GET JSON endpoint on the controller + `<script>` that fetches + fills. See `/apply/sample` + `registration/create.blade.php` for the canonical example.
+3. **Public endpoints always rate-limited:** `->middleware('throttle:20,1')` minimum.
+4. **File inputs are never populated** — browsers reject programmatic file writes. Skip them in the fill loop + tell the user via helper text.
+5. **Re-run conditional-visibility handlers** after filling — form fields like `study_type` or `nationality` show/hide extra rows based on JS; those handlers need to re-evaluate.
+
+**Button styling (non-Filament pages, Tailwind):**
+```html
+<button class="inline-flex items-center gap-2 rounded-xl border border-amber-200
+               bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm
+               transition hover:bg-amber-100 hover:text-amber-800
+               disabled:cursor-not-allowed disabled:opacity-60">
+    {sparkles icon} توليد بيانات تجريبية
+</button>
+```
+
+**Helper text below the button:** always explain that files must be attached manually.
+
+## 15. Page routing
 
 - **Resource pages** (`list`, `view`, `edit`, `create`): standard Filament Resource with `getPages()` wiring. URL auto-generated from resource slug.
 - **Cross-cutting detail Pages** (drill-ins into entities not scoped by the resource's model): plain `Filament\Pages\Page` with custom `getRoutePath()`. URL convention `/admin/{noun}-{operation}/{student}/{semester}`. Set `$shouldRegisterNavigation = false`.
