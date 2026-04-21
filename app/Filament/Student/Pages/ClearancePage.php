@@ -42,6 +42,16 @@ class ClearancePage extends Page
             return;
         }
 
+        if (! $student->canPerformActions()) {
+            Notification::make()
+                ->title('لا يمكنك تقديم هذا الطلب')
+                ->body('حسابك ليس في حالة نشطة حالياً.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         if (! $this->isThesisApproved()) {
             Notification::make()->title('يجب قبول الرسالة أولاً قبل طلب الاستماحة')->danger()->send();
 

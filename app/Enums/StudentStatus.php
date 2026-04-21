@@ -5,7 +5,7 @@ namespace App\Enums;
 enum StudentStatus: string
 {
     case Active = 'active';
-    case Suspended = 'suspended';
+    case Inactive = 'inactive';
     case Withdrawn = 'withdrawn';
     case Graduated = 'graduated';
 
@@ -13,7 +13,7 @@ enum StudentStatus: string
     {
         return match ($this) {
             self::Active => 'نشط',
-            self::Suspended => 'موقوف',
+            self::Inactive => 'القيد موقوف مؤقتًا',
             self::Withdrawn => 'منسحب',
             self::Graduated => 'متخرج',
         };

@@ -9,6 +9,7 @@ use App\Enums\StudentStatus;
 use App\Exceptions\CourseOfferingClosedException;
 use App\Exceptions\CourseOutsideSpecializationException;
 use App\Exceptions\EnrollmentCapReachedException;
+use App\Exceptions\StudentNotActiveException;
 use App\Exceptions\StudentSuspendedInSemesterException;
 use App\Filament\Resources\AddDropRequests\Pages\ListAddDropRequests;
 use App\Models\AddDropRequest;
@@ -71,7 +72,7 @@ class AddDropRequestResource extends Resource
                     ->formatStateUsing(fn (StudentStatus $state): string => $state->label())
                     ->color(fn (StudentStatus $state): string => match ($state) {
                         StudentStatus::Active => 'success',
-                        StudentStatus::Suspended => 'danger',
+                        StudentStatus::Inactive => 'danger',
                         StudentStatus::Withdrawn => 'warning',
                         StudentStatus::Graduated => 'info',
                     }),
@@ -172,6 +173,14 @@ class AddDropRequestResource extends Resource
                                 Notification::make()
                                     ->title('المقرر مغلق للتسجيل')
                                     ->body('لا يمكن قبول هذا الطلب — المقرر مغلق حالياً.')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            } catch (StudentNotActiveException $e) {
+                                Notification::make()
+                                    ->title('الطالب غير نشط')
+                                    ->body('لا يمكن قبول هذا الطلب — حساب الطالب ليس في حالة نشطة.')
                                     ->danger()
                                     ->send();
 

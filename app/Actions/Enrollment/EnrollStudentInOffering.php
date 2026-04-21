@@ -3,9 +3,11 @@
 namespace App\Actions\Enrollment;
 
 use App\Enums\EnrollmentStatus;
+use App\Enums\StudentStatus;
 use App\Exceptions\CourseOfferingClosedException;
 use App\Exceptions\CourseOutsideSpecializationException;
 use App\Exceptions\EnrollmentCapReachedException;
+use App\Exceptions\StudentNotActiveException;
 use App\Exceptions\StudentSuspendedInSemesterException;
 use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
@@ -24,6 +26,8 @@ class EnrollStudentInOffering
     public const int MAX_ENROLLMENTS_PER_SEMESTER = 4;
 
     /**
+     * @throws StudentNotActiveException when the student's global status is
+     *                                   not Active (Inactive / Withdrawn / Graduated).
      * @throws CourseOfferingClosedException when the offering's is_open flag is false.
      * @throws StudentSuspendedInSemesterException when the student has an
      *                                             approved suspension request for the target semester.
@@ -45,6 +49,13 @@ class EnrollStudentInOffering
                 ->exists();
 
             if (! $isAlreadyActive) {
+                // Global status check: Inactive / Withdrawn / Graduated
+                // students cannot be written to. First check because it's
+                // the cheapest and independent of the offering.
+                if ($student->status !== StudentStatus::Active) {
+                    throw new StudentNotActiveException($student);
+                }
+
                 // Closed-offering check (cheapest — property on the already-loaded
                 // offering). A closed offering rejects new enrollments; existing
                 // enrollments are handled by CourseOfferingObserver's cascade

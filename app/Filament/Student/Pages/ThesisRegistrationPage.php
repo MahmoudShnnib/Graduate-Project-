@@ -48,6 +48,16 @@ class ThesisRegistrationPage extends Page
             return;
         }
 
+        if (! $student->canPerformActions()) {
+            Notification::make()
+                ->title('لا يمكنك تقديم هذا الطلب')
+                ->body('حسابك ليس في حالة نشطة حالياً.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         if (! $student->isEligibleForThesis()) {
             Notification::make()
                 ->title('غير مؤهل')

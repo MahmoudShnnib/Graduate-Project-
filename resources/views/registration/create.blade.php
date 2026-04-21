@@ -164,21 +164,6 @@
                         <x-form.input id="workplace" name="workplace" type="text" value="{{ old('workplace') }}" />
                         <x-form.error name="workplace" />
                     </div>
-
-                    <div class="md:col-span-2">
-                        <x-form.label>هل أنت منتقل من كلية أخرى؟ <span class="text-red-500">*</span></x-form.label>
-                        <div class="mt-2 flex gap-6">
-                            <label class="flex cursor-pointer items-center gap-2">
-                                <input type="radio" name="is_transfer" value="0" @checked(old('is_transfer', '0') === '0') class="size-4 accent-blue-600" />
-                                <span class="font-medium text-slate-700">لا</span>
-                            </label>
-                            <label class="flex cursor-pointer items-center gap-2">
-                                <input type="radio" name="is_transfer" value="1" @checked(old('is_transfer') === '1') class="size-4 accent-blue-600" />
-                                <span class="font-medium text-slate-700">نعم</span>
-                            </label>
-                        </div>
-                        <x-form.error name="is_transfer" />
-                    </div>
                 </div>
             </div>
 

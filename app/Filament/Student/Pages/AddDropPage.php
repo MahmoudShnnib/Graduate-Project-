@@ -232,10 +232,10 @@ class AddDropPage extends Page
         $student = auth()->user()->student;
         $activeSemester = $this->getActiveSemester();
 
-        if ($student && $activeSemester && $student->isSuspendedInSemester($activeSemester)) {
+        if ($student && $activeSemester && ! $student->canPerformActions($activeSemester)) {
             Notification::make()
-                ->title('قيدك موقوف لهذا الفصل')
-                ->body('لا يمكنك تقديم طلبات إضافة أو حذف.')
+                ->title('لا يمكنك تقديم طلبات إضافة أو حذف')
+                ->body('حسابك ليس في حالة نشطة أو أن قيدك موقوف لهذا الفصل.')
                 ->danger()
                 ->send();
 

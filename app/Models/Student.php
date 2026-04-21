@@ -159,4 +159,78 @@ class Student extends Model
         return $this->completedCoursesCount() >= 10
             && (float) $this->gpa >= 3.0;
     }
+
+    /**
+     * Single source of truth for "can this student submit / be written to".
+     * Returns false for any non-Active global status (Inactive / Withdrawn /
+     * Graduated) or when an approved semester-scoped suspension blocks the
+     * given semester.
+     */
+    public function canPerformActions(?Semester $semester = null): bool
+    {
+        if ($this->status !== StudentStatus::Active) {
+            return false;
+        }
+
+        if ($semester && $this->isSuspendedInSemester($semester)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Arabic label for UI display. Precedence (highest wins):
+     *   1. Global Withdrawn / Graduated — terminal states authoritative over anything.
+     *   2. Global Inactive — permanent pause; label matches semester suspension.
+     *   3. Semester-scoped approved suspension for the active semester.
+     *   4. Global Active — "نشط".
+     */
+    public function getDisplayStatusLabel(): string
+    {
+        if ($this->status === StudentStatus::Withdrawn || $this->status === StudentStatus::Graduated) {
+            return $this->status->label();
+        }
+
+        if ($this->status === StudentStatus::Inactive) {
+            return StudentStatus::Inactive->label();
+        }
+
+        $activeSemester = Semester::where('is_active', true)->first();
+
+        if ($activeSemester && $this->isSuspendedInSemester($activeSemester)) {
+            return 'القيد موقوف مؤقتًا';
+        }
+
+        return $this->status?->label() ?? '—';
+    }
+
+    /**
+     * Filament color token matching {@see self::getDisplayStatusLabel()}.
+     */
+    public function getDisplayStatusColor(): string
+    {
+        if ($this->status === StudentStatus::Withdrawn) {
+            return 'danger';
+        }
+
+        if ($this->status === StudentStatus::Graduated) {
+            return 'info';
+        }
+
+        if ($this->status === StudentStatus::Inactive) {
+            return 'danger';
+        }
+
+        $activeSemester = Semester::where('is_active', true)->first();
+
+        if ($activeSemester && $this->isSuspendedInSemester($activeSemester)) {
+            return 'danger';
+        }
+
+        return match ($this->status) {
+            StudentStatus::Active => 'success',
+            default => 'gray',
+        };
+    }
 }

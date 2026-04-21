@@ -144,7 +144,6 @@ class SampleApplicantData
             'permanent_address' => $base['permanent_address'],
             'profession' => 'طالب',
             'workplace' => 'لا يوجد',
-            'is_transfer' => '0',
             'email' => "applicant.{$randomSuffix}@example.com",
             'phone' => '09'.fake()->numerify('########'),
             'specialization_id' => Specialization::query()->inRandomOrder()->value('id'),

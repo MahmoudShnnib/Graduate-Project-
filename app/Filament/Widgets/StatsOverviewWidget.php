@@ -19,7 +19,7 @@ class StatsOverviewWidget extends BaseWidget
         $activeSemester = Semester::where('is_active', true)->first();
 
         $activeStudents = Student::where('status', StudentStatus::Active)->count();
-        $suspendedStudents = Student::where('status', StudentStatus::Suspended)->count();
+        $inactiveStudents = Student::where('status', StudentStatus::Inactive)->count();
         $withdrawnStudents = Student::where('status', StudentStatus::Withdrawn)->count();
 
         $pendingApplications = Application::where('status', ApplicationStatus::Pending)->count();
@@ -31,7 +31,7 @@ class StatsOverviewWidget extends BaseWidget
 
         return [
             Stat::make('الطلاب النشطون', $activeStudents)
-                ->description("موقوف: {$suspendedStudents} | منسحب: {$withdrawnStudents}")
+                ->description("موقوف: {$inactiveStudents} | منسحب: {$withdrawnStudents}")
                 ->color('success')
                 ->icon('heroicon-o-user-group'),
 

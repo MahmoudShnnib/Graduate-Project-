@@ -5,6 +5,10 @@
         $student = auth()->user()->student;
     @endphp
 
+    @if($student)
+        @include('filament.components.status-block-banner', ['student' => $student])
+    @endif
+
     {{-- Eligibility Status --}}
     <x-filament::section>
         <x-slot name="heading">

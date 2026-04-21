@@ -24,10 +24,10 @@ class StudentFactory extends Factory
         ];
     }
 
-    public function suspended(): static
+    public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => StudentStatus::Suspended,
+            'status' => StudentStatus::Inactive,
         ]);
     }
 

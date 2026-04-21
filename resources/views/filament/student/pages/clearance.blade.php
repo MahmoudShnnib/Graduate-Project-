@@ -3,7 +3,12 @@
         $clearance = $this->getClearance();
         $isThesisApproved = $this->isThesisApproved();
         $thesis = auth()->user()->student?->thesisRegistration;
+        $student = auth()->user()->student;
     @endphp
+
+    @if($student)
+        @include('filament.components.status-block-banner', ['student' => $student])
+    @endif
 
     {{-- Prerequisites Check --}}
     @if(! $isThesisApproved)

@@ -152,10 +152,10 @@ class CourseSurveyPage extends Page
             return;
         }
 
-        if ($student->isSuspendedInSemester($activeSemester)) {
+        if (! $student->canPerformActions($activeSemester)) {
             Notification::make()
-                ->title('قيدك موقوف لهذا الفصل')
-                ->body('لا يمكنك تقديم اختيارات استطلاع المقررات.')
+                ->title('لا يمكنك تقديم هذا الطلب')
+                ->body('حسابك ليس في حالة نشطة أو أن قيدك موقوف لهذا الفصل.')
                 ->danger()
                 ->send();
 
