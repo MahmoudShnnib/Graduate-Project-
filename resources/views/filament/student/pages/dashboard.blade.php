@@ -88,20 +88,40 @@
                 </div>
             </div>
 
+            @php
+                // A semester-scoped approved suspension for the CURRENT active semester
+                // takes precedence over the permanent Student.status value in the dashboard
+                // pill — this is the user-visible "what's my current standing this term" badge.
+                $isSuspendedNow = $semester && $student->isSuspendedInSemester($semester);
+            @endphp
             <div class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-5 flex items-center gap-4">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-info-100 dark:bg-info-500/20">
-                    <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
+                <div @class([
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+                    'bg-danger-100 dark:bg-danger-500/20' => $isSuspendedNow,
+                    'bg-info-100 dark:bg-info-500/20' => ! $isSuspendedNow,
+                ])>
+                    @if($isSuspendedNow)
+                        <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
+                    @else
+                        <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
+                    @endif
                 </div>
                 <div>
                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">الحالة</p>
-                    <span @class([
-                        'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold',
-                        'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $student->status?->value === 'active',
-                        'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $student->status?->value === 'suspended',
-                        'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $student->status?->value === 'withdrawn',
-                        'bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400' => $student->status?->value === 'graduated',
-                        'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400' => ! in_array($student->status?->value, ['active', 'suspended', 'withdrawn', 'graduated']),
-                    ])>{{ $student->status?->label() ?? '—' }}</span>
+                    @if($isSuspendedNow)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400">
+                            القيد موقوف مؤقتًا
+                        </span>
+                    @else
+                        <span @class([
+                            'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold',
+                            'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $student->status?->value === 'active',
+                            'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $student->status?->value === 'suspended',
+                            'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $student->status?->value === 'withdrawn',
+                            'bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400' => $student->status?->value === 'graduated',
+                            'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400' => ! in_array($student->status?->value, ['active', 'suspended', 'withdrawn', 'graduated']),
+                        ])>{{ $student->status?->label() ?? '—' }}</span>
+                    @endif
                 </div>
             </div>
         </div>

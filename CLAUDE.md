@@ -26,6 +26,8 @@ related: [[_brain/project-context/README]]
 
 5. **Work in phases, one task at a time.** Never try to solve multiple tasks simultaneously. Finish one fully, document it, confirm with the user, then move to the next. Do not batch multiple tasks without explicit approval.
 
+6. **Learn from past mistakes.** Before starting Filament / Livewire / testing work, scan [[_brain/research/2026-04-20-agent-mistakes-and-lessons]] for the anti-patterns already encountered in this repo. It catalogues known traps (wrong Filament component namespaces, `wire:model` reactivity gaps, Vite-manifest issues after `optimize:clear`, etc.) and their correct defaults.
+
 ## Project Overview
 
 A **Libyan graduate-studies admissions, enrollment, and academic-lifecycle management system** for a single faculty, built as a graduation project. It is an Arabic-first (RTL), multi-panel Laravel + Filament application covering the full student journey:

@@ -8,7 +8,109 @@
         $maxDrops = \App\Filament\Student\Pages\AddDropPage::MAX_DROPS;
         $maxAdds = \App\Filament\Student\Pages\AddDropPage::MAX_ADDS;
         $alreadySubmitted = $this->hasSubmittedThisSemester();
+        $pendingDropOfferingIds = $this->getPendingDropOfferingIds();
+        $pendingAddOfferingIds = $this->getPendingAddOfferingIds();
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+        $isSuspended = $student && $activeSemester && $student->isSuspendedInSemester($activeSemester);
+        $allRequests = $this->getAllRequestsThisSemester();
     @endphp
+
+    @if($isSuspended)
+        <x-filament::section>
+            <div class="flex items-start gap-4 p-4 rounded-xl border bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
+                    <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
+                </div>
+                <div class="flex-1">
+                    <p class="font-semibold text-danger-800 dark:text-danger-300 text-sm">قيدك موقوف لهذا الفصل</p>
+                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">تم قبول طلب إيقاف القيد. لا يمكنك تقديم طلبات إضافة أو حذف. ستبقى بياناتك متاحة للعرض.</p>
+                </div>
+            </div>
+        </x-filament::section>
+    @endif
+
+    {{-- My submissions (persistent history of decisions this semester) --}}
+    @if($allRequests->isNotEmpty())
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-clipboard-document-check style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                    <span>طلباتك لهذا الفصل</span>
+                    <span class="text-xs font-normal text-gray-400">({{ $allRequests->count() }})</span>
+                </div>
+            </x-slot>
+            <x-slot name="description">هنا تجد حالة كل طلب قدمته — سواء تم قبوله أو رفضه أو لا يزال قيد المراجعة.</x-slot>
+
+            <div class="space-y-2">
+                @foreach($allRequests as $req)
+                    @php
+                        $isDrop = $req->type === \App\Enums\AddDropType::Drop;
+                        $typeLabel = $isDrop ? 'حذف' : 'إضافة';
+                        $statusKey = is_string($req->status) ? $req->status : ($req->status?->value ?? 'pending');
+
+                        $statusConfig = match ($statusKey) {
+                            'pending' => [
+                                'label' => 'قيد المراجعة',
+                                'icon' => 'heroicon-o-clock',
+                                'border' => 'border-warning-200 dark:border-warning-500/30',
+                                'bg' => 'bg-warning-50/40 dark:bg-warning-500/5',
+                                'badgeBg' => 'bg-warning-100 dark:bg-warning-500/10',
+                                'badgeText' => 'text-warning-700 dark:text-warning-400',
+                            ],
+                            'approved' => [
+                                'label' => 'تم القبول',
+                                'icon' => 'heroicon-o-check-circle',
+                                'border' => 'border-success-200 dark:border-success-500/30',
+                                'bg' => 'bg-success-50/40 dark:bg-success-500/5',
+                                'badgeBg' => 'bg-success-100 dark:bg-success-500/10',
+                                'badgeText' => 'text-success-700 dark:text-success-400',
+                            ],
+                            'rejected' => [
+                                'label' => 'تم الرفض',
+                                'icon' => 'heroicon-o-x-circle',
+                                'border' => 'border-danger-200 dark:border-danger-500/30',
+                                'bg' => 'bg-danger-50/40 dark:bg-danger-500/5',
+                                'badgeBg' => 'bg-danger-100 dark:bg-danger-500/10',
+                                'badgeText' => 'text-danger-700 dark:text-danger-400',
+                            ],
+                            default => [
+                                'label' => $statusKey,
+                                'icon' => 'heroicon-o-question-mark-circle',
+                                'border' => 'border-gray-200 dark:border-white/10',
+                                'bg' => 'bg-white dark:bg-gray-900',
+                                'badgeBg' => 'bg-gray-100 dark:bg-white/10',
+                                'badgeText' => 'text-gray-700 dark:text-gray-300',
+                            ],
+                        };
+                    @endphp
+
+                    <div class="flex items-center justify-between p-4 rounded-xl border {{ $statusConfig['border'] }} {{ $statusConfig['bg'] }}">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg {{ $isDrop ? 'bg-danger-100 dark:bg-danger-500/20' : 'bg-primary-100 dark:bg-primary-500/20' }}">
+                                @if($isDrop)
+                                    <x-heroicon-o-minus-circle style="width: 1rem; height: 1rem;" class="text-danger-600 dark:text-danger-400" />
+                                @else
+                                    <x-heroicon-o-plus-circle style="width: 1rem; height: 1rem;" class="text-primary-600 dark:text-primary-400" />
+                                @endif
+                            </div>
+                            <div>
+                                <p class="font-medium text-sm text-gray-900 dark:text-white">
+                                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 mx-1">[{{ $typeLabel }}]</span>
+                                    {{ $req->courseOffering->course->name ?? '—' }}
+                                </p>
+                                <p class="text-xs font-mono text-gray-400 dark:text-gray-500 mt-0.5">{{ $req->courseOffering->course->code ?? '' }}</p>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center gap-1 text-xs font-medium {{ $statusConfig['badgeText'] }} {{ $statusConfig['badgeBg'] }} px-2 py-1 rounded-md">
+                            <x-dynamic-component :component="$statusConfig['icon']" style="width: 0.875rem; height: 0.875rem;" />
+                            {{ $statusConfig['label'] }}
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+        </x-filament::section>
+    @endif
 
     @if(! $isOpen)
         <x-filament::section>
@@ -53,14 +155,21 @@
                 @else
                     <div class="space-y-2">
                         @foreach($enrollments as $enrollment)
-                            <label class="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                            @php $isPendingDrop = in_array($enrollment->course_offering_id, $pendingDropOfferingIds, true); @endphp
+                            <label class="flex items-center justify-between p-4 rounded-xl border {{ $isPendingDrop ? 'border-warning-300 dark:border-warning-500/40 bg-warning-50/40 dark:bg-warning-500/5' : 'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900' }} {{ $isPendingDrop ? '' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800' }} transition">
                                 <div class="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
-                                        wire:model="selectedDropEnrollments.{{ $enrollment->id }}"
-                                        @disabled($alreadySubmitted)
-                                        class="fi-checkbox-input rounded border-gray-300 text-danger-600 shadow-sm focus:ring-danger-500"
-                                    />
+                                    @if($isPendingDrop)
+                                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-warning-500 text-white">
+                                            <x-heroicon-s-check style="width: 0.875rem; height: 0.875rem;" />
+                                        </div>
+                                    @else
+                                        <input
+                                            type="checkbox"
+                                            wire:model="selectedDropEnrollments.{{ $enrollment->id }}"
+                                            @disabled($alreadySubmitted)
+                                            class="fi-checkbox-input rounded border-gray-300 text-danger-600 shadow-sm focus:ring-danger-500"
+                                        />
+                                    @endif
                                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10">
                                         <x-heroicon-o-book-open style="width: 1rem; height: 1rem;" class="text-gray-500 dark:text-gray-400" />
                                     </div>
@@ -69,6 +178,12 @@
                                         <p class="text-xs font-mono text-gray-400 dark:text-gray-500 mt-0.5">{{ $enrollment->courseOffering->course->code }}</p>
                                     </div>
                                 </div>
+                                @if($isPendingDrop)
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-warning-700 dark:text-warning-400 bg-warning-100 dark:bg-warning-500/10 px-2 py-1 rounded-md">
+                                        <x-heroicon-o-clock style="width: 0.875rem; height: 0.875rem;" />
+                                        طلب حذف قيد المراجعة
+                                    </span>
+                                @endif
                             </label>
                         @endforeach
                     </div>
@@ -107,14 +222,21 @@
                 @else
                     <div class="space-y-2">
                         @foreach($available as $offering)
-                            <label class="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                            @php $isPendingAdd = in_array($offering->id, $pendingAddOfferingIds, true); @endphp
+                            <label class="flex items-center justify-between p-4 rounded-xl border {{ $isPendingAdd ? 'border-warning-300 dark:border-warning-500/40 bg-warning-50/40 dark:bg-warning-500/5' : 'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900' }} {{ $isPendingAdd ? '' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800' }} transition">
                                 <div class="flex items-center gap-3">
-                                    <input
-                                        type="checkbox"
-                                        wire:model="selectedAddOfferings.{{ $offering->id }}"
-                                        @disabled($alreadySubmitted)
-                                        class="fi-checkbox-input rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500"
-                                    />
+                                    @if($isPendingAdd)
+                                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-warning-500 text-white">
+                                            <x-heroicon-s-check style="width: 0.875rem; height: 0.875rem;" />
+                                        </div>
+                                    @else
+                                        <input
+                                            type="checkbox"
+                                            wire:model="selectedAddOfferings.{{ $offering->id }}"
+                                            @disabled($alreadySubmitted)
+                                            class="fi-checkbox-input rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500"
+                                        />
+                                    @endif
                                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10">
                                         <x-heroicon-o-book-open style="width: 1rem; height: 1rem;" class="text-gray-500 dark:text-gray-400" />
                                     </div>
@@ -126,6 +248,12 @@
                                         </p>
                                     </div>
                                 </div>
+                                @if($isPendingAdd)
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-warning-700 dark:text-warning-400 bg-warning-100 dark:bg-warning-500/10 px-2 py-1 rounded-md">
+                                        <x-heroicon-o-clock style="width: 0.875rem; height: 0.875rem;" />
+                                        طلب إضافة قيد المراجعة
+                                    </span>
+                                @endif
                             </label>
                         @endforeach
                     </div>

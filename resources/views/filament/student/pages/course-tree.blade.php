@@ -88,7 +88,7 @@
         {{-- Overall Progress Bar --}}
         <div class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-5">
             <div class="flex items-center justify-between text-sm mb-2">
-                <span class="font-medium text-gray-700 dark:text-gray-300">تقدم الخطة الدراسية</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">تقدم شجرة موادي</span>
                 <span class="font-semibold text-gray-900 dark:text-white">{{ $totalCount > 0 ? round(($passedCount / $totalCount) * 100) : 0 }}%</span>
             </div>
             <div class="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10 flex">

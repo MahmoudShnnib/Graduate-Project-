@@ -20,6 +20,10 @@ function makeEnrolledStudent(): array
 
     ['student' => $student] = studentWithRecord();
 
+    // Attach the course to the student's specialization so the enrollment
+    // specialization guard passes. Real-world setup requires this pivot.
+    $course->specializations()->attach($student->specialization_id, ['type' => 'general']);
+
     app(EnrollStudentInOffering::class)($student, $offering);
 
     return compact('semester', 'course', 'offering', 'student');

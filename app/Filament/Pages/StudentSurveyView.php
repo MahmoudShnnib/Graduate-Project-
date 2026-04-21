@@ -4,6 +4,10 @@ namespace App\Filament\Pages;
 
 use App\Actions\Enrollment\DropStudentFromOffering;
 use App\Actions\Enrollment\EnrollStudentInOffering;
+use App\Exceptions\CourseOfferingClosedException;
+use App\Exceptions\CourseOutsideSpecializationException;
+use App\Exceptions\EnrollmentCapReachedException;
+use App\Exceptions\StudentSuspendedInSemesterException;
 use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
 use App\Models\Semester;
@@ -83,8 +87,23 @@ class StudentSurveyView extends Page
             return;
         }
 
+        // Fail-fast on suspension: if the student is suspended in this semester
+        // they shouldn't be processed through the loop at all.
+        if ($this->student->isSuspendedInSemester($this->semester)) {
+            Notification::make()
+                ->title('قيد الطالب موقوف لهذا الفصل')
+                ->body('لا يمكن تسجيل الطالب في أي مقرر خلال فترة إيقاف القيد.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         $count = 0;
         $missing = 0;
+        $outOfSpec = 0;
+        $closed = 0;
+        $capped = false;
 
         foreach ($this->selected as $courseId) {
             $offering = CourseOffering::query()
@@ -98,7 +117,25 @@ class StudentSurveyView extends Page
                 continue;
             }
 
-            $enrollment = $enroll($this->student, $offering);
+            try {
+                $enrollment = $enroll($this->student, $offering);
+            } catch (CourseOfferingClosedException $e) {
+                $closed++;
+
+                continue;
+            } catch (StudentSuspendedInSemesterException $e) {
+                // Unreachable given the upfront check, but defensive.
+                Notification::make()->title('قيد الطالب موقوف')->danger()->send();
+
+                return;
+            } catch (CourseOutsideSpecializationException $e) {
+                $outOfSpec++;
+
+                continue;
+            } catch (EnrollmentCapReachedException $e) {
+                $capped = true;
+                break;
+            }
 
             if ($enrollment->wasRecentlyCreated || $enrollment->wasChanged('status')) {
                 $count++;
@@ -107,9 +144,31 @@ class StudentSurveyView extends Page
 
         $this->selected = [];
 
-        if ($missing > 0) {
+        if ($capped) {
             Notification::make()
-                ->title("تم تسجيل {$count} مقرر. ({$missing} مقرر غير مفتوح هذا الفصل)")
+                ->title("تم تسجيل {$count} مقرر، ثم تجاوز الحد الأقصى")
+                ->body('لا يمكن تسجيل الطالب في أكثر من '.EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER.' مقررات في الفصل الواحد.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        if ($missing > 0 || $outOfSpec > 0 || $closed > 0) {
+            $bodyParts = [];
+            if ($missing > 0) {
+                $bodyParts[] = "{$missing} مقرر غير مفتوح هذا الفصل.";
+            }
+            if ($outOfSpec > 0) {
+                $bodyParts[] = "{$outOfSpec} مقرر خارج تخصص الطالب.";
+            }
+            if ($closed > 0) {
+                $bodyParts[] = "{$closed} مقرر مغلق للتسجيل.";
+            }
+
+            Notification::make()
+                ->title("تم تسجيل {$count} مقرر")
+                ->body(implode(' ', $bodyParts))
                 ->warning()
                 ->send();
 
@@ -119,30 +178,75 @@ class StudentSurveyView extends Page
         Notification::make()->title("تم تسجيل {$count} مقرر بنجاح")->success()->send();
     }
 
-    public function unenrollSelected(): void
+    /**
+     * Bulk reject: marks every selected survey entry as rejected in one go.
+     * Skips entries that are already enrolled (admin must unenroll first via
+     * the per-row button) or already rejected (idempotent skip).
+     */
+    public function rejectSelected(): void
     {
-        $drop = app(DropStudentFromOffering::class);
         if (empty($this->selected)) {
             Notification::make()->title('الرجاء تحديد مقرر واحد على الأقل')->warning()->send();
 
             return;
         }
 
-        $count = 0;
+        $rejected = 0;
+        $skippedEnrolled = 0;
+        $skippedAlreadyRejected = 0;
 
         foreach ($this->selected as $courseId) {
-            $offering = CourseOffering::query()
-                ->where('course_id', (int) $courseId)
+            $courseId = (int) $courseId;
+
+            $survey = CourseSurvey::query()
+                ->where('student_id', $this->student->id)
                 ->where('semester_id', $this->semester->id)
+                ->where('course_id', $courseId)
                 ->first();
 
-            if ($offering && $drop($this->student, $offering)) {
-                $count++;
+            if (! $survey) {
+                continue;
             }
+
+            if ($survey->rejected_at !== null) {
+                $skippedAlreadyRejected++;
+
+                continue;
+            }
+
+            $isEnrolled = StudentEnrollment::query()
+                ->where('student_id', $this->student->id)
+                ->whereHas('courseOffering', fn ($q) => $q->where('course_id', $courseId)->where('semester_id', $this->semester->id))
+                ->active()
+                ->exists();
+
+            if ($isEnrolled) {
+                $skippedEnrolled++;
+
+                continue;
+            }
+
+            $survey->update([
+                'is_processed' => true,
+                'rejected_at' => now(),
+            ]);
+
+            $rejected++;
         }
 
         $this->selected = [];
-        Notification::make()->title("تم إلغاء تسجيل {$count} مقرر")->warning()->send();
+
+        if ($skippedEnrolled > 0) {
+            Notification::make()
+                ->title("تم رفض {$rejected} مقرر")
+                ->body("تم تخطي {$skippedEnrolled} مقرر — الطالب مسجل فيها (ألغِ التسجيل أولاً).")
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()->title("تم رفض {$rejected} مقرر")->success()->send();
     }
 
     public function enrollStudent(int $courseId): void
@@ -159,7 +263,41 @@ class StudentSurveyView extends Page
             return;
         }
 
-        $enrollment = $enroll($this->student, $offering);
+        try {
+            $enrollment = $enroll($this->student, $offering);
+        } catch (CourseOfferingClosedException $e) {
+            Notification::make()
+                ->title('المقرر مغلق للتسجيل')
+                ->body('لا يمكن تسجيل الطالب في هذه المادة حتى يتم فتحها.')
+                ->danger()
+                ->send();
+
+            return;
+        } catch (StudentSuspendedInSemesterException $e) {
+            Notification::make()
+                ->title('قيد الطالب موقوف لهذا الفصل')
+                ->body('لا يمكن تسجيل الطالب في أي مقرر خلال فترة إيقاف القيد.')
+                ->danger()
+                ->send();
+
+            return;
+        } catch (CourseOutsideSpecializationException $e) {
+            Notification::make()
+                ->title('المقرر خارج تخصص الطالب')
+                ->body('لا يمكن تسجيل الطالب في مقرر لا ينتمي إلى تخصصه.')
+                ->danger()
+                ->send();
+
+            return;
+        } catch (EnrollmentCapReachedException $e) {
+            Notification::make()
+                ->title('تجاوز الحد الأقصى للمقررات')
+                ->body('لا يمكن تسجيل الطالب في أكثر من '.EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER.' مقررات في الفصل الواحد.')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         if ($enrollment->wasRecentlyCreated || $enrollment->wasChanged('status')) {
             Notification::make()->title('تم تسجيل الطالب في المقرر بنجاح')->success()->send();
@@ -183,6 +321,54 @@ class StudentSurveyView extends Page
         if ($drop($this->student, $offering)) {
             Notification::make()->title('تم إلغاء تسجيل الطالب')->warning()->send();
         }
+    }
+
+    /**
+     * Marks a surveyed course as rejected for this student in this semester.
+     * Sets is_processed=true so the entry disappears from the "طلبوا المادة"
+     * pending list, plus a rejected_at timestamp so the student can see
+     * a "مرفوض" badge on their own survey page.
+     *
+     * Idempotent — re-calling on an already-rejected survey is a no-op.
+     */
+    public function rejectCourse(int $courseId): void
+    {
+        $survey = CourseSurvey::query()
+            ->where('student_id', $this->student->id)
+            ->where('semester_id', $this->semester->id)
+            ->where('course_id', $courseId)
+            ->first();
+
+        if (! $survey) {
+            Notification::make()->title('لم يتم العثور على الاختيار')->danger()->send();
+
+            return;
+        }
+
+        // Guard: don't reject an already-enrolled course — admin should
+        // unenroll first if they want to undo.
+        $isEnrolled = StudentEnrollment::query()
+            ->where('student_id', $this->student->id)
+            ->whereHas('courseOffering', fn ($q) => $q->where('course_id', $courseId)->where('semester_id', $this->semester->id))
+            ->active()
+            ->exists();
+
+        if ($isEnrolled) {
+            Notification::make()
+                ->title('الطالب مسجل في هذا المقرر')
+                ->body('يرجى إلغاء التسجيل أولاً إذا كنت تريد رفض هذا الاختيار.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $survey->update([
+            'is_processed' => true,
+            'rejected_at' => now(),
+        ]);
+
+        Notification::make()->title('تم رفض الاختيار')->success()->send();
     }
 
     public static function getRoutePath(Panel $panel): string

@@ -13,12 +13,15 @@ class CourseSurvey extends Model
         'course_id',
         'priority',
         'is_processed',
+        'rejected_at',
     ];
 
     protected function casts(): array
     {
         return [
             'priority' => 'integer',
+            'is_processed' => 'boolean',
+            'rejected_at' => 'datetime',
         ];
     }
 

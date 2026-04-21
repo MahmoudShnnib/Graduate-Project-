@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\EnrollmentStatus;
 use App\Enums\GradeStatus;
 use App\Enums\StudentStatus;
+use App\Enums\SuspensionStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -99,6 +100,25 @@ class Student extends Model
     public function suspensionRequests(): HasMany
     {
         return $this->hasMany(SuspensionRequest::class);
+    }
+
+    public function addDropRequests(): HasMany
+    {
+        return $this->hasMany(AddDropRequest::class);
+    }
+
+    /**
+     * Returns true if this student has an approved suspension request for
+     * the given semester. Per-semester suspension blocks survey submission,
+     * add/drop requests, and new enrollments for that semester while leaving
+     * the student active overall.
+     */
+    public function isSuspendedInSemester(Semester $semester): bool
+    {
+        return $this->suspensionRequests()
+            ->where('semester_id', $semester->id)
+            ->where('status', SuspensionStatus::Approved)
+            ->exists();
     }
 
     public function thesisRegistration(): HasOne

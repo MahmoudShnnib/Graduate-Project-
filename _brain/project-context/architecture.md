@@ -152,6 +152,7 @@ Registered once in `AppServiceProvider::boot()`. They run inside Eloquent's even
 | `StudentObserver::updated` | Student `status` changes to anything other than `Active` | Calls `DropStudentFromOffering` on every active enrollment, setting status to `Withdrawn` |
 | `StudentObserver::deleting` | Student soft-delete | Same cascade (needed because FK `ON DELETE CASCADE` doesn't fire for soft deletes) |
 | `GradeObserver::updated` | Grade `status` changes to `Approved` and the enrollment is active | Calls `GradeCalculationService::recalculateStudentGPA` |
+| `CourseOfferingObserver::updated` | `is_open` transitions `true → false` (added 2026-04-21, T18) | Calls `DropStudentFromOffering` on every active enrollment with `Withdrawn` status, then recalculates GPA per affected student. No-op on `false → true` — reopening does not re-activate withdrawn students. |
 | `AuditObserver::updated` | Any update on Grade, Application, Student, StudentEnrollment, ThesisRegistration | If any `WATCHED_FIELDS` changed, writes an `AuditLog` row with old/new/user/ip |
 
 ### Data layer

@@ -105,6 +105,10 @@ class CreateStudent extends CreateRecord
             'is_active' => true,
         ]);
 
+        // Sync Spatie role to match role column. Without this the HasPanelShield
+        // trait auto-assigns 'panel_user' and Shield policy checks fail.
+        $user->syncRoles(['student']);
+
         $student = Student::create([
             'user_id' => $user->id,
             'specialization_id' => $data['specialization_id'],

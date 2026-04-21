@@ -2,7 +2,8 @@
 
 namespace App\Filament\Resources\SuspensionRequests;
 
-use App\Enums\StudentStatus;
+use App\Actions\Enrollment\DropStudentFromOffering;
+use App\Enums\EnrollmentStatus;
 use App\Enums\SuspensionStatus;
 use App\Filament\Resources\SuspensionRequests\Pages\ListSuspensionRequests;
 use App\Models\SuspensionRequest;
@@ -85,9 +86,10 @@ class SuspensionRequestResource extends Resource
                     ->color('success')
                     ->visible(fn (SuspensionRequest $record) => $record->status === SuspensionStatus::Pending)
                     ->requiresConfirmation()
-                    ->action(function (SuspensionRequest $record, AuditService $audit, NotificationService $notifier) {
+                    ->modalDescription('سيتم سحب تسجيلات الطالب في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
+                    ->action(function (SuspensionRequest $record, AuditService $audit, NotificationService $notifier, DropStudentFromOffering $drop) {
                         $student = $record->student;
-                        $oldStatus = $student->status;
+                        $semester = $record->semester;
 
                         $record->update([
                             'status' => SuspensionStatus::Approved,
@@ -95,12 +97,36 @@ class SuspensionRequestResource extends Resource
                             'decided_at' => now(),
                         ]);
 
-                        $student->update(['status' => StudentStatus::Suspended]);
+                        // Semester-scoped cascade: withdraw only the enrollments
+                        // in the suspended semester. Student.status stays Active
+                        // so other semesters are unaffected. Using Withdrawn
+                        // (not Dropped) to distinguish "forced by suspension"
+                        // from "student-initiated drop".
+                        $activeInSemester = $student->activeEnrollments()
+                            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $semester->id))
+                            ->with('courseOffering')
+                            ->get();
 
-                        $audit->log('suspension_approved', $record, ['status' => $oldStatus->value], ['status' => StudentStatus::Suspended->value]);
-                        $notifier->notifyStudent($student, 'suspension_decision', 'تم قبول طلب إيقاف القيد الخاص بك');
+                        $withdrawn = 0;
+                        foreach ($activeInSemester as $enrollment) {
+                            if ($drop($student, $enrollment->courseOffering, EnrollmentStatus::Withdrawn)) {
+                                $withdrawn++;
+                            }
+                        }
 
-                        Notification::make()->title('تم قبول طلب إيقاف القيد')->success()->send();
+                        $audit->log(
+                            'suspension_approved',
+                            $record,
+                            ['status' => SuspensionStatus::Pending->value],
+                            ['status' => SuspensionStatus::Approved->value, 'enrollments_withdrawn' => $withdrawn],
+                        );
+                        $notifier->notifySuspensionDecision($record->fresh());
+
+                        Notification::make()
+                            ->title('تم قبول طلب إيقاف القيد')
+                            ->body("تم سحب {$withdrawn} تسجيل في فصل {$semester->name}.")
+                            ->success()
+                            ->send();
                     }),
 
                 Action::make('reject')
@@ -121,7 +147,7 @@ class SuspensionRequestResource extends Resource
                             'decision_notes' => $data['decision_notes'],
                         ]);
 
-                        $notifier->notifyStudent($record->student, 'suspension_decision', 'تم رفض طلب إيقاف القيد الخاص بك');
+                        $notifier->notifySuspensionDecision($record->fresh());
 
                         Notification::make()->title('تم رفض الطلب')->success()->send();
                     }),

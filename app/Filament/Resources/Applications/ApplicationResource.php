@@ -212,6 +212,26 @@ class ApplicationResource extends Resource
                 if (property_exists($livewire, 'activeSpecialization') && $livewire->activeSpecialization) {
                     $query->where('specialization_id', $livewire->activeSpecialization);
                 }
+
+                // 3-tier status priority sort:
+                //   0 = pending            → top (still needs review)
+                //   1 = initially_approved → middle (reviewed, awaiting exam)
+                //   2 = accepted/rejected  → bottom (done)
+                // Applied here rather than via defaultSort so the grouping survives
+                // user column-sort clicks. created_at desc is the tiebreaker within
+                // each tier. reorder() drops any previously attached orderBy clauses
+                // to guarantee this sort is the only one in play.
+                $query
+                    ->reorder()
+                    ->orderByRaw("
+                        CASE
+                            WHEN status = 'pending' THEN 0
+                            WHEN status = 'initially_approved' THEN 1
+                            WHEN status IN ('accepted', 'rejected') THEN 2
+                            ELSE 3
+                        END ASC
+                    ")
+                    ->orderByDesc('created_at');
             })
             ->columns([
                 TextColumn::make('tracking_code')
@@ -285,7 +305,6 @@ class ApplicationResource extends Resource
                     ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->label('الحالة')

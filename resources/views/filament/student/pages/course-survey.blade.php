@@ -2,11 +2,26 @@
     @php
         $semester        = $this->getActiveSemester();
         $courses         = $this->getAvailableCourses();
-        $max             = \App\Filament\Student\Pages\CourseSurveyPage::MAX_SELECTIONS;
         $selectedCount   = count($this->selections);
         $statuses        = $this->getEnrollmentStatuses();
         $surveySubmitted = $selectedCount > 0 && $semester && ! $semester->survey_open;
+        $student         = auth()->user()->student;
+        $isSuspended     = $student && $semester && $student->isSuspendedInSemester($semester);
     @endphp
+
+    @if($isSuspended)
+        <x-filament::section>
+            <div class="flex items-start gap-4 p-4 rounded-xl border bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
+                    <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
+                </div>
+                <div class="flex-1">
+                    <p class="font-semibold text-danger-800 dark:text-danger-300 text-sm">قيدك موقوف لهذا الفصل</p>
+                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">تم قبول طلب إيقاف القيد. لا يمكنك تقديم اختيارات استطلاع المقررات لهذا الفصل. ستبقى بياناتك متاحة للعرض.</p>
+                </div>
+            </div>
+        </x-filament::section>
+    @endif
 
     {{-- No active semester --}}
     @if(! $semester)
@@ -54,7 +69,7 @@
                             'flex items-center justify-between rounded-xl border p-3 transition-colors',
                             'border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10' => $status === 'enrolled',
                             'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => $status === 'pending',
-                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10'     => $status === 'unavailable',
+                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10'     => $status === 'unavailable' || $status === 'rejected',
                         ])>
                             <div class="flex items-center gap-3">
                                 <span class="inline-flex size-7 items-center justify-center rounded-full bg-primary-600 dark:bg-primary-500 text-xs font-bold text-white">
@@ -69,10 +84,11 @@
                                 'rounded-lg px-2.5 py-1 text-xs font-semibold',
                                 'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $status === 'enrolled',
                                 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $status === 'pending',
-                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'unavailable',
+                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'unavailable' || $status === 'rejected',
                             ])>
                                 @if($status === 'enrolled') مُسجَّل
                                 @elseif($status === 'pending') قيد المراجعة
+                                @elseif($status === 'rejected') مرفوض
                                 @else المادة غير متاحة هذا الفصل
                                 @endif
                             </span>
@@ -98,53 +114,19 @@
             </x-slot>
             <x-slot name="description">اختر المقررات التي ترغب في دراستها هذا الفصل. يمكنك تعديل اختياراتك في أي وقت قبل إغلاق الاستطلاع.</x-slot>
 
-            {{-- Progress bar --}}
-            <div class="mb-5">
-                <div class="mb-1 flex items-center justify-between text-sm">
-                    <span class="font-medium text-gray-700 dark:text-gray-300">تم اختيار {{ $selectedCount }} من {{ $max }}</span>
-                    @if($selectedCount >= $max)
-                        <span class="inline-flex items-center gap-1 font-semibold text-success-600 dark:text-success-400">
-                            <x-heroicon-o-check-circle style="width: 1rem; height: 1rem;" />
-                            الحد الأقصى
-                        </span>
-                    @elseif($selectedCount >= 1)
-                        <span class="inline-flex items-center gap-1 font-semibold text-primary-600 dark:text-primary-400">
-                            <x-heroicon-o-check-circle style="width: 1rem; height: 1rem;" />
-                            يمكنك الحفظ أو إضافة المزيد
-                        </span>
-                    @else
-                        <span class="text-gray-400 dark:text-gray-500">اختر مقرراً واحداً على الأقل</span>
-                    @endif
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
-                    <div class="h-2 rounded-full bg-primary-500 transition-all duration-300"
-                         style="width: {{ ($selectedCount / $max) * 100 }}%"></div>
-                </div>
-
-                {{-- Priority slots --}}
-                <div class="mt-3 flex gap-2">
-                    @for($i = 1; $i <= $max; $i++)
-                        @php $courseId = array_search($i, $this->selections); @endphp
-                        <div @class([
-                            'flex flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all',
-                            'border-primary-400 bg-primary-50 dark:border-primary-500/40 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300' => $courseId !== false,
-                            'border-dashed border-gray-300 dark:border-white/20 text-gray-400 dark:text-gray-500' => $courseId === false,
-                        ])>
-                            <span @class([
-                                'inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                                'bg-primary-600 text-white dark:bg-primary-500' => $courseId !== false,
-                                'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-gray-400' => $courseId === false,
-                            ])>{{ $i }}</span>
-                            @if($courseId !== false)
-                                <span class="truncate font-medium">
-                                    {{ $courses->firstWhere('id', $courseId)?->name ?? '—' }}
-                                </span>
-                            @else
-                                <span>فارغ</span>
-                            @endif
-                        </div>
-                    @endfor
-                </div>
+            {{-- Selection summary --}}
+            <div class="mb-5 flex items-center justify-between rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/60 dark:bg-white/5 px-4 py-3 text-sm">
+                @if($selectedCount === 0)
+                    <span class="text-gray-500 dark:text-gray-400">اختر المقررات التي تريد دراستها — يمكنك اختيار أي عدد تراه مناسباً.</span>
+                @else
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                        تم اختيار <strong class="text-gray-900 dark:text-white">{{ $selectedCount }}</strong> مقرر
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                        <x-heroicon-o-information-circle style="width: 0.875rem; height: 0.875rem;" />
+                        الأرقام تمثل ترتيب الأولوية
+                    </span>
+                @endif
             </div>
 
             {{-- Course list --}}
@@ -157,24 +139,18 @@
                 </div>
             @else
                 <div class="space-y-2">
-                    @php $maxReached = $this->isMaxReached(); @endphp
                     @foreach($courses as $course)
-                        @php
-                            $selected = isset($this->selections[$course->id]);
-                            $disabled = $maxReached && ! $selected;
-                        @endphp
+                        @php $selected = isset($this->selections[$course->id]); @endphp
                         <div @class([
-                            'flex items-center justify-between p-4 rounded-xl border transition-colors',
-                            'border-primary-300 bg-primary-50 dark:border-primary-500/40 dark:bg-primary-500/10 cursor-pointer' => $selected,
-                            'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-white/20 cursor-pointer' => ! $selected && ! $disabled,
-                            'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-gray-950 opacity-50 cursor-not-allowed' => $disabled,
+                            'flex items-center justify-between p-4 rounded-xl border transition-colors cursor-pointer',
+                            'border-primary-300 bg-primary-50 dark:border-primary-500/40 dark:bg-primary-500/10' => $selected,
+                            'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-white/20' => ! $selected,
                         ])>
                             <div class="flex items-center gap-3">
                                 <input type="checkbox"
                                     wire:click="toggleCourse({{ $course->id }})"
                                     @checked($selected)
-                                    @disabled($disabled)
-                                    class="fi-checkbox-input rounded border-gray-300 dark:border-white/20 text-primary-600 focus:ring-primary-500 w-4 h-4 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    class="fi-checkbox-input rounded border-gray-300 dark:border-white/20 text-primary-600 focus:ring-primary-500 w-4 h-4"
                                 />
                                 <div>
                                     <p class="font-medium text-sm text-gray-900 dark:text-white">{{ $course->name }}</p>

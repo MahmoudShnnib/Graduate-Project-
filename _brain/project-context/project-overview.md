@@ -29,7 +29,7 @@ The lifecycle flows roughly top-to-bottom through these layers:
 1. **Public intake** — `RegistrationController` (inline validation w/ Arabic rules) → `CreateApplication` action → `Application` row + tracking code.
 2. **Admin review** — admin sees applications in the Filament [[#Application flow|Applications resource]], enters exam results, and triggers `ApproveApplication`. That action (in a DB transaction) promotes the applicant: creates a `User`, creates a `Student`, generates an `enrollment_no` via `EnrollmentNumberService`, and dispatches a welcome notification via `NotificationService`.
 3. **Semester setup** — admin creates a `Semester` (one active at a time), attaches courses via the `semester_course` pivot (what's available for student survey), then creates concrete `CourseOffering` rows (course + semester + faculty). Course offerings have a configurable `coursework_max` / `final_max` grade distribution (default 40/60).
-4. **Pre-enrollment survey** — students visit `CourseSurveyPage` and rank up to 4 courses (`MAX_SELECTIONS = 4`). This is a demand signal; it does not enroll them.
+4. **Pre-enrollment survey** — students visit `CourseSurveyPage` and rank any number of courses from their specialization as an ordered wishlist. No cap on survey selections (the old `MAX_SELECTIONS = 4` constant was removed 2026-04-20). The admin decides which to actually enroll; the hard 4-course enrollment cap lives at the enrollment-action layer (`EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER`).
 5. **Enrollment** — admin/secretary uses `EnrollStudents` page on a CourseOffering to manually roster students. The `EnrollStudentInOffering` action upserts a `StudentEnrollment` with `status = Enrolled` and flips the matching `CourseSurvey.is_processed = true`.
 6. **Add/drop** — during the semester's `add_drop_start..add_drop_end` window, students can request up to 3 drops + 3 adds from `AddDropPage`. Submissions become `AddDropRequest` rows for admin approval; approval dispatches enrollment actions.
 7. **Grade entry** — faculty sees their own courses via `MyCourseResource` (scoped by `faculty_id == auth()->id()`), enters coursework + final grades in `ViewMyCourse`. The `Grade` model's `booted()` saving hook auto-computes `total`, `letter` (A/B+/B/C+/C/D+/D/F), and `points` (4.0/3.5/…/0.0). Status starts as `Draft`, moves to `PendingApproval`.
@@ -87,6 +87,7 @@ The pattern is **thin controllers/pages → Action → Model write → Observer 
 - `AuditObserver` — per-class watched-field allow-list, writes `AuditLog` for each change
 
 **Filament**
+- **Survey review:** as of 2026-04-20 T10, `CoursesSurveyResults` is the single page for survey review — it renders both the course-demand aggregation and the per-student list in one view. The old `StudentSurveysList` was retired.
 - `AdminPanelProvider` — default panel, discovers all Resources/Pages/Widgets, wires `FilamentShieldPlugin`
 - `StudentPanelProvider` — separate panel at `/portal`, Arabic brand name `بوابة الطالب`, navigation groups `الأكاديمي` + `الطلبات`, adds `EnsureStudentRole` to auth middleware
 - `Filament/Resources/Faculty/MyCourseResource.php` — example of role-scoped Resource (faculty see only their courses)

@@ -148,6 +148,100 @@ If a new Resource is invisible to an existing admin, that's the first thing to c
 
 In `config/services.php`: `'base_url' => 'https://qonvo.ly/api'` — no env fallback. Staging/local environments with a different Qonvo endpoint will silently hit production. If you need to mock WhatsApp in tests, intercept via `Http::fake()` or never set `QONVO_API_TOKEN` locally.
 
+## Vite manifest needed for Filament tests
+
+Tests that hit Filament-rendered pages (like `$this->get('/admin/grades')->assertOk()`) fail with "Unable to locate file in Vite manifest: resources/css/filament/admin/theme.css" when `public/build/manifest.json` is missing/stale. Filament's base layout renders `@vite('resources/css/filament/admin/theme.css')` directly.
+
+**Fix:** `npm run build` generates the manifest. Note: the test runs against the built assets, not the dev server, so `npm run dev` alone doesn't solve this for CI or local test runs.
+
+Symptoms can appear after `php artisan optimize:clear` or clearing the Vite build dir. If a test suddenly starts failing on a Vite manifest error after a cache clear, rebuild with `npm run build` and retry.
+
+## Filament has three "Actions" concepts that look similar but aren't interchangeable
+
+1. **`Filament\Schemas\Components\Actions`** — field-like component that groups Action buttons inside a **form**. Does NOT render in infolists.
+2. **`Filament\Actions\Action` → `->hintAction($action)`** on an infolist entry — the correct way to attach a clickable action (with `->modalContent(...)`) to a view-mode field. Renders a small button next to the label.
+3. **Page-level actions via `getHeaderActions()`** on a page class — for top-of-page toolbar buttons.
+
+Mixing them is a silent no-op — the button is simply absent from the rendered HTML. `hintAction` only works on infolist entries that use the `HasHint` trait (all standard entries do).
+
+## Filament tables: user column-click sort can override `defaultSort`
+
+If you need a sort that must survive user column clicks (e.g. "completed applications always at the bottom"), `->defaultSort(...)` is insufficient — Filament replaces it when the user clicks a sortable column header.
+
+Use `->modifyQueryUsing(function (Builder $query) { $query->reorder()->orderByRaw(...)->orderByDesc(...); })` instead. `->reorder()` drops any previously attached orderBy clauses so yours is the only one. For multi-tier status priority use `CASE WHEN status = 'a' THEN 0 WHEN status = 'b' THEN 1 ELSE 2 END ASC` (ANSI SQL, portable across MySQL/PG/SQLite).
+
+## Filament Action `->disabled()` / `->visible()` needs `wire:model.live`
+
+If an action's `->disabled(fn () => empty($this->selectedX))` or `->visible(...)` depends on a Livewire public property set via a custom Blade `<input wire:model="...">`, plain deferred `wire:model` **won't trigger a re-render** of the action — the button's state is stuck at whatever the property was on the last server roundtrip.
+
+Fix: use `wire:model.live` (immediate sync) or `wire:model.lazy` (sync on blur) instead. Example: `/admin/courses-survey-results`, [courses-survey-results.blade.php:54](../../resources/views/filament/pages/courses-survey-results.blade.php) — the per-row checkbox uses `.live` so the header action's disabled state updates as soon as a course is checked.
+
+Filament's own table bulk actions handle this internally. This gotcha only bites on custom Blade pages that expose their own checkboxes / form fields driving action state.
+
+## Observer true→false transitions need BOTH `wasChanged()` and `getOriginal()` checks
+
+When an observer reacts to a boolean field flipping one direction (e.g. `CourseOffering::is_open` true→false in T18), a single `wasChanged('field')` check is insufficient:
+
+- `wasChanged()` returns true on any update where the field's new value differs from `getOriginal()`, **including** false→true.
+- On newly-created records, `wasChanged()` behavior varies by Eloquent event timing — `updated()` event doesn't fire on create, so that's safe, but still check both sides.
+
+Defensive pattern (from `CourseOfferingObserver`):
+
+```php
+if (! $offering->wasChanged('is_open')) return;
+
+$previousIsOpen = (bool) $offering->getOriginal('is_open');
+$currentIsOpen  = (bool) $offering->is_open;
+
+if (! $previousIsOpen || $currentIsOpen) return;  // only fire on true → false
+```
+
+Applies to any observer that watches a directional transition, not just booleans (e.g. status: Pending → Approved vs Approved → anything else).
+
+## "Action guard + Observer cascade" — two chokepoint pattern for state-gated invariants
+
+When a domain invariant depends on a model's current state (e.g. "can't enroll into a closed offering"), split enforcement into two places:
+
+1. **Action-layer guard** — blocks new writes that would violate the invariant from now on. Typed exception, caught by UI callers with human-friendly messages.
+2. **Observer cascade** — fixes up existing state when the gating flag flips, so the system moves into a consistent state the moment the flag changes.
+
+Examples in this codebase:
+- T13 suspension: `EnrollStudentInOffering` guard (StudentSuspendedInSemesterException) + `SuspensionRequestResource` approve action cascading to Withdrawn (no observer — the action is rare enough to do it in-place).
+- T18 closed offering: `EnrollStudentInOffering` guard (CourseOfferingClosedException) + `CourseOfferingObserver::updated` cascade. Observer fits here because `is_open` can flip from many UI paths (main resource, semester RelationManager, bulk actions).
+
+Rule: if the gating flag has one mutation path → handle in that action. If it has multiple mutation paths → observer. Both need the Action-layer guard either way.
+
+## Tightening an Action's preconditions breaks tests that used loose fixtures
+
+When you add a new guard (specialization check, cap check, etc.) inside an Action like `EnrollStudentInOffering`, existing tests that built minimal-but-unrealistic fixtures will start failing. Example from T15: adding the spec guard broke 10 pre-existing tests because `makeEnrolledStudent()` + `CourseOffering::factory()->create()` never attached courses to specializations.
+
+**Before merging a new Action invariant:** run the full suite and budget fixture repair time. The fix is almost always to teach the test to set up the full domain state (attach pivots, assign roles, populate `specialization_id`, etc.) — NOT to weaken the guard.
+
+If you find yourself thinking "maybe I should make the guard optional via a flag" to avoid breaking tests, that's a smell — the domain truth isn't optional.
+
+## Domain invariants belong on Actions, not on UI pages
+
+When a rule applies to *every* path that writes a given model (e.g. "students can't have >4 active enrollments per semester"), enforce it inside the single-responsibility Action class — never in a Filament page's `->action()` closure.
+
+Why: enrollment-write paths in this repo include `EnrollStudents` page (2 actions), `StudentSurveyView` (2 actions), `AddDropRequestResource` approve, programmatic seeders, and tests. Duplicating the guard across all 5+ sites guarantees drift. Typed exceptions give callers a clean surface to catch and translate to Arabic notifications.
+
+Pattern used for the 4-enrollment cap (T9, 2026-04-20):
+
+```php
+// Action throws typed exception:
+throw new EnrollmentCapReachedException($student, $cap, $currentCount);
+
+// Each caller catches + shows Arabic notification:
+try {
+    $enroll($student, $offering);
+} catch (EnrollmentCapReachedException $e) {
+    Notification::make()->title('...')->danger()->send();
+    return;
+}
+```
+
+**Idempotency trap:** an invariant check that counts *all* writes can false-block legitimate re-runs on unchanged data. Always scope the check: "would this call add a NEW row?" not "is the count already at cap?". See `EnrollStudentInOffering::__invoke` — it checks `isAlreadyActive` before counting.
+
 ## Testing gotchas
 
 - `tests/Pest.php` provides `studentWithRecord()` and `adminUser()` — **always** use these instead of manually creating User+Student+Role

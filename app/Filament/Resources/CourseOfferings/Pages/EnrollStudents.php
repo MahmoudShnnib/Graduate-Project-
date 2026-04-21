@@ -4,6 +4,10 @@ namespace App\Filament\Resources\CourseOfferings\Pages;
 
 use App\Actions\Enrollment\DropStudentFromOffering;
 use App\Actions\Enrollment\EnrollStudentInOffering;
+use App\Exceptions\CourseOfferingClosedException;
+use App\Exceptions\CourseOutsideSpecializationException;
+use App\Exceptions\EnrollmentCapReachedException;
+use App\Exceptions\StudentSuspendedInSemesterException;
 use App\Filament\Resources\CourseOfferings\CourseOfferingResource;
 use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
@@ -41,17 +45,40 @@ class EnrollStudents extends Page implements HasTable
         return 'الطلاب';
     }
 
+    /**
+     * Count of surveys that still need a decision (not yet processed).
+     * A survey becomes processed when the admin either enrolls or rejects
+     * the student for this course — see EnrollStudentInOffering.
+     *
+     * Also excludes students already actively enrolled in this offering
+     * (edge case: enrolled via a non-survey path, survey still is_processed=false).
+     */
     private function getSurveyCount(): int
     {
+        $offeringId = $this->record->id;
+
         return CourseSurvey::where('course_id', $this->record->course_id)
             ->where('semester_id', $this->record->semester_id)
+            ->where('is_processed', false)
+            ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
             ->count();
     }
 
+    /**
+     * Survey entries still awaiting a decision. Accepted or rejected
+     * students disappear from this list (is_processed = true). Students
+     * already enrolled via any other path are also excluded.
+     *
+     * @return array<int, string>
+     */
     private function getSurveyStudentOptions(): array
     {
+        $offeringId = $this->record->id;
+
         return CourseSurvey::where('course_id', $this->record->course_id)
             ->where('semester_id', $this->record->semester_id)
+            ->where('is_processed', false)
+            ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
             ->with('student.user')
             ->orderBy('priority')
             ->get()
@@ -75,6 +102,7 @@ class EnrollStudents extends Page implements HasTable
                 ->label(fn (): string => 'طلبوا المادة ('.$this->getSurveyCount().')')
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('warning')
+                ->visible(fn (): bool => (bool) $this->record->is_open)
                 ->modalDescription(fn (): ?string => $this->getSurveyCount() === 0
                     ? 'لم يتقدم أي طالب لطلب هذه المادة في الفصل الحالي.'
                     : null)
@@ -88,6 +116,9 @@ class EnrollStudents extends Page implements HasTable
                 ])
                 ->action(function (array $data, EnrollStudentInOffering $enroll) {
                     $count = 0;
+                    $capped = 0;
+                    $outOfSpec = 0;
+                    $suspended = 0;
 
                     foreach ($data['student_ids'] as $studentId) {
                         $student = Student::find($studentId);
@@ -96,11 +127,55 @@ class EnrollStudents extends Page implements HasTable
                             continue;
                         }
 
-                        $enrollment = $enroll($student, $this->record);
+                        try {
+                            $enrollment = $enroll($student, $this->record);
+                        } catch (CourseOfferingClosedException $e) {
+                            // Unreachable with the ->visible() guard, but defensive.
+                            Notification::make()
+                                ->title('المقرر مغلق للتسجيل')
+                                ->body('لا يمكن تسجيل الطلاب في هذه المادة حتى يتم فتحها.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        } catch (StudentSuspendedInSemesterException $e) {
+                            $suspended++;
+
+                            continue;
+                        } catch (CourseOutsideSpecializationException $e) {
+                            $outOfSpec++;
+
+                            continue;
+                        } catch (EnrollmentCapReachedException $e) {
+                            $capped++;
+
+                            continue;
+                        }
 
                         if ($enrollment->wasRecentlyCreated || $enrollment->wasChanged('status')) {
                             $count++;
                         }
+                    }
+
+                    if ($capped > 0 || $outOfSpec > 0 || $suspended > 0) {
+                        $bodyParts = [];
+                        if ($capped > 0) {
+                            $bodyParts[] = "تخطى {$capped} طالب الحد الأقصى (".EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER.' مقررات).';
+                        }
+                        if ($outOfSpec > 0) {
+                            $bodyParts[] = "{$outOfSpec} طالب من تخصص مختلف — لا يمكن تسجيلهم في هذه المادة.";
+                        }
+                        if ($suspended > 0) {
+                            $bodyParts[] = "{$suspended} طالب قيده موقوف لهذا الفصل.";
+                        }
+
+                        Notification::make()
+                            ->title("تم تسجيل {$count} طالب")
+                            ->body(implode(' ', $bodyParts))
+                            ->warning()
+                            ->send();
+
+                        return;
                     }
 
                     Notification::make()
@@ -113,14 +188,27 @@ class EnrollStudents extends Page implements HasTable
                 ->label('إضافة طالب')
                 ->icon('heroicon-o-user-plus')
                 ->color('primary')
+                ->visible(fn (): bool => (bool) $this->record->is_open)
                 ->slideOver()
                 ->form([
                     Select::make('student_ids')
                         ->label('اختر الطلاب')
+                        ->helperText('يتم عرض الطلاب من تخصصات هذه المادة فقط.')
                         ->multiple()
                         ->searchable()
                         ->getSearchResultsUsing(function (string $search): array {
+                            // Scope the search to students whose specialization
+                            // matches one of the offering's course specializations,
+                            // AND who are not already actively enrolled in this
+                            // offering (no point showing students you can't add).
+                            // This is a UI-layer filter; the action-layer guard
+                            // still enforces the same invariants server-side.
+                            $specIds = $this->record->course->specializations()->pluck('specializations.id');
+                            $offeringId = $this->record->id;
+
                             return Student::with('user')
+                                ->whereIn('specialization_id', $specIds)
+                                ->whereDoesntHave('activeEnrollments', fn (Builder $q) => $q->where('course_offering_id', $offeringId))
                                 ->where(function (Builder $q) use ($search): void {
                                     $q->whereHas('user', fn (Builder $u) => $u->where('name', 'like', "%{$search}%"))
                                         ->orWhere('enrollment_no', 'like', "%{$search}%");
@@ -144,6 +232,9 @@ class EnrollStudents extends Page implements HasTable
                 ])
                 ->action(function (array $data, EnrollStudentInOffering $enroll) {
                     $count = 0;
+                    $capped = 0;
+                    $outOfSpec = 0;
+                    $suspended = 0;
 
                     foreach ($data['student_ids'] as $studentId) {
                         $student = Student::find($studentId);
@@ -152,11 +243,55 @@ class EnrollStudents extends Page implements HasTable
                             continue;
                         }
 
-                        $enrollment = $enroll($student, $this->record);
+                        try {
+                            $enrollment = $enroll($student, $this->record);
+                        } catch (CourseOfferingClosedException $e) {
+                            // Unreachable with the ->visible() guard, but defensive.
+                            Notification::make()
+                                ->title('المقرر مغلق للتسجيل')
+                                ->body('لا يمكن تسجيل الطلاب في هذه المادة حتى يتم فتحها.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        } catch (StudentSuspendedInSemesterException $e) {
+                            $suspended++;
+
+                            continue;
+                        } catch (CourseOutsideSpecializationException $e) {
+                            $outOfSpec++;
+
+                            continue;
+                        } catch (EnrollmentCapReachedException $e) {
+                            $capped++;
+
+                            continue;
+                        }
 
                         if ($enrollment->wasRecentlyCreated || $enrollment->wasChanged('status')) {
                             $count++;
                         }
+                    }
+
+                    if ($capped > 0 || $outOfSpec > 0 || $suspended > 0) {
+                        $bodyParts = [];
+                        if ($capped > 0) {
+                            $bodyParts[] = "تخطى {$capped} طالب الحد الأقصى (".EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER.' مقررات).';
+                        }
+                        if ($outOfSpec > 0) {
+                            $bodyParts[] = "{$outOfSpec} طالب من تخصص مختلف.";
+                        }
+                        if ($suspended > 0) {
+                            $bodyParts[] = "{$suspended} طالب قيده موقوف لهذا الفصل.";
+                        }
+
+                        Notification::make()
+                            ->title("تم إضافة {$count} طالب")
+                            ->body(implode(' ', $bodyParts))
+                            ->warning()
+                            ->send();
+
+                        return;
                     }
 
                     Notification::make()

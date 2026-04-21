@@ -200,8 +200,20 @@ class StudentResource extends Resource
                             ->label('صورة الشهادة')
                             ->disk('public')
                             ->height(200)
-                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
-                            ->openUrlInNewTab()
+                            ->hintAction(
+                                Action::make('preview_degree_image')
+                                    ->label('عرض بالحجم الكامل')
+                                    ->icon(Heroicon::MagnifyingGlassPlus)
+                                    ->color('info')
+                                    ->modalHeading('الوثيقة العلمية')
+                                    ->modalWidth('5xl')
+                                    ->modalContent(fn (Student $record) => view('filament.components.image-preview', [
+                                        'url' => asset('storage/'.$record->degree_image),
+                                        'alt' => 'الوثيقة العلمية',
+                                    ]))
+                                    ->modalSubmitAction(false)
+                                    ->modalCancelActionLabel('إغلاق')
+                            )
                             ->hidden(fn (Student $record): bool => ! $record->degree_image || str_ends_with(strtolower($record->degree_image), '.pdf')),
 
                         TextEntry::make('degree_image')
@@ -303,6 +315,8 @@ class StudentResource extends Resource
                     Select::make('specialization_id')
                         ->relationship('specialization', 'name')
                         ->label('التخصص')
+                        ->searchable()
+                        ->preload()
                         ->required()
                         ->columnSpan(2),
 

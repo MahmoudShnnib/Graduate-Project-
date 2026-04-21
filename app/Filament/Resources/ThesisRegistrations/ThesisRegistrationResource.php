@@ -113,7 +113,7 @@ class ThesisRegistrationResource extends Resource
                         ]);
 
                         $audit->log('thesis_approved', $record, ['status' => 'pending'], ['status' => 'approved']);
-                        $notifier->notifyStudent($student, 'thesis_decision', 'تم قبول تسجيل رسالتك');
+                        $notifier->notifyThesisDecision($record->fresh());
 
                         Notification::make()->title('تم قبول تسجيل الرسالة')->success()->send();
                     }),
@@ -135,7 +135,7 @@ class ThesisRegistrationResource extends Resource
                             'decided_at' => now(),
                         ]);
 
-                        $notifier->notifyStudent($record->student, 'thesis_decision', 'تم رفض تسجيل رسالتك');
+                        $notifier->notifyThesisDecision($record->fresh());
 
                         Notification::make()->title('تم رفض الطلب')->success()->send();
                     }),

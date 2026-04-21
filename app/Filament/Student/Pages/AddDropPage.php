@@ -135,6 +135,77 @@ class AddDropPage extends Page
     }
 
     /**
+     * Returns course_offering_ids where the student has a pending Drop request
+     * for the current active semester. Used to mark rows as "submitted, awaiting
+     * review" in the UI so students can see what they chose after submitting.
+     *
+     * @return array<int, int>
+     */
+    public function getPendingDropOfferingIds(): array
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return [];
+        }
+
+        return AddDropRequest::where('student_id', $student->id)
+            ->where('type', AddDropType::Drop)
+            ->where('status', 'pending')
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->pluck('course_offering_id')
+            ->all();
+    }
+
+    /**
+     * Returns course_offering_ids where the student has a pending Add request
+     * for the current active semester.
+     *
+     * @return array<int, int>
+     */
+    public function getPendingAddOfferingIds(): array
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return [];
+        }
+
+        return AddDropRequest::where('student_id', $student->id)
+            ->where('type', AddDropType::Add)
+            ->where('status', 'pending')
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->pluck('course_offering_id')
+            ->all();
+    }
+
+    /**
+     * All of the student's add/drop requests for the active semester —
+     * pending, approved, rejected. Used to render a "My submissions" block
+     * so the student can see the full history of decisions on their choices,
+     * including approved drops (which disappear from the active enrollment
+     * list) and rejected adds (which still appear in the available list).
+     */
+    public function getAllRequestsThisSemester(): Collection
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return collect();
+        }
+
+        return AddDropRequest::where('student_id', $student->id)
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->with(['courseOffering.course'])
+            ->orderBy('type')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
      * @return array<int>
      */
     private function selectedDropIds(): array
@@ -154,6 +225,19 @@ class AddDropPage extends Page
     {
         if (! $this->isAddDropOpen()) {
             Notification::make()->title('فترة الإضافة والحذف مغلقة')->danger()->send();
+
+            return;
+        }
+
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if ($student && $activeSemester && $student->isSuspendedInSemester($activeSemester)) {
+            Notification::make()
+                ->title('قيدك موقوف لهذا الفصل')
+                ->body('لا يمكنك تقديم طلبات إضافة أو حذف.')
+                ->danger()
+                ->send();
 
             return;
         }
