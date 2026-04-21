@@ -18,4 +18,16 @@ class EditUser extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    /**
+     * Keep Spatie role in sync if the admin changes the role column.
+     */
+    protected function afterSave(): void
+    {
+        $role = $this->record->role;
+
+        if (in_array($role, ['super_admin', 'secretary', 'faculty', 'student'], true)) {
+            $this->record->syncRoles([$role]);
+        }
+    }
 }

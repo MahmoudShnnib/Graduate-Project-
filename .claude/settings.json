@@ -1,6 +1,7 @@
 {
   "enabledPlugins": {
     "claude-mem@thedotmack": true,
-    "interface-design@interface-design": true
+    "interface-design@interface-design": true,
+    "obsidian@obsidian-skills": true
   }
 }

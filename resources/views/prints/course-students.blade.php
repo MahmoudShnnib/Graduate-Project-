@@ -134,6 +134,7 @@
                 <th class="row-num">م</th>
                 <th>رقم القيد</th>
                 <th>اسم الطالب</th>
+                <th>التخصص</th>
                 <th class="signature-col">التوقيع</th>
             </tr>
         </thead>
@@ -143,11 +144,12 @@
                     <td class="row-num">{{ $index + 1 }}</td>
                     <td style="font-family: monospace; direction: ltr; text-align: center;">{{ $enrollment->student->enrollment_no }}</td>
                     <td>{{ $enrollment->student->user->name }}</td>
+                    <td>{{ $enrollment->student->specialization?->name ?? '—' }}</td>
                     <td></td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" style="text-align: center; color: #999;">لا يوجد طلاب مسجلون</td>
+                    <td colspan="5" style="text-align: center; color: #999;">لا يوجد طلاب مسجلون</td>
                 </tr>
             @endforelse
         </tbody>

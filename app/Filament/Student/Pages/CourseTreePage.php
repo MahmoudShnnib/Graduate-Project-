@@ -15,7 +15,7 @@ class CourseTreePage extends Page
 {
     protected string $view = 'filament.student.pages.course-tree';
 
-    protected static ?string $navigationLabel = 'الخطة الدراسية';
+    protected static ?string $navigationLabel = 'شجرة موادي';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-map';
 
@@ -23,7 +23,7 @@ class CourseTreePage extends Page
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $title = 'الخطة الدراسية';
+    protected static ?string $title = 'شجرة موادي';
 
     /** @var array<int, bool> */
     public array $expandedCourses = [];
@@ -84,7 +84,7 @@ class CourseTreePage extends Page
 
         $activeSemester = $this->getActiveSemester();
 
-        $enrollments = $student->enrollments()
+        $enrollments = $student->activeEnrollments()
             ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
             ->get();
 

@@ -34,6 +34,7 @@ class ApproveApplication
             // Create User account from application data
             $user = User::create([
                 'name' => $application->name,
+                'name_en' => $application->name_en,
                 'email' => $application->email,
                 'phone' => $application->phone,
                 'password' => $application->password ?? Hash::make(Str::random(10)),
@@ -41,6 +42,11 @@ class ApproveApplication
                 'specialization_id' => $application->specialization_id,
                 'is_active' => true,
             ]);
+
+            // Sync Spatie role to match the role column. Without this the
+            // HasPanelShield trait auto-assigns 'panel_user' and Shield
+            // policy checks fail for the new student.
+            $user->syncRoles(['student']);
 
             $application->update(['user_id' => $user->id]);
 

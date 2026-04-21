@@ -13,7 +13,9 @@ class SuspensionRequestPage extends Page
 {
     protected string $view = 'filament.student.pages.suspension-request';
 
-    protected static ?string $navigationLabel = 'طلب الانقطاع';
+    protected static ?string $navigationLabel = 'طلبات إيقاف قيد';
+
+    protected static ?string $title = 'طلبات إيقاف قيد';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-pause-circle';
 

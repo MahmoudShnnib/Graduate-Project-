@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EnrollmentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,5 +48,11 @@ class CourseOffering extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(StudentEnrollment::class);
+    }
+
+    public function activeEnrollments(): HasMany
+    {
+        return $this->hasMany(StudentEnrollment::class)
+            ->where('status', EnrollmentStatus::Enrolled);
     }
 }

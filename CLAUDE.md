@@ -1,3 +1,276 @@
+---
+date: 2026-04-17
+tags: [meta, project-root, claude]
+related: [[_brain/project-context/README]]
+---
+
+# CLAUDE.md
+
+> This file is the starting point for every session. Read it first, then scan recent [[_brain/daily-notes/README|daily notes]] before touching code.
+
+## Core Working Principles
+
+> **HIGH PRIORITY — applies to every session, every task, without exception.** If a rule below conflicts with anything else in this file, this section wins.
+
+1. **Consistency across the project is mandatory.** When asked to change something in one place, search the entire codebase for related usages and update them everywhere so nothing breaks and nothing becomes inconsistent. Never do a local fix without checking for project-wide impact. Before closing a task, run `Grep` for every symbol, string, label, route name, or class reference touched — and fix all callers.
+
+2. **Document everything in the vault.** For every task, bug, error, or update:
+   - Log what was changed, why, and which files were touched in `_brain/daily-notes/` (today's file).
+   - If it's a notable fix, also log it in `_brain/bugs-and-fixes/`.
+   - If it's a design/architecture decision, log it in `_brain/decisions/`.
+   - Use `[[wikilinks]]` to connect related notes so future sessions can learn from past work.
+
+3. **Never hallucinate. If anything is unclear, ASK.** Do not guess file paths, database schemas, function behavior, framework conventions, or user intent. If you are not 100% sure, stop and ask. The user would rather answer 10 questions than fix 10 wrong implementations.
+
+4. **Full file access, but clarify intent.** You have permission to read, edit, and create any file in this project. You do not need to ask permission to touch files — only to clarify intent before touching them.
+
+5. **Work in phases, one task at a time.** Never try to solve multiple tasks simultaneously. Finish one fully, document it, confirm with the user, then move to the next. Do not batch multiple tasks without explicit approval.
+
+6. **Learn from past mistakes.** Before starting Filament / Livewire / testing work, scan [[_brain/research/2026-04-20-agent-mistakes-and-lessons]] for the anti-patterns already encountered in this repo. It catalogues known traps (wrong Filament component namespaces, `wire:model` reactivity gaps, Vite-manifest issues after `optimize:clear`, etc.) and their correct defaults.
+
+## Project Overview
+
+A **Libyan graduate-studies admissions, enrollment, and academic-lifecycle management system** for a single faculty, built as a graduation project. It is an Arabic-first (RTL), multi-panel Laravel + Filament application covering the full student journey:
+
+1. **Public application** (`/apply`) — applicants submit a multi-step form (Arabic+English names, personal data, specialization, uploaded bachelor certificate, transfer status). They can track status at `/apply/track` by tracking code + national ID.
+2. **Admin review** (`/admin`) — secretaries/super admins review applications, set exam results, and on approval the system auto-creates `User` + `Student` rows, generates an **enrollment number** scoped by year+specialization+transfer-type, and sends a welcome notification.
+3. **Academic cycle** — per-semester course offerings, a pre-enrollment **course survey** where students rank up to 4 desired courses, manual enrollment by staff, **add/drop** requests (max 3 each, open only during the semester's add-drop window), grade entry by faculty (`/admin` → "موادي") with configurable coursework/final distribution, and super-admin/secretary grade approval.
+4. **Student portal** (`/portal`) — RTL portal for students to browse the course tree, view grades, submit surveys/add-drop/suspension/thesis requests, and check clearance.
+5. **Support flows** — audit logging on sensitive field changes, dual-channel (email + WhatsApp via Qonvo) notifications, PDF generation (transcripts, suspension/thesis/clearance forms), printable course rosters, and GPA auto-recalculation on grade approval.
+
+For deeper architectural detail see [[_brain/project-context/project-overview]], [[_brain/project-context/architecture]], and [[_brain/project-context/gotchas]].
+
+## Tech Stack
+
+**Runtime & framework**
+- PHP 8.5.2 (composer requires `^8.2`)
+- Laravel 12 (streamlined structure — no `app/Http/Kernel.php`, middleware in `bootstrap/app.php`)
+- Laravel Herd serves the app at `https://graduate-project.test`
+
+**Admin UI & interactivity**
+- Filament v5 (two panels: `admin` at `/admin`, `student` at `/portal`)
+- `bezhansalleh/filament-shield` — permission generation per Resource
+- Livewire 4 (Filament pages + public portal pages)
+- Tailwind CSS 4 + Vite 7 (panel themes in `resources/css/filament/{admin,student}/theme.css`)
+
+**Authorization**
+- Laravel Gates + Policies (one policy per top-level model)
+- `spatie/laravel-permission` for roles/permissions table
+- Hybrid role system: `users.role` column (simple string: `super_admin` / `secretary` / `faculty` / `student`) **and** Spatie roles — both are checked, `super_admin` bypasses all gates via `Gate::before`
+
+**Integrations**
+- `barryvdh/laravel-dompdf` — transcripts, clearance, suspension, thesis forms
+- Custom `WhatsAppChannel` → `WhatsAppService` → **Qonvo API** (`qonvo.ly`) with Libyan phone-format conversion (09XXXXXXXX → +2189XXXXXXXX)
+- Laravel mail (driver-agnostic; Postmark/Resend/SES configs exist, no default wired)
+
+**Testing & tooling**
+- Pest 4 (`pest-plugin-laravel`), PHPUnit 12, Mockery — `RefreshDatabase` on all Feature + Unit tests
+- Laravel Boost 2 (MCP for docs, tinker, DB schema, browser logs)
+- Laravel Pint 1, Pail 1, Sail 1
+- Shared Pest helpers in `tests/Pest.php`: `studentWithRecord()`, `adminUser()`, custom `toBeOne` matcher
+
+## Folder Structure
+
+```
+app/
+├── Actions/                 Single-responsibility action classes, often __invoke-able
+│   ├── ApproveApplication.php         Multi-step: Application → User → Student → enrollment number → notify
+│   ├── CreateApplication.php          Public intake form → Application row
+│   ├── BaseAction.php                 Stub — currently unused (see gotchas)
+│   └── Enrollment/
+│       ├── EnrollStudentInOffering.php   Idempotent upsert + flips matching CourseSurvey.is_processed
+│       └── DropStudentFromOffering.php   Sets status to Dropped/Withdrawn on the pivot row
+├── Channels/                WhatsAppChannel + WhatsAppMessage DTO
+├── Enums/                   Backed enums w/ Arabic `label()` methods (EnrollmentStatus, GradeStatus,
+│                            StudentStatus, ApplicationStatus, Season, CourseType, AddDropType,
+│                            SuspensionStatus, NotificationChannel)
+├── Filament/
+│   ├── Pages/               Admin-panel custom pages (ReportsPage, ExamListPage, StudentSurveysList, …)
+│   ├── Resources/           14 admin Resources (Students, Applications, CourseOfferings, Grades,
+│   │                        Faculty, StudentEnrollments, AddDropRequests, Semesters, Courses,
+│   │                        Specializations, SuspensionRequests, ThesisRegistrations, AuditLogs, Users)
+│   ├── Student/Pages/       9 student-portal Livewire pages (Dashboard, StudentCourses, CourseTree,
+│   │                        CourseSurvey, AddDrop, Grades, Suspension, Thesis, Clearance)
+│   └── Widgets/             Admin dashboard widgets (stats, applications over time, per-specialization)
+├── Http/
+│   ├── Controllers/         Public + portal controllers (Registration, ApplicationTracking,
+│   │                        PrintCourseStudents)
+│   └── Middleware/          EnsureStudentRole
+├── Models/                  17 Eloquent models — see [[_brain/project-context/project-overview|overview]]
+├── Notifications/           9 notifications + Concerns/HasWhatsAppChannel trait
+├── Observers/               StudentObserver (cascade), GradeObserver (GPA recalc),
+│                            AuditObserver (per-model field watchlist → AuditLog)
+├── Policies/                14 policies — one per resource
+├── Providers/
+│   ├── AppServiceProvider.php          Gate::before super_admin bypass + observer registration
+│   └── Filament/{Admin,Student}PanelProvider.php
+├── Rules/                   ArabicOnly, MinArabicWords (custom validation)
+├── Services/                AuditService, EnrollmentNumberService, GradeCalculationService,
+│                            NotificationService, PdfService, TrackingCodeService, WhatsAppService
+└── View/Components/Form/    Blade form components (Button, Input, Label) used by public registration
+bootstrap/
+├── app.php                  Routing, middleware, 403→/portal/login exception handler
+└── providers.php            AppServiceProvider + both PanelProviders
+config/                      Standard Laravel config (services.php has `qonvo` entry)
+database/
+├── factories/               11 factories (incl. StudentEnrollmentFactory, GradeFactory)
+├── migrations/              38 migrations — core schema on 2026-03-09, incremental additions through 2026-04-16
+└── seeders/                 RolesAndPermissionsSeeder → Spec/Semester/Course/Admin/Application/Student
+resources/
+├── css/filament/            Per-panel Filament themes (admin/student)
+└── views/
+    ├── components/          admin/*, form/*, layout/app (shared Blade components)
+    ├── filament/            Filament page + resource Blade overrides (admin + student)
+    ├── pdfs/                transcript, clearance_form, suspension_form, thesis_form
+    ├── prints/              course-students (printable roster)
+    ├── registration/        create.blade.php, track.blade.php (public pages)
+    └── welcome.blade.php
+routes/
+├── web.php                  /, /apply, /apply/track, /admin/course-offerings/{co}/print-students
+└── console.php              inspire (default)
+tests/
+├── Pest.php                 studentWithRecord() + adminUser() + toBeOne helpers; RefreshDatabase on all
+├── Feature/                 EnrollmentConsistency, GradeApproval, StudentPortal, SuspensionRequest,
+│                            ThesisRegistration, Example
+└── Unit/                    GradeCalculationService, Grade (letter conversion), StudentEligibility, Example
+_brain/                      Session memory (see [[#Memory System]])
+```
+
+## Coding Conventions
+
+**Observed from the code, not just the style guide:**
+
+**PHP / Laravel**
+- Every model: `protected $fillable`, `casts()` method (never `$casts` property), explicit relationship return types (`HasMany`, `BelongsTo`, etc.)
+- Enums are **backed string enums** in Arabic-labeled `label()` methods — e.g. `EnrollmentStatus::Enrolled->value === 'enrolled'`, `->label() === 'مسجل'`
+- Status-filtered relations are named with an `active*` prefix (e.g. `Student::activeEnrollments()`, `CourseOffering::activeEnrollments()`) — presentation code **always** uses these, never unfiltered
+- `Model::booted()` is used for auto-derived fields — see `Grade` and `TransferCourse` auto-compute total/letter/points on save
+- Constructor property promotion is standard; services and actions inject dependencies via constructor (no static facade calls in business logic)
+- `DB::transaction(...)` wraps multi-row writes (see `ApproveApplication`, `EnrollStudentInOffering`)
+
+**Filament patterns**
+- One folder per Resource under `app/Filament/Resources/{Resource}/` containing `{Resource}Resource.php` + `Pages/` subfolder; **some** resources have `RelationManagers/` (e.g. Semesters); stub `Schemas/` and `Tables/` folders have been removed
+- Arabic labels on every field/column: `->label('الفصل الدراسي')` — never rely on auto-derived labels
+- Navigation is organized via `$navigationGroup` (Arabic names: `الإعدادات الأكاديمية`, `إدارة الطلاب`, `هيئة التدريس`)
+- Faculty/secretary-scoped Resources override `getEloquentQuery()` and `shouldRegisterNavigation()` based on `auth()->user()->role`
+- Student-panel pages extend `Filament\Pages\Page` and define their own Livewire public properties + methods (not Filament form builder)
+
+**Actions & Services (split)**
+- **Actions** — orchestrate a single business operation, often invokable (`__invoke`), called from Resources/Pages/Controllers
+- **Services** — stateless domain logic reused across actions (GPA calc, enrollment number generation, notifications, audit logging)
+- Rule of thumb in this codebase: if it writes to multiple tables or emits side effects, it's an Action. If it's pure computation or an external integration, it's a Service.
+
+**Validation**
+- Public forms: inline `$request->validate()` with Arabic error messages (see `RegistrationController`) — **no** Form Request classes currently exist
+- Filament forms: component-level `->required()`, `->regex()`, `->rules([new ArabicOnly, ...])`
+- Custom rules: `ArabicOnly` (with optional digits), `MinArabicWords`
+
+**Naming**
+- Table names: snake_case plural (`student_enrollments`, `course_offerings`)
+- Pivot tables: snake_case singular alphabetical (`semester_course`, `course_specialization`)
+- Enum keys: `TitleCase` (per guidelines); enum values: `snake_case` strings
+- Blade files: kebab-case (`view-student.blade.php`)
+- Routes: camelCase names (`registration.create`, `course-offering.print-students`)
+
+**Config & environment**
+- `env()` appears only in `config/*.php`; application code uses `config('services.qonvo.api_token')`
+- WhatsApp delivery is **opt-in via config** — absence of `QONVO_API_TOKEN` silently disables the channel
+
+**Formatting & testing**
+- `vendor/bin/pint --dirty --format agent` after every PHP edit
+- Tests use `RefreshDatabase` (see `tests/Pest.php`) and shared helpers `studentWithRecord()` / `adminUser()`
+- Feature tests exercise actions end-to-end (see `EnrollmentConsistencyTest` — it drives `EnrollStudentInOffering` + `DropStudentFromOffering` + observer cascade)
+
+## Architectural Patterns
+
+- **Observer-driven cascades.** Business invariants (GPA recalc, enrollment withdrawal, audit trail) are triggered by Eloquent observers registered in `AppServiceProvider::boot()`, not scattered through controllers. See [[_brain/project-context/architecture]].
+- **Status-as-pivot.** `StudentEnrollment` is a rich pivot — it carries `status: enrolled/dropped/withdrawn` rather than being deleted. Every query must filter by status.
+- **Dual Filament panels sharing one `User`.** `canAccessPanel()` on `User` decides which panel each role can enter. Student role is gated by both `role === 'student'` and `is_active`.
+- **Arabic-first RTL.** Every UI string, notification message, validation error, and enum label is authored in Arabic. English is used only for raw identifiers (emails, enrollment numbers, English name field).
+- **Single active semester.** `Semester::where('is_active', true)->first()` is the canonical "current term" lookup — called from many pages. The system assumes exactly one active semester at a time.
+- **Audit watchlist.** `AuditObserver::WATCHED_FIELDS` is a per-model allow-list of fields whose changes are recorded — silently ignores unlisted fields.
+
+## Memory System
+
+All session notes live in `_brain/`, organized by type: [[_brain/daily-notes/README|daily-notes]], [[_brain/decisions/README|decisions]], [[_brain/bugs-and-fixes/README|bugs-and-fixes]], [[_brain/research/README|research]], and [[_brain/project-context/README|project-context]].
+
+Conventions (Obsidian-flavored markdown):
+
+- **File names:** ISO date prefix — `YYYY-MM-DD-title.md` (e.g. `2026-04-17-enrollment-refactor.md`). `project-context/` notes may skip the date and use a topic-only name.
+- **Frontmatter:** every note begins with a YAML block —
+  ```yaml
+  ---
+  date: YYYY-MM-DD
+  tags: [relevant, tags]
+  related: [[linked-note]]
+  ---
+  ```
+- **Links:** use `[[wikilinks]]` between notes. Prefer linking the concept over pasting the summary.
+- **Tags:** use `#tags` inline where they aid discovery (e.g. `#enrollment`, `#filament`, `#bug`).
+- **Scope:** capture *why* and *what's non-obvious*. Do not duplicate code, git log, or CLAUDE.md.
+
+## Session Habits
+
+**Start of session:**
+
+1. Read this file (`CLAUDE.md`).
+2. Scan the most recent entries in `_brain/daily-notes/` — at minimum today's and yesterday's — to pick up in-flight context.
+3. If the user references prior work, check [[_brain/decisions/README|decisions]] and [[_brain/project-context/README|project-context]] for anchors before re-deriving from code.
+
+**End of session:**
+
+1. Create or append to today's file in `_brain/daily-notes/` (`YYYY-MM-DD-<session-topic>.md`) with:
+   - what was done (brief),
+   - what decisions were made → link to new notes in [[_brain/decisions/README|decisions]],
+   - bugs fixed → link to [[_brain/bugs-and-fixes/README|bugs-and-fixes]],
+   - loose ends / next steps.
+2. Use frontmatter, `[[wikilinks]]`, and `#tags`.
+3. Promote anything durable (architectural rules, domain invariants) to [[_brain/project-context/README|project-context]].
+
+## Automatic Session Rules
+
+These rules run on autopilot. Do not wait to be asked.
+
+### 1. Start of every session (before anything else)
+
+- Read this entire `CLAUDE.md` file.
+- Read the **3 most recent files** in [[_brain/daily-notes/README|_brain/daily-notes/]] (sort by filename date — newest first).
+- Reply with a **5-bullet summary** covering:
+  1. What we're currently working on,
+  2. Where we left off last session,
+  3. Any open decisions or loose ends,
+  4. Known bugs still in flight,
+  5. Suggested next step.
+
+Do this *before* responding to the user's first task.
+
+### 2. End of every session (before closing)
+
+- Remind the user: *"We should save a session note before closing."*
+- Then **create today's daily note automatically** in `_brain/daily-notes/YYYY-MM-DD-<topic>.md` — do not wait for permission. Include frontmatter, what was done, decisions linked, bugs linked, and next steps.
+
+### 3. Whenever a significant decision is made
+
+- **Automatically** create a note in `_brain/decisions/YYYY-MM-DD-<decision-title>.md`. No need to ask.
+- Capture: context, decision, alternatives considered, consequences.
+- Link it from the day's [[_brain/daily-notes/README|daily note]].
+
+A "significant decision" = anything that shapes future code (architecture, naming conventions, library choices, domain rules, trade-offs between approaches). When unsure, log it.
+
+### 4. Whenever a bug is fixed
+
+- **Automatically** create a note in `_brain/bugs-and-fixes/YYYY-MM-DD-<bug-title>.md`. No need to ask.
+- Capture: symptoms, root cause, fix, and any regression guard (tests added, invariants documented).
+- Link it from the day's [[_brain/daily-notes/README|daily note]].
+
+### Guiding principle
+
+**When in doubt, over-document rather than under-document. It costs nothing to create a note.**
+
+A forgotten reason is more expensive than a redundant file.
+
+---
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

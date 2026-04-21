@@ -21,8 +21,6 @@ class CourseSurveyPage extends Page
 
     protected static ?int $navigationSort = 3;
 
-    public const int MAX_SELECTIONS = 4;
-
     /** @var array<int, int> course_id => priority */
     public array $selections = [];
 
@@ -67,7 +65,7 @@ class CourseSurveyPage extends Page
 
     /**
      * Returns the enrollment status for each surveyed course in the active semester.
-     * Possible values: 'enrolled' | 'pending' | 'unavailable'
+     * Possible values: 'enrolled' | 'pending' | 'rejected' | 'unavailable'
      *
      * @return array<int, string>
      */
@@ -80,8 +78,22 @@ class CourseSurveyPage extends Page
             return [];
         }
 
+        $surveys = CourseSurvey::where('student_id', $student->id)
+            ->where('semester_id', $activeSemester->id)
+            ->whereIn('course_id', array_keys($this->selections))
+            ->get()
+            ->keyBy('course_id');
+
         $statuses = [];
         foreach (array_keys($this->selections) as $courseId) {
+            // Rejected takes precedence over everything else so the student
+            // sees the final decision even if the offering was also closed.
+            if ($surveys->get($courseId)?->rejected_at !== null) {
+                $statuses[$courseId] = 'rejected';
+
+                continue;
+            }
+
             $offering = \App\Models\CourseOffering::where('course_id', $courseId)
                 ->where('semester_id', $activeSemester->id)
                 ->first();
@@ -94,17 +106,13 @@ class CourseSurveyPage extends Page
 
             $enrolled = \App\Models\StudentEnrollment::where('student_id', $student->id)
                 ->where('course_offering_id', $offering->id)
+                ->active()
                 ->exists();
 
             $statuses[$courseId] = $enrolled ? 'enrolled' : 'pending';
         }
 
         return $statuses;
-    }
-
-    public function isMaxReached(): bool
-    {
-        return count($this->selections) >= self::MAX_SELECTIONS;
     }
 
     public function toggleCourse(int $courseId): void
@@ -117,7 +125,8 @@ class CourseSurveyPage extends Page
         }
 
         if (isset($this->selections[$courseId])) {
-            // Deselect: remove then re-number remaining sequentially
+            // Deselect: remove then re-number remaining sequentially so
+            // priority 1..N is always contiguous.
             unset($this->selections[$courseId]);
             $sorted = collect($this->selections)->sortBy(fn ($p) => $p)->keys()->values();
             $this->selections = [];
@@ -125,16 +134,9 @@ class CourseSurveyPage extends Page
                 $this->selections[$id] = $i + 1;
             }
         } else {
-            if (count($this->selections) >= self::MAX_SELECTIONS) {
-                Notification::make()
-                    ->title('الحد الأقصى '.self::MAX_SELECTIONS.' مقررات')
-                    ->body('أزل مقرراً قبل إضافة آخر')
-                    ->warning()
-                    ->send();
-
-                return;
-            }
-
+            // No upper cap — the survey is a wishlist. Admin decides which
+            // to actually enroll; hard 4-cap lives at the enrollment action
+            // layer (EnrollStudentInOffering::MAX_ENROLLMENTS_PER_SEMESTER).
             $this->selections[$courseId] = count($this->selections) + 1;
         }
     }
@@ -150,16 +152,25 @@ class CourseSurveyPage extends Page
             return;
         }
 
+        if ($student->isSuspendedInSemester($activeSemester)) {
+            Notification::make()
+                ->title('قيدك موقوف لهذا الفصل')
+                ->body('لا يمكنك تقديم اختيارات استطلاع المقررات.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         if (! $activeSemester->survey_open) {
             Notification::make()->title('الاستطلاع مغلق حالياً')->danger()->send();
 
             return;
         }
 
-        if (count($this->selections) < 1 || count($this->selections) > self::MAX_SELECTIONS) {
+        if (count($this->selections) < 1) {
             Notification::make()
-                ->title('يجب اختيار مقرر واحد على الأقل (بحد أقصى '.self::MAX_SELECTIONS.')')
-                ->body('اخترت '.count($this->selections).' حتى الآن')
+                ->title('يجب اختيار مقرر واحد على الأقل')
                 ->warning()
                 ->send();
 

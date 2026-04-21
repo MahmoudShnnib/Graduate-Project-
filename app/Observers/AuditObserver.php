@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Application;
 use App\Models\Grade;
 use App\Models\Student;
+use App\Models\StudentEnrollment;
 use App\Models\ThesisRegistration;
 use App\Services\AuditService;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ class AuditObserver
         Grade::class => ['coursework_grade', 'final_grade', 'total', 'letter', 'status'],
         Application::class => ['status', 'rejection_reason'],
         Student::class => ['gpa', 'warnings_count', 'status', 'enrollment_no'],
+        StudentEnrollment::class => ['status'],
         ThesisRegistration::class => ['status'],
     ];
 

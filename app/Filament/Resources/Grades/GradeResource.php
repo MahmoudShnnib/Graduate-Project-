@@ -43,9 +43,9 @@ class GradeResource extends Resource
                 CourseOffering::query()
                     ->with(['course', 'semester', 'faculty'])
                     ->withCount([
-                        'enrollments as total_students',
-                        'enrollments as pending_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('status', GradeStatus::PendingApproval)),
-                        'enrollments as approved_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('status', GradeStatus::Approved)),
+                        'activeEnrollments as total_students',
+                        'activeEnrollments as pending_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('status', GradeStatus::PendingApproval)),
+                        'activeEnrollments as approved_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('status', GradeStatus::Approved)),
                     ])
             )
             ->columns([

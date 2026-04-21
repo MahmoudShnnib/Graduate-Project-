@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EnrollmentStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,5 +39,10 @@ class StudentEnrollment extends Model
     public function grade(): HasOne
     {
         return $this->hasOne(Grade::class, 'enrollment_id');
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', EnrollmentStatus::Enrolled);
     }
 }

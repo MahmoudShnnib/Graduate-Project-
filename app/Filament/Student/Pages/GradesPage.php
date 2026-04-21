@@ -29,7 +29,11 @@ class GradesPage extends Page
             return collect();
         }
 
-        return Semester::whereHas('courseOfferings.enrollments', fn ($q) => $q->where('student_id', $student->id))
+        return Semester::whereHas(
+            'courseOfferings.enrollments',
+            fn ($q) => $q->where('student_id', $student->id)
+                ->where('status', \App\Enums\EnrollmentStatus::Enrolled)
+        )
             ->orderByDesc('year')
             ->get();
     }
@@ -43,6 +47,7 @@ class GradesPage extends Page
         }
 
         $query = StudentEnrollment::where('student_id', $student->id)
+            ->active()
             ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
             ->whereHas('grade');
 

@@ -42,6 +42,53 @@ class ViewMyCourse extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('grade_distribution')
+                ->label('توزيع الدرجات')
+                ->icon(Heroicon::AdjustmentsHorizontal)
+                ->color('gray')
+                ->modalHeading('توزيع الدرجات')
+                ->modalDescription('حدد كيفية توزيع الدرجة من 100 بين أعمال الفصل والاختبار النهائي.')
+                ->modalSubmitActionLabel('حفظ التوزيع')
+                ->fillForm(fn (): array => [
+                    'coursework_max' => $this->record->coursework_max,
+                    'final_max' => $this->record->final_max,
+                ])
+                ->form([
+                    TextInput::make('coursework_max')
+                        ->label('أعمال الفصل')
+                        ->numeric()
+                        ->minValue(1)
+                        ->maxValue(99)
+                        ->required(),
+
+                    TextInput::make('final_max')
+                        ->label('الاختبار النهائي')
+                        ->numeric()
+                        ->minValue(1)
+                        ->maxValue(99)
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    if ((int) $data['coursework_max'] + (int) $data['final_max'] !== 100) {
+                        Notification::make()
+                            ->title('مجموع التوزيع يجب أن يساوي 100')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    $this->record->update([
+                        'coursework_max' => (int) $data['coursework_max'],
+                        'final_max' => (int) $data['final_max'],
+                    ]);
+
+                    Notification::make()
+                        ->title('تم حفظ توزيع الدرجات بنجاح')
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('upload_paper_sheet')
                 ->label($this->record->paper_sheet_path ? 'تحديث ورقة الدرجات' : 'رفع ورقة الدرجات')
                 ->icon(Heroicon::ArrowUpTray)
@@ -98,6 +145,7 @@ class ViewMyCourse extends Page implements HasTable
             ->query(
                 StudentEnrollment::query()
                     ->where('course_offering_id', $offeringId)
+                    ->active()
                     ->with(['student.user', 'grade'])
             )
             ->columns([
@@ -110,12 +158,12 @@ class ViewMyCourse extends Page implements HasTable
                     ->searchable(),
 
                 TextColumn::make('grade.coursework_grade')
-                    ->label('أعمال الفصل (40)')
+                    ->label('أعمال الفصل ('.$this->record->coursework_max.')')
                     ->placeholder('—')
                     ->numeric(2),
 
                 TextColumn::make('grade.final_grade')
-                    ->label('الامتحان النهائي (60)')
+                    ->label('الامتحان النهائي ('.$this->record->final_max.')')
                     ->placeholder('—')
                     ->numeric(2),
 
@@ -159,18 +207,18 @@ class ViewMyCourse extends Page implements HasTable
                     ->modalHeading(fn (StudentEnrollment $record): string => 'إدخال درجة — '.$record->student->user->name)
                     ->form([
                         TextInput::make('coursework_grade')
-                            ->label('أعمال الفصل (من 40)')
+                            ->label('أعمال الفصل (من '.$this->record->coursework_max.')')
                             ->numeric()
                             ->minValue(0)
-                            ->maxValue(40)
+                            ->maxValue($this->record->coursework_max)
                             ->step(0.5)
                             ->required(),
 
                         TextInput::make('final_grade')
-                            ->label('الامتحان النهائي (من 60)')
+                            ->label('الامتحان النهائي (من '.$this->record->final_max.')')
                             ->numeric()
                             ->minValue(0)
-                            ->maxValue(60)
+                            ->maxValue($this->record->final_max)
                             ->step(0.5)
                             ->required(),
                     ])

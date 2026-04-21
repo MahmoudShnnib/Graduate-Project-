@@ -90,14 +90,15 @@ class CourseOfferingResource extends Resource
                     ->label('طلبوا المادة')
                     ->getStateUsing(fn (CourseOffering $record): int => \App\Models\CourseSurvey::where('course_id', $record->course_id)
                         ->where('semester_id', $record->semester_id)
+                        ->where('is_processed', false)
                         ->count()
                     )
                     ->badge()
                     ->color('warning'),
 
-                TextColumn::make('enrollments_count')
+                TextColumn::make('active_enrollments_count')
                     ->label('مسجّلون فعلاً')
-                    ->counts('enrollments')
+                    ->counts('activeEnrollments')
                     ->badge()
                     ->color('success'),
 

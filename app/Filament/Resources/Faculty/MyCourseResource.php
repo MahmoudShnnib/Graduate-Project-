@@ -76,28 +76,28 @@ class MyCourseResource extends Resource
 
                 TextColumn::make('enrollments_count')
                     ->label('عدد الطلاب')
-                    ->counts('enrollments')
+                    ->counts('activeEnrollments')
                     ->badge()
                     ->color('info'),
 
                 TextColumn::make('grades_status')
                     ->label('حالة الدرجات')
                     ->getStateUsing(function (CourseOffering $record): string {
-                        $total = $record->enrollments()->count();
+                        $total = $record->activeEnrollments()->count();
 
                         if ($total === 0) {
                             return 'لا يوجد طلاب';
                         }
 
-                        $approved = $record->enrollments()
+                        $approved = $record->activeEnrollments()
                             ->whereHas('grade', fn ($q) => $q->where('status', GradeStatus::Approved))
                             ->count();
 
-                        $pending = $record->enrollments()
+                        $pending = $record->activeEnrollments()
                             ->whereHas('grade', fn ($q) => $q->where('status', GradeStatus::PendingApproval))
                             ->count();
 
-                        $draft = $record->enrollments()
+                        $draft = $record->activeEnrollments()
                             ->whereHas('grade', fn ($q) => $q->where('status', GradeStatus::Draft))
                             ->count();
 

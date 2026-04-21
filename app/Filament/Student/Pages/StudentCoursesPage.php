@@ -34,6 +34,7 @@ class StudentCoursesPage extends Page
         }
 
         return StudentEnrollment::where('student_id', $student->id)
+            ->active()
             ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
             ->with(['courseOffering.course', 'courseOffering.faculty', 'grade'])
             ->get();

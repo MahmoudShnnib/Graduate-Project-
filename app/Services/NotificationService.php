@@ -9,7 +9,6 @@ use App\Models\ClearanceRequest;
 use App\Models\Grade;
 use App\Models\NotificationLog;
 use App\Models\Student;
-use App\Models\StudentEnrollment;
 use App\Models\SuspensionRequest;
 use App\Models\ThesisRegistration;
 use App\Notifications\AddDropDecisionNotification;
@@ -17,7 +16,6 @@ use App\Notifications\ApplicationExamPassedNotification;
 use App\Notifications\ApplicationReceivedNotification;
 use App\Notifications\ApplicationStatusChangedNotification;
 use App\Notifications\ClearanceIssuedNotification;
-use App\Notifications\EnrollmentConfirmedNotification;
 use App\Notifications\GradePublishedNotification;
 use App\Notifications\SuspensionDecisionNotification;
 use App\Notifications\ThesisDecisionNotification;
@@ -137,19 +135,6 @@ class NotificationService
             $student,
             'clearance_issued',
             'تم اعتماد استماحتك'
-        );
-    }
-
-    public function notifyEnrollmentConfirmed(StudentEnrollment $enrollment): void
-    {
-        $student = $enrollment->student;
-
-        $this->dispatch(
-            $student?->user,
-            new EnrollmentConfirmedNotification($enrollment),
-            $student,
-            'enrollment_confirmed',
-            'تم تأكيد تسجيلك في مقرر'
         );
     }
 

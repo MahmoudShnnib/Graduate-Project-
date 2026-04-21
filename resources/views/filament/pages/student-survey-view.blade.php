@@ -40,19 +40,24 @@
 
             <div class="space-y-3">
                 @foreach($entries as $entry)
-                    @php $isEnrolled = $entry->enrollment !== null; $isProcessed = $entry->survey->is_processed; @endphp
+                    @php
+                        $isEnrolled = $entry->enrollment !== null;
+                        $isRejected = $entry->survey->rejected_at !== null;
+                    @endphp
 
                     <div @class([
                         'flex items-center gap-4 rounded-xl border p-4 transition',
                         'border-green-200 bg-green-50/50 dark:border-green-500/20 dark:bg-green-500/5' => $isEnrolled,
-                        'border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900' => ! $isEnrolled,
+                        'border-red-200 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5' => $isRejected && ! $isEnrolled,
+                        'border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900' => ! $isEnrolled && ! $isRejected,
                     ])>
-                        {{-- Checkbox --}}
+                        {{-- Checkbox (disabled for rejected rows so bulk-enroll doesn't pick them) --}}
                         <input
                             type="checkbox"
                             value="{{ $entry->course->id }}"
                             wire:model="selected"
-                            class="survey-cb rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 shrink-0"
+                            @disabled($isRejected)
+                            class="survey-cb rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                         />
 
                         {{-- Priority dot --}}
@@ -83,11 +88,18 @@
                                     class="rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition">
                                     إلغاء
                                 </button>
+                            @elseif($isRejected)
+                                <x-admin.badge color="danger">مرفوض</x-admin.badge>
                             @else
                                 <button wire:click="enrollStudent({{ $entry->course->id }})"
                                     wire:confirm="هل أنت متأكد من تسجيل الطالب؟"
                                     class="rounded-lg bg-primary-50 dark:bg-primary-500/10 px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition">
                                     تسجيل
+                                </button>
+                                <button wire:click="rejectCourse({{ $entry->course->id }})"
+                                    wire:confirm="هل أنت متأكد من رفض هذا الاختيار للطالب؟"
+                                    class="rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition">
+                                    رفض
                                 </button>
                             @endif
                         </div>
@@ -97,9 +109,9 @@
 
             {{-- Bulk action bar --}}
             <x-admin.action-bar :selected-count="$selectedCount" selected-label="تم تحديد" empty-label="حدد المقررات لتنفيذ إجراء" class="mt-4 pt-4 border-t border-gray-100 dark:border-white/10">
-                <x-filament::button wire:click="unenrollSelected" wire:confirm="هل أنت متأكد من إلغاء تسجيل المقررات المحددة؟"
+                <x-filament::button wire:click="rejectSelected" wire:confirm="هل أنت متأكد من رفض المقررات المحددة؟"
                     color="danger" icon="heroicon-o-x-mark" size="sm">
-                    إلغاء تسجيل المحددة
+                    رفض المحددة
                 </x-filament::button>
                 <x-filament::button wire:click="enrollSelected" wire:confirm="هل أنت متأكد من تسجيل المقررات المحددة؟"
                     color="success" icon="heroicon-o-check" size="sm">
@@ -109,8 +121,8 @@
         </x-filament::section>
     @endif
 
-    <a href="{{ url('/admin/student-surveys-list') }}" class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline">
+    <a href="{{ url('/admin/courses-survey-results') }}" class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline">
         <x-heroicon-o-arrow-right style="width:.875rem;height:.875rem" />
-        العودة لقائمة الاستطلاعات
+        العودة لنتائج استطلاع المقررات
     </a>
 </x-filament-panels::page>

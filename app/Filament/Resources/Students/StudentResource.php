@@ -200,8 +200,20 @@ class StudentResource extends Resource
                             ->label('صورة الشهادة')
                             ->disk('public')
                             ->height(200)
-                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
-                            ->openUrlInNewTab()
+                            ->hintAction(
+                                Action::make('preview_degree_image')
+                                    ->label('عرض بالحجم الكامل')
+                                    ->icon(Heroicon::MagnifyingGlassPlus)
+                                    ->color('info')
+                                    ->modalHeading('الوثيقة العلمية')
+                                    ->modalWidth('5xl')
+                                    ->modalContent(fn (Student $record) => view('filament.components.image-preview', [
+                                        'url' => asset('storage/'.$record->degree_image),
+                                        'alt' => 'الوثيقة العلمية',
+                                    ]))
+                                    ->modalSubmitAction(false)
+                                    ->modalCancelActionLabel('إغلاق')
+                            )
                             ->hidden(fn (Student $record): bool => ! $record->degree_image || str_ends_with(strtolower($record->degree_image), '.pdf')),
 
                         TextEntry::make('degree_image')
@@ -264,9 +276,20 @@ class StudentResource extends Resource
                 ->visibleOn('create')
                 ->components([
                     TextInput::make('user_name')
-                        ->label('الاسم الرباعي')
+                        ->label('الاسم الرباعي واللقب')
+                        ->helperText('الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)')
                         ->required()
-                        ->maxLength(255),
+                        ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)')])
+                        ->maxLength(255)
+                        ->columnSpan(2),
+
+                    TextInput::make('user_name_en')
+                        ->label('الاسم بالإنجليزية (كما في جواز السفر)')
+                        ->placeholder('Full name as in passport')
+                        ->required()
+                        ->regex('/^[a-zA-Z\s]+$/')
+                        ->maxLength(255)
+                        ->columnSpan(2),
 
                     TextInput::make('user_email')
                         ->label('البريد الإلكتروني')
@@ -292,11 +315,10 @@ class StudentResource extends Resource
                     Select::make('specialization_id')
                         ->relationship('specialization', 'name')
                         ->label('التخصص')
+                        ->searchable()
+                        ->preload()
                         ->required()
                         ->columnSpan(2),
-
-                    TextInput::make('last_name')
-                        ->label('اللقب'),
 
                     TextInput::make('mother_name')
                         ->label('اسم الأم'),
@@ -474,11 +496,6 @@ class StudentResource extends Resource
                 TextColumn::make('user.name')
                     ->label('اسم الطالب')
                     ->searchable(),
-
-                TextColumn::make('last_name')
-                    ->label('اللقب')
-                    ->placeholder('-')
-                    ->toggleable(),
 
                 TextColumn::make('specialization.name')
                     ->label('التخصص'),
