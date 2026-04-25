@@ -37,13 +37,14 @@ it('returns true from canPerformActions for an active student', function () {
         ->and($this->student->canPerformActions($this->semester))->toBeTrue();
 });
 
-it('returns false from canPerformActions for inactive / withdrawn / graduated students', function (StudentStatus $status) {
+it('returns false from canPerformActions for non-active students', function (StudentStatus $status) {
     $this->student->update(['status' => $status]);
 
     expect($this->student->fresh()->canPerformActions())->toBeFalse();
 })->with([
+    'on_hold' => StudentStatus::OnHold,
     'inactive' => StudentStatus::Inactive,
-    'withdrawn' => StudentStatus::Withdrawn,
+    'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
 ]);
 
@@ -60,8 +61,9 @@ it('throws StudentNotActiveException from EnrollStudentInOffering when student i
         ->active()
         ->exists())->toBeFalse();
 })->with([
+    'on_hold' => StudentStatus::OnHold,
     'inactive' => StudentStatus::Inactive,
-    'withdrawn' => StudentStatus::Withdrawn,
+    'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
 ]);
 
@@ -77,8 +79,9 @@ it('cascades active enrollments to Withdrawn when status flips from Active', fun
         ->and(StudentEnrollment::where('student_id', $this->student->id)->first()->status)
         ->toBe(EnrollmentStatus::Withdrawn);
 })->with([
+    'on_hold' => StudentStatus::OnHold,
     'inactive' => StudentStatus::Inactive,
-    'withdrawn' => StudentStatus::Withdrawn,
+    'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
 ]);
 
@@ -93,7 +96,7 @@ it('keeps approved grades visible on GradesPage after cascade', function () {
         'status' => GradeStatus::Approved,
     ]);
 
-    $this->student->update(['status' => StudentStatus::Inactive]);
+    $this->student->update(['status' => StudentStatus::OnHold]);
 
     $this->actingAs($this->student->fresh()->user);
 
@@ -109,13 +112,10 @@ it('GPA is not recalculated for non-active students', function (StudentStatus $s
     $enroll = app(EnrollStudentInOffering::class);
     $enrollment = $enroll($this->student, $this->offering);
 
-    // Freeze a known GPA before flipping status.
     $this->student->update(['gpa' => 2.75]);
     $this->student->refresh();
     $this->student->update(['status' => $status]);
 
-    // Approve a grade — the observer fires GradeCalculationService::recalculate,
-    // which must early-return for non-active students so the GPA stays frozen.
     Grade::create([
         'enrollment_id' => $enrollment->id,
         'coursework_grade' => 38,
@@ -127,8 +127,9 @@ it('GPA is not recalculated for non-active students', function (StudentStatus $s
 
     expect((float) $this->student->gpa)->toBe(2.75);
 })->with([
+    'on_hold' => StudentStatus::OnHold,
     'inactive' => StudentStatus::Inactive,
-    'withdrawn' => StudentStatus::Withdrawn,
+    'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
 ]);
 
@@ -143,58 +144,20 @@ it('graduated students can still authenticate and access the portal', function (
     ))->toBeTrue();
 });
 
-it('displays "القيد موقوف مؤقتًا" for an active student with an approved semester suspension', function () {
-    \App\Models\SuspensionRequest::create([
-        'student_id' => $this->student->id,
-        'semester_id' => $this->semester->id,
-        'reason' => 'semester-scoped suspension',
-        'status' => \App\Enums\SuspensionStatus::Approved,
-    ]);
+it('returns correct display labels and colors for each status', function (StudentStatus $status, string $expectedLabel, string $expectedColor) {
+    $this->student->update(['status' => $status]);
 
     $student = $this->student->fresh();
 
-    expect($student->status)->toBe(StudentStatus::Active)
-        ->and($student->getDisplayStatusLabel())->toBe('القيد موقوف مؤقتًا')
-        ->and($student->getDisplayStatusColor())->toBe('danger');
-});
-
-it('falls back to the global status label when no semester suspension exists', function () {
-    expect($this->student->getDisplayStatusLabel())->toBe('نشط')
-        ->and($this->student->getDisplayStatusColor())->toBe('success');
-
-    $this->student->update(['status' => StudentStatus::Inactive]);
-
-    expect($this->student->fresh()->getDisplayStatusLabel())->toBe('القيد موقوف مؤقتًا')
-        ->and($this->student->fresh()->getDisplayStatusColor())->toBe('danger');
-});
-
-it('global Withdrawn overrides an approved semester suspension in display', function () {
-    \App\Models\SuspensionRequest::create([
-        'student_id' => $this->student->id,
-        'semester_id' => $this->semester->id,
-        'reason' => 'prior suspension',
-        'status' => \App\Enums\SuspensionStatus::Approved,
-    ]);
-
-    $this->student->update(['status' => StudentStatus::Withdrawn]);
-
-    expect($this->student->fresh()->getDisplayStatusLabel())->toBe('منسحب')
-        ->and($this->student->fresh()->getDisplayStatusColor())->toBe('danger');
-});
-
-it('global Graduated overrides an approved semester suspension in display', function () {
-    \App\Models\SuspensionRequest::create([
-        'student_id' => $this->student->id,
-        'semester_id' => $this->semester->id,
-        'reason' => 'prior suspension',
-        'status' => \App\Enums\SuspensionStatus::Approved,
-    ]);
-
-    $this->student->update(['status' => StudentStatus::Graduated]);
-
-    expect($this->student->fresh()->getDisplayStatusLabel())->toBe('متخرج')
-        ->and($this->student->fresh()->getDisplayStatusColor())->toBe('info');
-});
+    expect($student->getDisplayStatusLabel())->toBe($expectedLabel)
+        ->and($student->getDisplayStatusColor())->toBe($expectedColor);
+})->with([
+    'active' => [StudentStatus::Active, 'مستمر', 'success'],
+    'on_hold' => [StudentStatus::OnHold, 'قيده موقوف', 'danger'],
+    'inactive' => [StudentStatus::Inactive, 'منقطع', 'warning'],
+    'transferred' => [StudentStatus::Transferred, 'منتقل', 'info'],
+    'graduated' => [StudentStatus::Graduated, 'متخرج', 'info'],
+]);
 
 it('changeStatus action with target=Active rescinds an approved semester suspension', function () {
     \App\Models\SuspensionRequest::create([
@@ -204,13 +167,12 @@ it('changeStatus action with target=Active rescinds an approved semester suspens
         'status' => \App\Enums\SuspensionStatus::Approved,
     ]);
 
-    expect($this->student->fresh()->canPerformActions($this->semester))->toBeFalse();
+    $this->student->update(['status' => StudentStatus::OnHold]);
+
+    expect($this->student->fresh()->canPerformActions())->toBeFalse();
 
     $admin = adminUser();
     $this->actingAs($admin);
-
-    // Toggle the student to Inactive first so the action actually moves state.
-    $this->student->update(['status' => StudentStatus::Inactive]);
 
     Livewire\Livewire::test(
         \App\Filament\Resources\Students\Pages\EditStudent::class,
@@ -219,14 +181,14 @@ it('changeStatus action with target=Active rescinds an approved semester suspens
         ->callAction('changeStatus', data: ['status' => StudentStatus::Active->value]);
 
     expect($this->student->fresh()->status)->toBe(StudentStatus::Active)
-        ->and($this->student->fresh()->canPerformActions($this->semester))->toBeTrue()
+        ->and($this->student->fresh()->canPerformActions())->toBeTrue()
         ->and(\App\Models\SuspensionRequest::where('student_id', $this->student->id)
             ->where('semester_id', $this->semester->id)
             ->where('status', \App\Enums\SuspensionStatus::Rejected)
             ->exists())->toBeTrue();
 });
 
-it('changeStatus action with target=Withdrawn does NOT rescind the suspension (admin says withdrawn, not active)', function () {
+it('changeStatus action with target=Transferred does NOT rescind the suspension', function () {
     \App\Models\SuspensionRequest::create([
         'student_id' => $this->student->id,
         'semester_id' => $this->semester->id,
@@ -241,9 +203,9 @@ it('changeStatus action with target=Withdrawn does NOT rescind the suspension (a
         \App\Filament\Resources\Students\Pages\EditStudent::class,
         ['record' => $this->student->getRouteKey()],
     )
-        ->callAction('changeStatus', data: ['status' => StudentStatus::Withdrawn->value]);
+        ->callAction('changeStatus', data: ['status' => StudentStatus::Transferred->value]);
 
-    expect($this->student->fresh()->status)->toBe(StudentStatus::Withdrawn)
+    expect($this->student->fresh()->status)->toBe(StudentStatus::Transferred)
         ->and(\App\Models\SuspensionRequest::where('student_id', $this->student->id)
             ->where('status', \App\Enums\SuspensionStatus::Approved)
             ->exists())->toBeTrue();
@@ -264,10 +226,11 @@ it('changeStatus modal shows different consequence warnings per target status', 
 
     expect($warning)->toContain($needle);
 })->with([
-    'inactive' => [StudentStatus::Inactive, 'إيقاف قيد الطالب مؤقتًا'],
-    'withdrawn' => [StudentStatus::Withdrawn, 'سحب قيد الطالب'],
+    'on_hold' => [StudentStatus::OnHold, 'إيقاف قيد الطالب'],
+    'inactive' => [StudentStatus::Inactive, 'تسجيل الطالب كمنقطع'],
+    'transferred' => [StudentStatus::Transferred, 'تسجيل انتقال الطالب'],
     'graduated' => [StudentStatus::Graduated, 'تسجيل تخرج الطالب'],
-    'active' => [StudentStatus::Active, '"نشط"'],
+    'active' => [StudentStatus::Active, '"مستمر"'],
 ]);
 
 it('changeStatus action no-ops when the same status is submitted', function () {

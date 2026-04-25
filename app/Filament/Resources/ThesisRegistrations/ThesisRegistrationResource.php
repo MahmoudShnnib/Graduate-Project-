@@ -99,7 +99,7 @@ class ThesisRegistrationResource extends Resource
                         if (! $student->isEligibleForThesis()) {
                             Notification::make()
                                 ->title('الطالب غير مؤهل')
-                                ->body('يجب أن يكمل 10 مقررات على الأقل بمعدل 3.0 أو أعلى')
+                                ->body('يجب إتمام جميع المقررات العامة والتخصصية ومقررتين اختياريتين بمعدل 3.0 أو أعلى')
                                 ->danger()
                                 ->send();
 

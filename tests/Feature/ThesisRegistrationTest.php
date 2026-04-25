@@ -1,8 +1,39 @@
 <?php
 
+use App\Models\Course;
+use App\Models\CourseOffering;
 use App\Models\Grade;
+use App\Models\Semester;
 use App\Models\StudentEnrollment;
 use App\Models\ThesisRegistration;
+
+function makeStudentEligibleForThesis(array $studentAttributes = []): array
+{
+    $record = studentWithRecord(array_merge(['gpa' => 3.5], $studentAttributes));
+    $student = $record['student'];
+    $spec = $student->specialization;
+    $semester = Semester::factory()->active()->create();
+
+    foreach (['general' => 4, 'specialized' => 4] as $type => $count) {
+        for ($i = 0; $i < $count; $i++) {
+            $course = Course::factory()->create();
+            $course->specializations()->attach($spec->id, ['type' => $type]);
+            $offering = CourseOffering::factory()->create(['course_id' => $course->id, 'semester_id' => $semester->id]);
+            $enrollment = StudentEnrollment::factory()->create(['student_id' => $student->id, 'course_offering_id' => $offering->id]);
+            Grade::factory()->passing()->create(['enrollment_id' => $enrollment->id]);
+        }
+    }
+
+    for ($i = 0; $i < 2; $i++) {
+        $course = Course::factory()->create();
+        $course->specializations()->attach($spec->id, ['type' => 'elective']);
+        $offering = CourseOffering::factory()->create(['course_id' => $course->id, 'semester_id' => $semester->id]);
+        $enrollment = StudentEnrollment::factory()->create(['student_id' => $student->id, 'course_offering_id' => $offering->id]);
+        Grade::factory()->passing()->create(['enrollment_id' => $enrollment->id]);
+    }
+
+    return $record;
+}
 
 test('student can access thesis registration page', function () {
     ['user' => $user] = studentWithRecord();
@@ -16,35 +47,30 @@ test('ineligible student cannot submit thesis registration', function () {
     expect($student->isEligibleForThesis())->toBeFalse();
 });
 
-test('student with fewer than 10 approved courses is not eligible for thesis', function () {
+test('student with incomplete specialization courses is not eligible for thesis', function () {
     ['student' => $student] = studentWithRecord(['gpa' => 3.5]);
+    $semester = Semester::factory()->active()->create();
 
-    // Create only 5 approved non-F grades
-    StudentEnrollment::factory()
-        ->count(5)
-        ->for($student)
-        ->has(Grade::factory()->passing(), 'grade')
-        ->create();
+    for ($i = 0; $i < 5; $i++) {
+        $course = Course::factory()->create();
+        $enrollment = StudentEnrollment::factory()->create([
+            'student_id' => $student->id,
+            'course_offering_id' => CourseOffering::factory()->create(['course_id' => $course->id, 'semester_id' => $semester->id])->id,
+        ]);
+        Grade::factory()->passing()->create(['enrollment_id' => $enrollment->id]);
+    }
 
     $student->refresh();
 
-    expect($student->completedCoursesCount())->toBe(5)
-        ->and($student->isEligibleForThesis())->toBeFalse();
+    expect($student->isEligibleForThesis())->toBeFalse();
 });
 
-test('student with 10 approved courses and sufficient GPA is eligible', function () {
-    ['student' => $student] = studentWithRecord(['gpa' => 3.5]);
-
-    StudentEnrollment::factory()
-        ->count(10)
-        ->for($student)
-        ->has(Grade::factory()->passing(), 'grade')
-        ->create();
+test('student with all required courses and sufficient GPA is eligible', function () {
+    ['student' => $student] = makeStudentEligibleForThesis();
 
     $student->refresh();
 
-    expect($student->completedCoursesCount())->toBe(10)
-        ->and($student->isEligibleForThesis())->toBeTrue();
+    expect($student->isEligibleForThesis())->toBeTrue();
 });
 
 test('thesis registration is created in pending status', function () {
@@ -66,6 +92,5 @@ test('student cannot have more than one thesis registration', function () {
 
     expect($student->thesisRegistration)->not->toBeNull();
 
-    // A second factory create would cause a DB unique constraint or logic check
     expect($student->fresh()->thesisRegistration)->not->toBeNull();
 });

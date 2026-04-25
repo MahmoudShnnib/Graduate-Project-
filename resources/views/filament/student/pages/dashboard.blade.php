@@ -95,36 +95,25 @@
             </div>
 
             @php
-                // Centralized in Student model — same precedence applied on the admin
-                // student view and in the Students table. Semester-scoped approved
-                // suspension wins over the permanent Student.status for display.
                 $displayLabel = $student->getDisplayStatusLabel();
                 $displayColor = $student->getDisplayStatusColor();
-                $isSuspendedNow = $displayColor === 'danger' && $student->status?->value === 'active';
             @endphp
             <div class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-5 flex items-center gap-4">
                 <div @class([
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
                     'bg-success-100 dark:bg-success-500/20' => $displayColor === 'success',
                     'bg-danger-100 dark:bg-danger-500/20' => $displayColor === 'danger',
+                    'bg-warning-100 dark:bg-warning-500/20' => $displayColor === 'warning',
                     'bg-info-100 dark:bg-info-500/20' => $displayColor === 'info',
                     'bg-gray-100 dark:bg-white/10' => $displayColor === 'gray',
                 ])>
-                    @if($isSuspendedNow)
-                        <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" @class([
-                            'text-success-600 dark:text-success-400' => $displayColor === 'success',
-                            'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
-                            'text-info-600 dark:text-info-400' => $displayColor === 'info',
-                            'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
-                        ]) />
-                    @else
-                        <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" @class([
-                            'text-success-600 dark:text-success-400' => $displayColor === 'success',
-                            'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
-                            'text-info-600 dark:text-info-400' => $displayColor === 'info',
-                            'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
-                        ]) />
-                    @endif
+                    <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" @class([
+                        'text-success-600 dark:text-success-400' => $displayColor === 'success',
+                        'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
+                        'text-warning-600 dark:text-warning-400' => $displayColor === 'warning',
+                        'text-info-600 dark:text-info-400' => $displayColor === 'info',
+                        'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
+                    ]) />
                 </div>
                 <div>
                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">الحالة</p>
@@ -132,6 +121,7 @@
                         'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold',
                         'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $displayColor === 'success',
                         'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $displayColor === 'danger',
+                        'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $displayColor === 'warning',
                         'bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400' => $displayColor === 'info',
                         'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400' => $displayColor === 'gray',
                     ])>{{ $displayLabel }}</span>

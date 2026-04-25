@@ -24,10 +24,24 @@ class StudentFactory extends Factory
         ];
     }
 
+    public function onHold(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => StudentStatus::OnHold,
+        ]);
+    }
+
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => StudentStatus::Inactive,
+        ]);
+    }
+
+    public function transferred(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => StudentStatus::Transferred,
         ]);
     }
 

@@ -59,12 +59,12 @@ test('re-enrolling a dropped student reactivates the same row', function () {
         ->and($offering->activeEnrollments()->count())->toBe(1);
 });
 
-test('flipping student to inactive cascades to drop their active enrollments', function () {
+test('flipping student to on_hold cascades to drop their active enrollments', function () {
     ['offering' => $offering, 'student' => $student] = makeEnrolledStudent();
 
     expect($offering->activeEnrollments()->count())->toBe(1);
 
-    $student->update(['status' => StudentStatus::Inactive]);
+    $student->update(['status' => StudentStatus::OnHold]);
 
     expect($offering->fresh()->activeEnrollments()->count())->toBe(0)
         ->and($offering->fresh()->enrollments()->first()->status)->toBe(EnrollmentStatus::Withdrawn);

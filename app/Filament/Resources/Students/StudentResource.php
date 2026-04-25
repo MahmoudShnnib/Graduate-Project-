@@ -8,6 +8,7 @@ use App\Filament\Resources\Students\Pages\EditStudent;
 use App\Filament\Resources\Students\Pages\ListStudents;
 use App\Filament\Resources\Students\Pages\ViewStudent;
 use App\Models\Course;
+use App\Models\Specialization;
 use App\Models\Student;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -405,12 +406,29 @@ class StudentResource extends Resource
                             ->modalHeading('إدخال مواد المعادلة')
                             ->modalDescription('أدخل المواد التي درسها الطالب في الكلية الأخرى مع درجاتها.')
                             ->form([
+                                Select::make('specialization_filter')
+                                    ->label('التخصص')
+                                    ->options(fn () => Specialization::orderBy('name')->pluck('name', 'id'))
+                                    ->placeholder('كل التخصصات')
+                                    ->live()
+                                    ->dehydrated(false),
+
                                 Repeater::make('courses')
                                     ->label('المواد المعادلة')
                                     ->schema([
                                         Select::make('course_id')
                                             ->label('المادة')
-                                            ->options(fn () => Course::query()->where('is_active', true)->pluck('name', 'id'))
+                                            ->options(function (Get $get): array {
+                                                $query = Course::query()->where('is_active', true);
+
+                                                $specId = $get('../../specialization_filter');
+                                                if ($specId) {
+                                                    $query->whereHas('specializations', fn ($q) => $q->where('specializations.id', $specId));
+                                                }
+
+                                                return $query->orderBy('name')->pluck('name', 'id')->toArray();
+                                            })
+                                            ->searchable()
                                             ->required()
                                             ->columnSpan(2),
                                         TextInput::make('coursework_grade')

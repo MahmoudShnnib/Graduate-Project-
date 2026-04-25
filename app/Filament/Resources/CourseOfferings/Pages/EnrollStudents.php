@@ -62,17 +62,14 @@ class EnrollStudents extends Page implements HasTable
         return CourseSurvey::where('course_id', $this->record->course_id)
             ->where('semester_id', $this->record->semester_id)
             ->where('is_processed', false)
+            ->where('is_retake', false)
             ->whereHas('student', fn ($q) => $q->where('status', StudentStatus::Active))
             ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
             ->count();
     }
 
     /**
-     * Survey entries still awaiting a decision. Accepted or rejected
-     * students disappear from this list (is_processed = true). Students
-     * already enrolled via any other path are also excluded. Non-Active
-     * students (Inactive / Withdrawn / Graduated) are filtered out so admins
-     * don't see them as candidates.
+     * Survey entries still awaiting a decision (excludes retake requests).
      *
      * @return array<int, string>
      */
@@ -83,6 +80,7 @@ class EnrollStudents extends Page implements HasTable
         return CourseSurvey::where('course_id', $this->record->course_id)
             ->where('semester_id', $this->record->semester_id)
             ->where('is_processed', false)
+            ->where('is_retake', false)
             ->whereHas('student', fn ($q) => $q->where('status', StudentStatus::Active))
             ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
             ->with('student.user')
@@ -94,9 +92,61 @@ class EnrollStudents extends Page implements HasTable
             ->toArray();
     }
 
+    private function getRetakeRequestCount(): int
+    {
+        $offeringId = $this->record->id;
+
+        return CourseSurvey::where('course_id', $this->record->course_id)
+            ->where('semester_id', $this->record->semester_id)
+            ->where('is_processed', false)
+            ->where('is_retake', true)
+            ->whereHas('student', fn ($q) => $q->where('status', StudentStatus::Active))
+            ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
+            ->count();
+    }
+
+    /** @return array<int, string> */
+    private function getRetakeStudentOptions(): array
+    {
+        $offeringId = $this->record->id;
+
+        return CourseSurvey::where('course_id', $this->record->course_id)
+            ->where('semester_id', $this->record->semester_id)
+            ->where('is_processed', false)
+            ->where('is_retake', true)
+            ->whereHas('student', fn ($q) => $q->where('status', StudentStatus::Active))
+            ->whereDoesntHave('student.activeEnrollments', fn ($q) => $q->where('course_offering_id', $offeringId))
+            ->with('student.user')
+            ->get()
+            ->mapWithKeys(fn (CourseSurvey $survey): array => [
+                $survey->student_id => $survey->student->enrollment_no.' — '.$survey->student->user->name,
+            ])
+            ->toArray();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('toggle_open')
+                ->label(fn (): string => $this->record->is_open ? 'إغلاق المقرر' : 'فتح المقرر')
+                ->icon(fn (): string => $this->record->is_open ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                ->color(fn (): string => $this->record->is_open ? 'danger' : 'success')
+                ->requiresConfirmation()
+                ->modalHeading(fn (): string => $this->record->is_open ? 'إغلاق المقرر' : 'فتح المقرر')
+                ->modalDescription(fn (): string => $this->record->is_open
+                    ? 'سيتم إلغاء تسجيل جميع الطلاب المسجلين في هذا المقرر. هل أنت متأكد؟'
+                    : 'سيتم فتح المقرر للتسجيل.')
+                ->action(function () {
+                    $this->record->update(['is_open' => ! $this->record->is_open]);
+
+                    $message = $this->record->is_open ? 'تم فتح المقرر' : 'تم إغلاق المقرر';
+                    Notification::make()->title($message)->success()->send();
+
+                    if (! $this->record->is_open) {
+                        $this->redirect(CourseOfferingResource::getUrl('index'));
+                    }
+                }),
+
             Action::make('print_students')
                 ->label('طباعة كشف الطلاب')
                 ->icon('heroicon-o-printer')
@@ -194,6 +244,47 @@ class EnrollStudents extends Page implements HasTable
 
                     Notification::make()
                         ->title("تم تسجيل {$count} طالب")
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('retake_requests')
+                ->label(fn (): string => 'طلبات إعادة ('.$this->getRetakeRequestCount().')')
+                ->icon('heroicon-o-arrow-path')
+                ->color('danger')
+                ->visible(fn (): bool => $this->record->is_open && $this->getRetakeRequestCount() > 0)
+                ->modalHeading('طلبات إعادة المادة')
+                ->modalDescription('هؤلاء الطلاب سبق أن اجتازوا المادة ويرغبون في إعادتها لتحسين تقديرهم. الموافقة ستسجلهم مباشرة.')
+                ->form(fn (): array => [
+                    CheckboxList::make('student_ids')
+                        ->label('اختر الطلاب للموافقة على إعادتهم')
+                        ->options($this->getRetakeStudentOptions())
+                        ->columns(1)
+                        ->searchable()
+                        ->required(),
+                ])
+                ->requiresConfirmation()
+                ->modalSubmitActionLabel('موافقة وتسجيل')
+                ->action(function (array $data, EnrollStudentInOffering $enroll) {
+                    $count = 0;
+
+                    foreach ($data['student_ids'] as $studentId) {
+                        $student = Student::find($studentId);
+
+                        if (! $student) {
+                            continue;
+                        }
+
+                        try {
+                            $enroll($student, $this->record);
+                            $count++;
+                        } catch (\Throwable) {
+                            continue;
+                        }
+                    }
+
+                    Notification::make()
+                        ->title("تمت الموافقة على إعادة {$count} طالب")
                         ->success()
                         ->send();
                 }),

@@ -56,8 +56,8 @@ test('calculates gpa correctly from approved grades', function () {
         ->toBeLessThanOrEqual(3.8);
 });
 
-test('does not recalculate gpa for inactive students', function () {
-    $this->student->update(['status' => StudentStatus::Inactive, 'gpa' => 2.5]);
+test('does not recalculate gpa for non-active students', function () {
+    $this->student->update(['status' => StudentStatus::OnHold, 'gpa' => 2.5]);
 
     $this->service->recalculateStudentGPA($this->student);
     $this->student->refresh();

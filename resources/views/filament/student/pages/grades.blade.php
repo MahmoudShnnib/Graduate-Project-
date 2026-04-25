@@ -87,7 +87,7 @@
                         <tr class="bg-gray-50 dark:bg-white/5">
                             <th class="fi-ta-header-cell px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">الفصل</th>
                             <th class="fi-ta-header-cell px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">المقرر</th>
-                            <th class="fi-ta-header-cell px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">ساعات</th>
+                            <th class="fi-ta-header-cell px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">وحدات</th>
                             <th class="fi-ta-header-cell px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">أعمال</th>
                             <th class="fi-ta-header-cell px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">نهائي</th>
                             <th class="fi-ta-header-cell px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">المجموع</th>

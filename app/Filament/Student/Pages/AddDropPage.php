@@ -235,7 +235,7 @@ class AddDropPage extends Page
         if ($student && $activeSemester && ! $student->canPerformActions($activeSemester)) {
             Notification::make()
                 ->title('لا يمكنك تقديم طلبات إضافة أو حذف')
-                ->body('حسابك ليس في حالة نشطة أو أن قيدك موقوف لهذا الفصل.')
+                ->body('حسابك ليس في حالة نشطة. لا يمكنك تقديم هذا الطلب.')
                 ->danger()
                 ->send();
 

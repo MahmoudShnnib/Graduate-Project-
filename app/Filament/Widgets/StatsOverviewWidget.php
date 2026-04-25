@@ -19,8 +19,9 @@ class StatsOverviewWidget extends BaseWidget
         $activeSemester = Semester::where('is_active', true)->first();
 
         $activeStudents = Student::where('status', StudentStatus::Active)->count();
+        $onHoldStudents = Student::where('status', StudentStatus::OnHold)->count();
         $inactiveStudents = Student::where('status', StudentStatus::Inactive)->count();
-        $withdrawnStudents = Student::where('status', StudentStatus::Withdrawn)->count();
+        $transferredStudents = Student::where('status', StudentStatus::Transferred)->count();
 
         $pendingApplications = Application::where('status', ApplicationStatus::Pending)->count();
         $pendingGrades = Grade::where('status', GradeStatus::PendingApproval)->count();
@@ -30,8 +31,8 @@ class StatsOverviewWidget extends BaseWidget
             : 'مغلقة';
 
         return [
-            Stat::make('الطلاب النشطون', $activeStudents)
-                ->description("موقوف: {$inactiveStudents} | منسحب: {$withdrawnStudents}")
+            Stat::make('الطلاب المستمرون', $activeStudents)
+                ->description("موقوف: {$onHoldStudents} | منقطع: {$inactiveStudents} | منتقل: {$transferredStudents}")
                 ->color('success')
                 ->icon('heroicon-o-user-group'),
 

@@ -2,8 +2,7 @@
 
 namespace App\Filament\Resources\SuspensionRequests;
 
-use App\Actions\Enrollment\DropStudentFromOffering;
-use App\Enums\EnrollmentStatus;
+use App\Enums\StudentStatus;
 use App\Enums\SuspensionStatus;
 use App\Filament\Resources\SuspensionRequests\Pages\ListSuspensionRequests;
 use App\Models\SuspensionRequest;
@@ -19,6 +18,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SuspensionRequestResource extends Resource
 {
@@ -44,6 +44,18 @@ class SuspensionRequestResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query): void {
+                $query
+                    ->reorder()
+                    ->orderByRaw("
+                        CASE
+                            WHEN status = 'pending' THEN 0
+                            WHEN status IN ('approved', 'rejected') THEN 1
+                            ELSE 2
+                        END ASC
+                    ")
+                    ->orderByDesc('created_at');
+            })
             ->columns([
                 TextColumn::make('student.user.name')
                     ->label('الطالب')
@@ -87,9 +99,8 @@ class SuspensionRequestResource extends Resource
                     ->visible(fn (SuspensionRequest $record) => $record->status === SuspensionStatus::Pending)
                     ->requiresConfirmation()
                     ->modalDescription('سيتم سحب تسجيلات الطالب في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
-                    ->action(function (SuspensionRequest $record, AuditService $audit, NotificationService $notifier, DropStudentFromOffering $drop) {
+                    ->action(function (SuspensionRequest $record, AuditService $audit, NotificationService $notifier) {
                         $student = $record->student;
-                        $semester = $record->semester;
 
                         $record->update([
                             'status' => SuspensionStatus::Approved,
@@ -97,34 +108,19 @@ class SuspensionRequestResource extends Resource
                             'decided_at' => now(),
                         ]);
 
-                        // Semester-scoped cascade: withdraw only the enrollments
-                        // in the suspended semester. Student.status stays Active
-                        // so other semesters are unaffected. Using Withdrawn
-                        // (not Dropped) to distinguish "forced by suspension"
-                        // from "student-initiated drop".
-                        $activeInSemester = $student->activeEnrollments()
-                            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $semester->id))
-                            ->with('courseOffering')
-                            ->get();
-
-                        $withdrawn = 0;
-                        foreach ($activeInSemester as $enrollment) {
-                            if ($drop($student, $enrollment->courseOffering, EnrollmentStatus::Withdrawn)) {
-                                $withdrawn++;
-                            }
-                        }
+                        $student->update(['status' => StudentStatus::OnHold]);
 
                         $audit->log(
                             'suspension_approved',
                             $record,
                             ['status' => SuspensionStatus::Pending->value],
-                            ['status' => SuspensionStatus::Approved->value, 'enrollments_withdrawn' => $withdrawn],
+                            ['status' => SuspensionStatus::Approved->value],
                         );
                         $notifier->notifySuspensionDecision($record->fresh());
 
                         Notification::make()
                             ->title('تم قبول طلب إيقاف القيد')
-                            ->body("تم سحب {$withdrawn} تسجيل في فصل {$semester->name}.")
+                            ->body('تم إيقاف قيد الطالب وسحب جميع تسجيلاته النشطة.')
                             ->success()
                             ->send();
                     }),

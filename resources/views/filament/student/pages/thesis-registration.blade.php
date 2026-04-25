@@ -10,6 +10,11 @@
     @endif
 
     {{-- Eligibility Status --}}
+    @php
+        $breakdown = $student?->getThesisEligibilityBreakdown() ?? ['general' => ['required' => 0, 'completed' => 0], 'specialized' => ['required' => 0, 'completed' => 0], 'elective' => ['required' => 2, 'completed' => 0]];
+        $gpaOk = (float) ($student?->gpa ?? 0) >= 3.0;
+        $typeLabels = ['general' => 'المقررات العامة', 'specialized' => 'المقررات التخصصية', 'elective' => 'المقررات الاختيارية'];
+    @endphp
     <x-filament::section>
         <x-slot name="heading">
             <div class="flex items-center gap-2">
@@ -37,23 +42,61 @@
             <div class="flex-1">
                 @if($isEligible)
                     <p class="font-semibold text-success-800 dark:text-success-300 text-sm">مؤهل لتسجيل الرسالة</p>
-                    <p class="text-sm text-success-700 dark:text-success-400 mt-0.5">أتممت الشروط المطلوبة للتسجيل</p>
+                    <p class="text-sm text-success-700 dark:text-success-400 mt-0.5">أتممت جميع الشروط المطلوبة للتسجيل</p>
                 @else
                     <p class="font-semibold text-danger-800 dark:text-danger-300 text-sm">غير مؤهل حالياً</p>
-                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">يُشترط إتمام 10 مقررات على الأقل وتحقيق معدل 3.0 أو أعلى</p>
-                    @if($student)
-                        <div class="mt-3 flex items-center gap-4 text-sm">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-gray-500 dark:text-gray-400">المقررات:</span>
-                                <span class="font-semibold text-gray-900 dark:text-white">{{ $student->completedCoursesCount() }}/10</span>
+                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">يُشترط إتمام جميع المقررات العامة والتخصصية ومقررتين اختياريتين بمعدل 3.0 أو أعلى</p>
+                @endif
+
+                @if($student)
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        @foreach(['general', 'specialized', 'elective'] as $type)
+                            @php
+                                $b = $breakdown[$type];
+                                $done = $b['completed'] >= $b['required'];
+                            @endphp
+                            <div @class([
+                                'flex items-center justify-between p-3 rounded-lg border text-sm',
+                                'border-success-200 bg-success-50/50 dark:border-success-500/20 dark:bg-success-500/5' => $done,
+                                'border-gray-200 bg-white dark:border-white/10 dark:bg-white/5' => ! $done,
+                            ])>
+                                <div class="flex items-center gap-2">
+                                    @if($done)
+                                        <x-heroicon-o-check-circle style="width: 1rem; height: 1rem;" class="text-success-500 shrink-0" />
+                                    @else
+                                        <x-heroicon-o-clock style="width: 1rem; height: 1rem;" class="text-gray-400 shrink-0" />
+                                    @endif
+                                    <span class="text-gray-700 dark:text-gray-300">{{ $typeLabels[$type] }}</span>
+                                </div>
+                                <span @class([
+                                    'font-bold tabular-nums',
+                                    'text-success-600 dark:text-success-400' => $done,
+                                    'text-gray-900 dark:text-white' => ! $done,
+                                ])>{{ $b['completed'] }}/{{ $b['required'] }}</span>
                             </div>
-                            <div class="w-px h-4 bg-gray-300 dark:bg-white/20"></div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-gray-500 dark:text-gray-400">المعدل:</span>
-                                <span class="font-semibold text-gray-900 dark:text-white">{{ number_format((float) $student->gpa, 2) }}/3.0</span>
+                        @endforeach
+
+                        {{-- GPA row --}}
+                        <div @class([
+                            'flex items-center justify-between p-3 rounded-lg border text-sm',
+                            'border-success-200 bg-success-50/50 dark:border-success-500/20 dark:bg-success-500/5' => $gpaOk,
+                            'border-gray-200 bg-white dark:border-white/10 dark:bg-white/5' => ! $gpaOk,
+                        ])>
+                            <div class="flex items-center gap-2">
+                                @if($gpaOk)
+                                    <x-heroicon-o-check-circle style="width: 1rem; height: 1rem;" class="text-success-500 shrink-0" />
+                                @else
+                                    <x-heroicon-o-clock style="width: 1rem; height: 1rem;" class="text-gray-400 shrink-0" />
+                                @endif
+                                <span class="text-gray-700 dark:text-gray-300">المعدل التراكمي</span>
                             </div>
+                            <span @class([
+                                'font-bold tabular-nums',
+                                'text-success-600 dark:text-success-400' => $gpaOk,
+                                'text-gray-900 dark:text-white' => ! $gpaOk,
+                            ])>{{ number_format((float) $student->gpa, 2) }}/3.0</span>
                         </div>
-                    @endif
+                    </div>
                 @endif
             </div>
         </div>
