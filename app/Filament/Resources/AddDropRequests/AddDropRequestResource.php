@@ -76,6 +76,7 @@ class AddDropRequestResource extends Resource
                         StudentStatus::Inactive => 'warning',
                         StudentStatus::Transferred => 'info',
                         StudentStatus::Graduated => 'info',
+                        StudentStatus::Dismissed => 'danger',
                     }),
 
                 TextColumn::make('courseOffering.course.name')

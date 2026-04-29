@@ -179,7 +179,7 @@ class ViewStudent extends ViewRecord implements HasTable
         });
 
         // Thesis registration (submission + admin decision)
-        $thesis = $student->thesisRegistration()->with('decidedBy')->first();
+        $thesis = $student->latestThesisRegistration()->with('decidedBy')->first();
         if ($thesis) {
             $entries->push([
                 'date' => $thesis->created_at,

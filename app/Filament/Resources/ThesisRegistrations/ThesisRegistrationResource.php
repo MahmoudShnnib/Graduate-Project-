@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\ThesisRegistrations;
 
+use App\Enums\ThesisStatus;
 use App\Filament\Resources\ThesisRegistrations\Pages\ListThesisRegistrations;
+use App\Filament\Resources\ThesisRegistrations\Pages\ViewThesisRegistration;
 use App\Models\ThesisRegistration;
 use App\Services\AuditService;
 use App\Services\NotificationService;
@@ -41,6 +43,7 @@ class ThesisRegistrationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn (ThesisRegistration $record): string => static::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('student.user.name')
                     ->label('الطالب')
@@ -58,41 +61,53 @@ class ThesisRegistrationResource extends Resource
                     ->limit(40)
                     ->searchable(),
 
-                TextColumn::make('supervisor_name')
-                    ->label('المشرف'),
+                TextColumn::make('supervisor_display')
+                    ->label('المشرف')
+                    ->state(fn (ThesisRegistration $record): string => $record->getSupervisorDisplayName()),
 
                 TextColumn::make('status')
                     ->label('الحالة')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
-                        'approved' => 'success',
-                        'rejected' => 'danger',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending' => 'قيد المراجعة',
-                        'approved' => 'مقبول',
-                        'rejected' => 'مرفوض',
-                        default => $state,
-                    }),
+                    ->color(fn (ThesisStatus $state): string => $state->getColor())
+                    ->formatStateUsing(fn (ThesisStatus $state): string => $state->getLabel()),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('الحالة')
-                    ->options([
-                        'pending' => 'قيد المراجعة',
-                        'approved' => 'مقبول',
-                        'rejected' => 'مرفوض',
-                    ]),
+                    ->options(ThesisStatus::class),
             ])
             ->recordActions([
+                Action::make('print_for_ministry')
+                    ->label('طباعة للوزارة')
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->color('warning')
+                    ->visible(fn (ThesisRegistration $record) => $record->status === ThesisStatus::Pending)
+                    ->requiresConfirmation()
+                    ->modalHeading('طباعة للوزارة')
+                    ->modalDescription('سيتم تغيير حالة الطلب إلى "في انتظار الوزارة". هل تريد المتابعة؟')
+                    ->modalSubmitActionLabel('تأكيد الطباعة')
+                    ->action(function (ThesisRegistration $record) {
+                        $record->update([
+                            'status' => ThesisStatus::Printed,
+                            'printed_at' => now(),
+                        ]);
+
+                        Notification::make()
+                            ->title('تم تسجيل الطباعة')
+                            ->body('حالة الطلب الآن: في انتظار الوزارة')
+                            ->success()
+                            ->send();
+                    }),
+
                 Action::make('approve')
                     ->label('قبول')
                     ->icon(Heroicon::Check)
                     ->color('success')
-                    ->visible(fn (ThesisRegistration $record) => $record->status === 'pending')
+                    ->visible(fn (ThesisRegistration $record) => $record->status === ThesisStatus::Printed)
                     ->requiresConfirmation()
+                    ->modalHeading('قبول طلب تسجيل الرسالة')
+                    ->modalDescription('سيتم قبول تسجيل الرسالة لهذا الطالب. هل أنت متأكد؟')
+                    ->modalSubmitActionLabel('تأكيد القبول')
                     ->action(function (ThesisRegistration $record, AuditService $audit, NotificationService $notifier) {
                         $student = $record->student;
 
@@ -107,12 +122,12 @@ class ThesisRegistrationResource extends Resource
                         }
 
                         $record->update([
-                            'status' => 'approved',
+                            'status' => ThesisStatus::Approved,
                             'decided_by' => auth()->id(),
                             'decided_at' => now(),
                         ]);
 
-                        $audit->log('thesis_approved', $record, ['status' => 'pending'], ['status' => 'approved']);
+                        $audit->log('thesis_approved', $record, ['status' => 'printed'], ['status' => 'approved']);
                         $notifier->notifyThesisDecision($record->fresh());
 
                         Notification::make()->title('تم قبول تسجيل الرسالة')->success()->send();
@@ -122,15 +137,21 @@ class ThesisRegistrationResource extends Resource
                     ->label('رفض')
                     ->icon(Heroicon::XMark)
                     ->color('danger')
-                    ->visible(fn (ThesisRegistration $record) => $record->status === 'pending')
+                    ->visible(fn (ThesisRegistration $record) => $record->status === ThesisStatus::Printed)
+                    ->requiresConfirmation()
+                    ->modalHeading('رفض طلب تسجيل الرسالة')
+                    ->modalDescription('يرجى كتابة سبب الرفض. سيظهر للطالب ويمكنه إعادة التقديم.')
+                    ->modalSubmitActionLabel('تأكيد الرفض')
                     ->form([
-                        Textarea::make('decision_notes')
+                        Textarea::make('rejection_reason')
                             ->label('سبب الرفض')
-                            ->required(),
+                            ->required()
+                            ->rows(3),
                     ])
                     ->action(function (ThesisRegistration $record, array $data, NotificationService $notifier) {
                         $record->update([
-                            'status' => 'rejected',
+                            'status' => ThesisStatus::Rejected,
+                            'rejection_reason' => $data['rejection_reason'],
                             'decided_by' => auth()->id(),
                             'decided_at' => now(),
                         ]);
@@ -146,6 +167,7 @@ class ThesisRegistrationResource extends Resource
     {
         return [
             'index' => ListThesisRegistrations::route('/'),
+            'view' => ViewThesisRegistration::route('/{record}'),
         ];
     }
 }

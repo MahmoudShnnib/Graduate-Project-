@@ -6,6 +6,7 @@ use App\Enums\EnrollmentStatus;
 use App\Enums\GradeStatus;
 use App\Enums\StudentStatus;
 use App\Enums\SuspensionStatus;
+use App\Enums\WarningType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +45,9 @@ class Student extends Model
         'delegation_entity',
         'is_transfer',
         'degree_image',
+        'dismissed_at',
+        'dismissal_type',
+        'dismissal_course_id',
     ];
 
     protected function casts(): array
@@ -55,6 +59,8 @@ class Student extends Model
             'suspension_count' => 'integer',
             'is_transfer' => 'boolean',
             'birth_date' => 'date',
+            'dismissed_at' => 'datetime',
+            'dismissal_type' => WarningType::class,
         ];
     }
 
@@ -121,9 +127,14 @@ class Student extends Model
             ->exists();
     }
 
-    public function thesisRegistration(): HasOne
+    public function thesisRegistrations(): HasMany
     {
-        return $this->hasOne(ThesisRegistration::class);
+        return $this->hasMany(ThesisRegistration::class);
+    }
+
+    public function latestThesisRegistration(): HasOne
+    {
+        return $this->hasOne(ThesisRegistration::class)->latestOfMany();
     }
 
     public function clearanceRequest(): HasOne
@@ -134,6 +145,26 @@ class Student extends Model
     public function transferCourses(): HasMany
     {
         return $this->hasMany(TransferCourse::class);
+    }
+
+    public function warnings(): HasMany
+    {
+        return $this->hasMany(StudentWarning::class);
+    }
+
+    public function activeWarnings(): HasMany
+    {
+        return $this->hasMany(StudentWarning::class)->where('is_active', true);
+    }
+
+    public function dismissalCourse(): BelongsTo
+    {
+        return $this->belongsTo(Course::class, 'dismissal_course_id');
+    }
+
+    public function exceptionalRequests(): HasMany
+    {
+        return $this->hasMany(ExceptionalRequest::class);
     }
 
     public function completedCoursesCount(): int
@@ -234,6 +265,7 @@ class Student extends Model
             StudentStatus::Inactive => 'warning',
             StudentStatus::Transferred => 'info',
             StudentStatus::Graduated => 'info',
+            StudentStatus::Dismissed => 'danger',
             default => 'gray',
         };
     }

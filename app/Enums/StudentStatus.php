@@ -12,6 +12,7 @@ enum StudentStatus: string implements HasColor, HasLabel
     case Inactive = 'inactive';
     case Transferred = 'transferred';
     case Graduated = 'graduated';
+    case Dismissed = 'dismissed';
 
     public function getLabel(): string
     {
@@ -21,6 +22,7 @@ enum StudentStatus: string implements HasColor, HasLabel
             self::Inactive => 'منقطع',
             self::Transferred => 'منتقل',
             self::Graduated => 'متخرج',
+            self::Dismissed => 'مفصول',
         };
     }
 
@@ -37,6 +39,7 @@ enum StudentStatus: string implements HasColor, HasLabel
             self::Inactive => 'warning',
             self::Transferred => 'info',
             self::Graduated => 'info',
+            self::Dismissed => 'danger',
         };
     }
 }

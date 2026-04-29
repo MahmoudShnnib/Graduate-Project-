@@ -51,4 +51,12 @@ class StudentFactory extends Factory
             'status' => StudentStatus::Graduated,
         ]);
     }
+
+    public function dismissed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => StudentStatus::Dismissed,
+            'dismissed_at' => now(),
+        ]);
+    }
 }

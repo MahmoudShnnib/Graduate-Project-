@@ -46,6 +46,7 @@ it('returns false from canPerformActions for non-active students', function (Stu
     'inactive' => StudentStatus::Inactive,
     'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
+    'dismissed' => StudentStatus::Dismissed,
 ]);
 
 it('throws StudentNotActiveException from EnrollStudentInOffering when student is not active', function (StudentStatus $status) {
@@ -65,6 +66,7 @@ it('throws StudentNotActiveException from EnrollStudentInOffering when student i
     'inactive' => StudentStatus::Inactive,
     'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
+    'dismissed' => StudentStatus::Dismissed,
 ]);
 
 it('cascades active enrollments to Withdrawn when status flips from Active', function (StudentStatus $status) {
@@ -83,6 +85,7 @@ it('cascades active enrollments to Withdrawn when status flips from Active', fun
     'inactive' => StudentStatus::Inactive,
     'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
+    'dismissed' => StudentStatus::Dismissed,
 ]);
 
 it('keeps approved grades visible on GradesPage after cascade', function () {
@@ -131,6 +134,7 @@ it('GPA is not recalculated for non-active students', function (StudentStatus $s
     'inactive' => StudentStatus::Inactive,
     'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
+    'dismissed' => StudentStatus::Dismissed,
 ]);
 
 it('graduated students can still authenticate and access the portal', function () {
@@ -157,6 +161,7 @@ it('returns correct display labels and colors for each status', function (Studen
     'inactive' => [StudentStatus::Inactive, 'منقطع', 'warning'],
     'transferred' => [StudentStatus::Transferred, 'منتقل', 'info'],
     'graduated' => [StudentStatus::Graduated, 'متخرج', 'info'],
+    'dismissed' => [StudentStatus::Dismissed, 'مفصول', 'danger'],
 ]);
 
 it('changeStatus action with target=Active rescinds an approved semester suspension', function () {
@@ -230,6 +235,7 @@ it('changeStatus modal shows different consequence warnings per target status', 
     'inactive' => [StudentStatus::Inactive, 'تسجيل الطالب كمنقطع'],
     'transferred' => [StudentStatus::Transferred, 'تسجيل انتقال الطالب'],
     'graduated' => [StudentStatus::Graduated, 'تسجيل تخرج الطالب'],
+    'dismissed' => [StudentStatus::Dismissed, 'فصل الطالب'],
     'active' => [StudentStatus::Active, '"مستمر"'],
 ]);
 

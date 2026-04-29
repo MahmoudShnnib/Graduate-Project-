@@ -49,14 +49,30 @@ class CourseOfferingResource extends Resource
                     ->relationship('course', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live(),
 
                 Select::make('semester_id')
                     ->label('الفصل الدراسي')
                     ->relationship('semester', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->rules([
+                        fn (\Filament\Schemas\Components\Utilities\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            $courseId = $get('course_id');
+                            if (! $courseId || ! $value) {
+                                return;
+                            }
+                            $exists = \App\Models\CourseOffering::where('course_id', $courseId)
+                                ->where('semester_id', $value)
+                                ->exists();
+                            if ($exists) {
+                                $fail('يوجد مقرر مفتوح بالفعل لهذا الفصل الدراسي.');
+                            }
+                        },
+                    ]),
 
                 Select::make('faculty_id')
                     ->label('عضو هيئة التدريس')

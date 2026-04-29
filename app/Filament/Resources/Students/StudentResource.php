@@ -35,6 +35,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class StudentResource extends Resource
@@ -506,7 +507,9 @@ class StudentResource extends Resource
                     TextInput::make('warnings_count')
                         ->label('عدد الإنذارات')
                         ->numeric()
-                        ->default(0),
+                        ->default(0)
+                        ->disabled()
+                        ->dehydrated(false),
                 ]),
         ]);
     }
@@ -549,6 +552,10 @@ class StudentResource extends Resource
                 SelectFilter::make('specialization_id')
                     ->relationship('specialization', 'name')
                     ->label('التخصص'),
+                TernaryFilter::make('is_transfer')
+                    ->label('منتقل من كلية أخرى')
+                    ->trueLabel('نعم')
+                    ->falseLabel('لا'),
             ]);
     }
 

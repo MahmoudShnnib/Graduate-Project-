@@ -4,6 +4,7 @@ namespace App\Filament\Student\Pages;
 
 use App\Models\Semester;
 use App\Models\StudentEnrollment;
+use App\Models\TransferCourse;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
@@ -63,5 +64,18 @@ class GradesPage extends Page
         }
 
         return $query->get();
+    }
+
+    public function getTransferCourses(): Collection
+    {
+        $student = auth()->user()->student;
+
+        if (! $student) {
+            return collect();
+        }
+
+        return TransferCourse::where('student_id', $student->id)
+            ->with('course')
+            ->get();
     }
 }

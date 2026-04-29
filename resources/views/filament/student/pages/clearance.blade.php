@@ -2,7 +2,7 @@
     @php
         $clearance = $this->getClearance();
         $isThesisApproved = $this->isThesisApproved();
-        $thesis = auth()->user()->student?->thesisRegistration;
+        $thesis = auth()->user()->student?->latestThesisRegistration;
         $student = auth()->user()->student;
     @endphp
 
@@ -25,9 +25,9 @@
                             <span class="text-warning-700 dark:text-warning-400">حالة رسالتك:</span>
                             <span @class([
                                 'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
-                                'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $thesis->status === 'pending',
-                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $thesis->status === 'rejected',
-                            ])>{{ $thesis->status === 'pending' ? 'قيد المراجعة' : 'مرفوضة' }}</span>
+                                'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $thesis->status === \App\Enums\ThesisStatus::Pending || $thesis->status === \App\Enums\ThesisStatus::Printed,
+                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $thesis->status === \App\Enums\ThesisStatus::Rejected,
+                            ])>{{ $thesis->status->studentLabel() }}</span>
                         </div>
                     @else
                         <p class="text-sm text-warning-600 dark:text-warning-500 mt-1">لم تقدم طلب تسجيل رسالة بعد.</p>

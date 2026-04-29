@@ -78,19 +78,25 @@ test('thesis registration is created in pending status', function () {
 
     $thesis = ThesisRegistration::factory()->create([
         'student_id' => $student->id,
-        'status' => 'pending',
     ]);
 
-    expect($thesis->status)->toBe('pending')
+    expect($thesis->status)->toBe(\App\Enums\ThesisStatus::Pending)
         ->and($thesis->student_id)->toBe($student->id);
 });
 
-test('student cannot have more than one thesis registration', function () {
+test('student can have multiple thesis registrations and latestOfMany returns the newest', function () {
     ['student' => $student] = studentWithRecord();
 
-    ThesisRegistration::factory()->create(['student_id' => $student->id]);
+    $first = ThesisRegistration::factory()->create([
+        'student_id' => $student->id,
+        'status' => 'rejected',
+    ]);
 
-    expect($student->thesisRegistration)->not->toBeNull();
+    $second = ThesisRegistration::factory()->create([
+        'student_id' => $student->id,
+        'status' => 'pending',
+    ]);
 
-    expect($student->fresh()->thesisRegistration)->not->toBeNull();
+    expect($student->thesisRegistrations)->toHaveCount(2)
+        ->and($student->latestThesisRegistration->id)->toBe($second->id);
 });
