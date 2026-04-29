@@ -67,7 +67,7 @@ class CoursesRelationManager extends RelationManager
                     ->placeholder('غير مسند'),
 
                 TextColumn::make('credits')
-                    ->label('الساعات')
+                    ->label('الوحدات')
                     ->numeric()
                     ->sortable(),
             ])

@@ -11,8 +11,8 @@
                 {{ $this->record->semester->name }}
             </x-admin.info-pair>
 
-            <x-admin.info-pair label="الساعات المعتمدة">
-                {{ $this->record->course->credits }} ساعة
+            <x-admin.info-pair label="الوحدات">
+                {{ $this->record->course->credits }} وحدة
             </x-admin.info-pair>
 
             <div>

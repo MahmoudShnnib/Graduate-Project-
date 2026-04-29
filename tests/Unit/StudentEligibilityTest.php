@@ -17,81 +17,129 @@ beforeEach(function () {
         'specialization_id' => $this->specialization->id,
         'gpa' => 3.5,
     ]);
+    $this->semester = Semester::factory()->active()->create();
 });
 
-test('student is eligible for thesis when 10+ approved courses and gpa >= 3.0', function () {
-    $semester = Semester::factory()->active()->create();
-
-    for ($i = 0; $i < 10; $i++) {
+function createCoursesForSpecialization(Specialization $spec, string $type, int $count): array
+{
+    $courses = [];
+    for ($i = 0; $i < $count; $i++) {
         $course = Course::factory()->create();
+        $course->specializations()->attach($spec->id, ['type' => $type]);
+        $courses[] = $course;
+    }
+
+    return $courses;
+}
+
+function enrollAndPassCourses(Student $student, array $courses, Semester $semester): void
+{
+    foreach ($courses as $course) {
         $offering = CourseOffering::factory()->create([
             'course_id' => $course->id,
             'semester_id' => $semester->id,
         ]);
         $enrollment = StudentEnrollment::factory()->create([
-            'student_id' => $this->student->id,
+            'student_id' => $student->id,
             'course_offering_id' => $offering->id,
         ]);
         Grade::factory()->passing()->create(['enrollment_id' => $enrollment->id]);
     }
+}
 
-    expect($this->student->completedCoursesCount())->toBe(10);
+test('student is eligible when all general, all specialized, and 2+ electives completed', function () {
+    $general = createCoursesForSpecialization($this->specialization, 'general', 4);
+    $specialized = createCoursesForSpecialization($this->specialization, 'specialized', 4);
+    $electives = createCoursesForSpecialization($this->specialization, 'elective', 3);
+
+    enrollAndPassCourses($this->student, $general, $this->semester);
+    enrollAndPassCourses($this->student, $specialized, $this->semester);
+    enrollAndPassCourses($this->student, array_slice($electives, 0, 2), $this->semester);
+
     expect($this->student->isEligibleForThesis())->toBeTrue();
 });
 
-test('student is ineligible with fewer than 10 completed courses', function () {
-    $semester = Semester::factory()->active()->create();
+test('student is ineligible with missing general courses', function () {
+    $general = createCoursesForSpecialization($this->specialization, 'general', 4);
+    $specialized = createCoursesForSpecialization($this->specialization, 'specialized', 4);
+    $electives = createCoursesForSpecialization($this->specialization, 'elective', 3);
 
-    for ($i = 0; $i < 5; $i++) {
-        $course = Course::factory()->create();
-        $offering = CourseOffering::factory()->create([
-            'course_id' => $course->id,
-            'semester_id' => $semester->id,
-        ]);
-        $enrollment = StudentEnrollment::factory()->create([
-            'student_id' => $this->student->id,
-            'course_offering_id' => $offering->id,
-        ]);
-        Grade::factory()->passing()->create(['enrollment_id' => $enrollment->id]);
-    }
+    enrollAndPassCourses($this->student, array_slice($general, 0, 3), $this->semester);
+    enrollAndPassCourses($this->student, $specialized, $this->semester);
+    enrollAndPassCourses($this->student, array_slice($electives, 0, 2), $this->semester);
 
     expect($this->student->isEligibleForThesis())->toBeFalse();
 });
 
-test('student is ineligible with low gpa even with enough courses', function () {
-    $this->student->update(['gpa' => 2.5]);
-    $semester = Semester::factory()->active()->create();
+test('student is ineligible with missing specialized courses', function () {
+    $general = createCoursesForSpecialization($this->specialization, 'general', 4);
+    $specialized = createCoursesForSpecialization($this->specialization, 'specialized', 4);
+    $electives = createCoursesForSpecialization($this->specialization, 'elective', 3);
 
-    for ($i = 0; $i < 10; $i++) {
-        $course = Course::factory()->create();
-        $offering = CourseOffering::factory()->create([
-            'course_id' => $course->id,
-            'semester_id' => $semester->id,
-        ]);
-        $enrollment = StudentEnrollment::factory()->create([
-            'student_id' => $this->student->id,
-            'course_offering_id' => $offering->id,
-        ]);
-        Grade::factory()->passing()->create(['enrollment_id' => $enrollment->id]);
-    }
+    enrollAndPassCourses($this->student, $general, $this->semester);
+    enrollAndPassCourses($this->student, array_slice($specialized, 0, 2), $this->semester);
+    enrollAndPassCourses($this->student, array_slice($electives, 0, 2), $this->semester);
+
+    expect($this->student->isEligibleForThesis())->toBeFalse();
+});
+
+test('student is ineligible with fewer than 2 electives', function () {
+    $general = createCoursesForSpecialization($this->specialization, 'general', 4);
+    $specialized = createCoursesForSpecialization($this->specialization, 'specialized', 4);
+    $electives = createCoursesForSpecialization($this->specialization, 'elective', 3);
+
+    enrollAndPassCourses($this->student, $general, $this->semester);
+    enrollAndPassCourses($this->student, $specialized, $this->semester);
+    enrollAndPassCourses($this->student, array_slice($electives, 0, 1), $this->semester);
+
+    expect($this->student->isEligibleForThesis())->toBeFalse();
+});
+
+test('student is ineligible with low gpa even with all courses completed', function () {
+    $this->student->update(['gpa' => 2.5]);
+
+    $general = createCoursesForSpecialization($this->specialization, 'general', 4);
+    $specialized = createCoursesForSpecialization($this->specialization, 'specialized', 4);
+    $electives = createCoursesForSpecialization($this->specialization, 'elective', 3);
+
+    enrollAndPassCourses($this->student, $general, $this->semester);
+    enrollAndPassCourses($this->student, $specialized, $this->semester);
+    enrollAndPassCourses($this->student, array_slice($electives, 0, 2), $this->semester);
 
     expect($this->student->isEligibleForThesis())->toBeFalse();
 });
 
 test('failed grades do not count toward completed courses', function () {
-    $semester = Semester::factory()->active()->create();
     $course = Course::factory()->create();
+    $course->specializations()->attach($this->specialization->id, ['type' => 'general']);
+
     $offering = CourseOffering::factory()->create([
         'course_id' => $course->id,
-        'semester_id' => $semester->id,
+        'semester_id' => $this->semester->id,
     ]);
     $enrollment = StudentEnrollment::factory()->create([
         'student_id' => $this->student->id,
         'course_offering_id' => $offering->id,
     ]);
-    Grade::factory()->failing()->create([
-        'enrollment_id' => $enrollment->id,
-    ]);
+    Grade::factory()->failing()->create(['enrollment_id' => $enrollment->id]);
 
     expect($this->student->completedCoursesCount())->toBe(0);
+});
+
+test('breakdown returns correct counts per type', function () {
+    $general = createCoursesForSpecialization($this->specialization, 'general', 4);
+    $specialized = createCoursesForSpecialization($this->specialization, 'specialized', 4);
+    createCoursesForSpecialization($this->specialization, 'elective', 3);
+
+    enrollAndPassCourses($this->student, array_slice($general, 0, 2), $this->semester);
+    enrollAndPassCourses($this->student, $specialized, $this->semester);
+
+    $breakdown = $this->student->getThesisEligibilityBreakdown();
+
+    expect($breakdown['general']['required'])->toBe(4)
+        ->and($breakdown['general']['completed'])->toBe(2)
+        ->and($breakdown['specialized']['required'])->toBe(4)
+        ->and($breakdown['specialized']['completed'])->toBe(4)
+        ->and($breakdown['elective']['required'])->toBe(2)
+        ->and($breakdown['elective']['completed'])->toBe(0);
 });

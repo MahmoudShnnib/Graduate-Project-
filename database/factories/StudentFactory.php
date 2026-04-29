@@ -24,6 +24,13 @@ class StudentFactory extends Factory
         ];
     }
 
+    public function onHold(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => StudentStatus::OnHold,
+        ]);
+    }
+
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -31,10 +38,25 @@ class StudentFactory extends Factory
         ]);
     }
 
+    public function transferred(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => StudentStatus::Transferred,
+        ]);
+    }
+
     public function graduated(): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => StudentStatus::Graduated,
+        ]);
+    }
+
+    public function dismissed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => StudentStatus::Dismissed,
+            'dismissed_at' => now(),
         ]);
     }
 }

@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -48,14 +49,30 @@ class CourseOfferingResource extends Resource
                     ->relationship('course', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live(),
 
                 Select::make('semester_id')
                     ->label('الفصل الدراسي')
                     ->relationship('semester', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->rules([
+                        fn (\Filament\Schemas\Components\Utilities\Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            $courseId = $get('course_id');
+                            if (! $courseId || ! $value) {
+                                return;
+                            }
+                            $exists = \App\Models\CourseOffering::where('course_id', $courseId)
+                                ->where('semester_id', $value)
+                                ->exists();
+                            if ($exists) {
+                                $fail('يوجد مقرر مفتوح بالفعل لهذا الفصل الدراسي.');
+                            }
+                        },
+                    ]),
 
                 Select::make('faculty_id')
                     ->label('عضو هيئة التدريس')
@@ -110,6 +127,12 @@ class CourseOfferingResource extends Resource
                 SelectFilter::make('semester_id')
                     ->label('الفصل')
                     ->relationship('semester', 'name'),
+
+                Filter::make('open_only')
+                    ->label('المفتوحة فقط')
+                    ->toggle()
+                    ->default(true)
+                    ->query(fn ($query) => $query->where('is_open', true)),
             ])
             ->recordUrl(fn (CourseOffering $record): string => static::getUrl('enroll', ['record' => $record]))
             ->recordActions([
@@ -117,6 +140,11 @@ class CourseOfferingResource extends Resource
                     ->label(fn (CourseOffering $record) => $record->is_open ? 'إغلاق' : 'فتح')
                     ->icon(fn (CourseOffering $record) => $record->is_open ? Heroicon::LockClosed : Heroicon::LockOpen)
                     ->color(fn (CourseOffering $record) => $record->is_open ? 'warning' : 'success')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (CourseOffering $record) => $record->is_open ? 'إغلاق المقرر' : 'فتح المقرر')
+                    ->modalDescription(fn (CourseOffering $record) => $record->is_open
+                        ? 'سيتم إلغاء تسجيل جميع الطلاب المسجلين في هذا المقرر. هل أنت متأكد؟'
+                        : 'س��تم فتح المقرر للتسجيل.')
                     ->action(function (CourseOffering $record) {
                         $record->update(['is_open' => ! $record->is_open]);
                         Notification::make()

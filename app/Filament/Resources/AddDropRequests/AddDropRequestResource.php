@@ -72,9 +72,11 @@ class AddDropRequestResource extends Resource
                     ->formatStateUsing(fn (StudentStatus $state): string => $state->label())
                     ->color(fn (StudentStatus $state): string => match ($state) {
                         StudentStatus::Active => 'success',
-                        StudentStatus::Inactive => 'danger',
-                        StudentStatus::Withdrawn => 'warning',
+                        StudentStatus::OnHold => 'danger',
+                        StudentStatus::Inactive => 'warning',
+                        StudentStatus::Transferred => 'info',
                         StudentStatus::Graduated => 'info',
+                        StudentStatus::Dismissed => 'danger',
                     }),
 
                 TextColumn::make('courseOffering.course.name')

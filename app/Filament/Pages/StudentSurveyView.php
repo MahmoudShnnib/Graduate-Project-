@@ -35,6 +35,38 @@ class StudentSurveyView extends Page
     /** @var array<int, string> */
     public array $selected = [];
 
+    public ?int $retakeActionCourseId = null;
+
+    public ?string $retakeActionType = null;
+
+    public function showRetakeAction(int $courseId, string $type): void
+    {
+        $this->retakeActionCourseId = $courseId;
+        $this->retakeActionType = $type;
+    }
+
+    public function cancelRetakeAction(): void
+    {
+        $this->retakeActionCourseId = null;
+        $this->retakeActionType = null;
+    }
+
+    public function confirmRetakeAction(): void
+    {
+        if (! $this->retakeActionCourseId || ! $this->retakeActionType) {
+            return;
+        }
+
+        if ($this->retakeActionType === 'approve') {
+            $this->approveRetake($this->retakeActionCourseId);
+        } else {
+            $this->rejectRetake($this->retakeActionCourseId);
+        }
+
+        $this->retakeActionCourseId = null;
+        $this->retakeActionType = null;
+    }
+
     public function mount(Student $student, Semester $semester): void
     {
         $this->student = $student->load(['user:id,name', 'specialization:id,name']);
@@ -54,29 +86,44 @@ class StudentSurveyView extends Page
     {
         return CourseSurvey::where('student_id', $this->student->id)
             ->where('semester_id', $this->semester->id)
+            ->where('is_retake', false)
             ->with('course')
             ->orderBy('priority')
             ->get()
-            ->map(function (CourseSurvey $survey) {
-                $offering = CourseOffering::where('course_id', $survey->course_id)
-                    ->where('semester_id', $this->semester->id)
-                    ->first();
+            ->map(fn (CourseSurvey $survey) => $this->buildSurveyEntry($survey));
+    }
 
-                $enrollment = null;
-                if ($offering) {
-                    $enrollment = StudentEnrollment::where('student_id', $this->student->id)
-                        ->where('course_offering_id', $offering->id)
-                        ->active()
-                        ->first();
-                }
+    public function getRetakeEntries(): Collection
+    {
+        return CourseSurvey::where('student_id', $this->student->id)
+            ->where('semester_id', $this->semester->id)
+            ->where('is_retake', true)
+            ->with('course')
+            ->get()
+            ->map(fn (CourseSurvey $survey) => $this->buildSurveyEntry($survey));
+    }
 
-                return (object) [
-                    'survey' => $survey,
-                    'course' => $survey->course,
-                    'offering' => $offering,
-                    'enrollment' => $enrollment,
-                ];
-            });
+    private function buildSurveyEntry(CourseSurvey $survey): object
+    {
+        $offering = CourseOffering::where('course_id', $survey->course_id)
+            ->where('semester_id', $this->semester->id)
+            ->first();
+
+        $enrollment = null;
+        if ($offering) {
+            $enrollment = StudentEnrollment::where('student_id', $this->student->id)
+                ->where('course_offering_id', $offering->id)
+                ->active()
+                ->first();
+        }
+
+        return (object) [
+            'survey' => $survey,
+            'course' => $survey->course,
+            'offering' => $offering,
+            'enrollment' => $enrollment,
+            'is_retake' => $survey->is_retake,
+        ];
     }
 
     public function enrollSelected(): void
@@ -321,6 +368,32 @@ class StudentSurveyView extends Page
         } else {
             Notification::make()->title('الطالب مسجل بالفعل في هذا المقرر')->warning()->send();
         }
+    }
+
+    public function approveRetake(int $courseId): void
+    {
+        $this->enrollStudent($courseId);
+    }
+
+    public function rejectRetake(int $courseId): void
+    {
+        $survey = CourseSurvey::query()
+            ->where('student_id', $this->student->id)
+            ->where('semester_id', $this->semester->id)
+            ->where('course_id', $courseId)
+            ->where('is_retake', true)
+            ->first();
+
+        if (! $survey) {
+            return;
+        }
+
+        $survey->update([
+            'is_processed' => true,
+            'rejected_at' => now(),
+        ]);
+
+        Notification::make()->title('تم رفض طلب الإعادة')->success()->send();
     }
 
     public function unenrollStudent(int $courseId): void

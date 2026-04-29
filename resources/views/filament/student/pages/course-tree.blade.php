@@ -6,8 +6,9 @@
 
         $allCourses = $coursesByType->flatten();
         $totalCount = $allCourses->count();
-        $passedCount = collect($enrollmentMap)->where('status', 'passed')->count();
-        $currentCount = collect($enrollmentMap)->where('status', 'current')->count();
+        $specCourseIds = $allCourses->pluck('id')->all();
+        $passedCount = collect($enrollmentMap)->filter(fn ($e, $id) => $e['status'] === 'passed' && in_array($id, $specCourseIds))->count();
+        $currentCount = collect($enrollmentMap)->filter(fn ($e, $id) => $e['status'] === 'current' && in_array($id, $specCourseIds))->count();
         $remainingCount = $totalCount - $passedCount - $currentCount;
 
         $typeLabels = [
@@ -171,7 +172,7 @@
                                             <div class="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                 <span class="font-mono">{{ $course->code }}</span>
                                                 <span class="text-gray-300 dark:text-gray-600">·</span>
-                                                <span>{{ $course->credits }} ساعة</span>
+                                                <span>{{ $course->credits }} وحدة</span>
                                             </div>
                                         </div>
                                     </div>

@@ -12,26 +12,11 @@
         $pendingAddOfferingIds = $this->getPendingAddOfferingIds();
         $student = auth()->user()->student;
         $activeSemester = $this->getActiveSemester();
-        $isSuspended = $student && $activeSemester && $student->isSuspendedInSemester($activeSemester);
         $allRequests = $this->getAllRequestsThisSemester();
     @endphp
 
     @if($student)
         @include('filament.components.status-block-banner', ['student' => $student])
-    @endif
-
-    @if($isSuspended)
-        <x-filament::section>
-            <div class="flex items-start gap-4 p-4 rounded-xl border bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
-                    <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
-                </div>
-                <div class="flex-1">
-                    <p class="font-semibold text-danger-800 dark:text-danger-300 text-sm">قيدك موقوف لهذا الفصل</p>
-                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">تم قبول طلب إيقاف القيد. لا يمكنك تقديم طلبات إضافة أو حذف. ستبقى بياناتك متاحة للعرض.</p>
-                </div>
-            </div>
-        </x-filament::section>
     @endif
 
     {{-- My submissions (persistent history of decisions this semester) --}}

@@ -16,6 +16,39 @@
             </div>
         </x-filament::section>
     @else
+        {{-- Dismissal Banner --}}
+        @if($student->status === \App\Enums\StudentStatus::Dismissed)
+            @php $dismissalReason = $this->getDismissalReasonText(); @endphp
+            <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-danger-300 bg-danger-50 dark:bg-danger-500/10 dark:border-danger-500/40 ring-2 ring-danger-200 dark:ring-danger-500/30">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
+                    <x-heroicon-o-shield-exclamation style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
+                </div>
+                <div class="flex-1">
+                    <p class="font-bold text-danger-800 dark:text-danger-300 text-sm">تم فصلك من الدراسة</p>
+                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-1">السبب: {{ $dismissalReason }}</p>
+                    <p class="text-sm text-danger-600 dark:text-danger-500 mt-1">يمكنك تقديم طلب استثنائي من صفحة <a href="{{ route('filament.student.pages.exceptional-request-page') }}" class="underline font-semibold hover:text-danger-800 dark:hover:text-danger-300">الطلب الاستثنائي</a>.</p>
+                    @if($student->dismissed_at)
+                        <p class="text-xs text-danger-500 dark:text-danger-500 mt-2">{{ $student->dismissed_at->format('Y-m-d') }}</p>
+                    @endif
+                </div>
+            </div>
+        @endif
+
+        {{-- Summon Banner --}}
+        @php $summon = $this->getActiveSummon(); @endphp
+        @if($summon)
+            <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-danger-300 bg-danger-50 dark:bg-danger-500/10 dark:border-danger-500/40 ring-2 ring-danger-200 dark:ring-danger-500/30">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
+                    <x-heroicon-o-megaphone style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
+                </div>
+                <div class="flex-1">
+                    <p class="font-bold text-danger-800 dark:text-danger-300 text-sm">رسالة عاجلة من الإدارة — تم استدعاؤك</p>
+                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-1">{{ $summon->summon_message }}</p>
+                    <p class="text-xs text-danger-500 dark:text-danger-500 mt-2">{{ $summon->summon_sent_at?->format('Y-m-d H:i') }}</p>
+                </div>
+            </div>
+        @endif
+
         {{-- Welcome Banner --}}
         <div class="rounded-xl border border-primary-200 dark:border-primary-500/30 bg-primary-50 dark:bg-primary-500/10 px-6 py-5">
             <div class="flex items-center justify-between gap-4 flex-wrap">
@@ -52,6 +85,11 @@
         </div>
 
         {{-- Stat Cards --}}
+        @php
+            $isDismissed = $student->status === \App\Enums\StudentStatus::Dismissed;
+            $hasWarnings = $student->warnings_count > 0;
+            $activeWarnings = $this->getActiveWarnings();
+        @endphp
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-5 flex items-center gap-4">
                 <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-500/20">
@@ -73,58 +111,69 @@
                 </div>
             </div>
 
-            <div class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-5 flex items-center gap-4">
-                <div @class([
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-                    'bg-danger-100 dark:bg-danger-500/20' => $student->warnings_count > 0,
-                    'bg-gray-100 dark:bg-white/10' => $student->warnings_count === 0,
-                ])>
-                    <x-heroicon-o-exclamation-triangle style="width: 1.25rem; height: 1.25rem;" @class([
-                        'text-danger-600 dark:text-danger-400' => $student->warnings_count > 0,
-                        'text-gray-400 dark:text-gray-500' => $student->warnings_count === 0,
-                    ]) />
-                </div>
-                <div>
-                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">التحذيرات</p>
-                    <p @class([
-                        'text-2xl font-bold leading-none',
-                        'text-danger-600 dark:text-danger-400' => $student->warnings_count > 0,
-                        'text-gray-900 dark:text-white' => $student->warnings_count === 0,
-                    ])>{{ $student->warnings_count }}</p>
+            {{-- Warnings Card --}}
+            <div @class([
+                'rounded-xl border p-5',
+                'border-danger-300 dark:border-danger-500/40 bg-danger-50 dark:bg-danger-500/10 ring-1 ring-danger-200 dark:ring-danger-500/30 cursor-pointer hover:ring-2' => $isDismissed,
+                'border-warning-300 dark:border-warning-500/40 bg-warning-50 dark:bg-warning-500/10 ring-1 ring-warning-200 dark:ring-warning-500/30 cursor-pointer hover:ring-2' => $hasWarnings && ! $isDismissed,
+                'border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900' => ! $hasWarnings && ! $isDismissed,
+            ])
+                @if($hasWarnings || $isDismissed)
+                    x-on:click="$dispatch('open-modal', { id: 'warnings-modal' })"
+                @endif
+            >
+                <div class="flex items-center gap-4">
+                    <div @class([
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+                        'bg-danger-100 dark:bg-danger-500/20' => $isDismissed,
+                        'bg-warning-100 dark:bg-warning-500/20' => $hasWarnings && ! $isDismissed,
+                        'bg-gray-100 dark:bg-white/10' => ! $hasWarnings && ! $isDismissed,
+                    ])>
+                        <x-heroicon-o-exclamation-triangle style="width: 1.25rem; height: 1.25rem;" @class([
+                            'text-danger-600 dark:text-danger-400' => $isDismissed,
+                            'text-warning-600 dark:text-warning-400' => $hasWarnings && ! $isDismissed,
+                            'text-gray-400 dark:text-gray-500' => ! $hasWarnings && ! $isDismissed,
+                        ]) />
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">التحذيرات</p>
+                        @if($isDismissed)
+                            <span class="inline-flex items-center gap-1.5 text-sm font-bold text-danger-700 dark:text-danger-400">
+                                <span class="w-2 h-2 rounded-full bg-danger-500 animate-pulse flex-shrink-0"></span>
+                                لديك تحذيرات
+                            </span>
+                        @elseif($hasWarnings)
+                            <span class="inline-flex items-center gap-1.5 text-sm font-bold text-warning-700 dark:text-warning-400">
+                                <span class="w-2 h-2 rounded-full bg-warning-500 animate-pulse flex-shrink-0"></span>
+                                لديك تحذير
+                            </span>
+                        @else
+                            <p class="text-sm font-medium text-gray-400 dark:text-gray-500 leading-none">لا يوجد</p>
+                        @endif
+                    </div>
                 </div>
             </div>
 
             @php
-                // Centralized in Student model — same precedence applied on the admin
-                // student view and in the Students table. Semester-scoped approved
-                // suspension wins over the permanent Student.status for display.
                 $displayLabel = $student->getDisplayStatusLabel();
                 $displayColor = $student->getDisplayStatusColor();
-                $isSuspendedNow = $displayColor === 'danger' && $student->status?->value === 'active';
             @endphp
             <div class="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 p-5 flex items-center gap-4">
                 <div @class([
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
                     'bg-success-100 dark:bg-success-500/20' => $displayColor === 'success',
                     'bg-danger-100 dark:bg-danger-500/20' => $displayColor === 'danger',
+                    'bg-warning-100 dark:bg-warning-500/20' => $displayColor === 'warning',
                     'bg-info-100 dark:bg-info-500/20' => $displayColor === 'info',
                     'bg-gray-100 dark:bg-white/10' => $displayColor === 'gray',
                 ])>
-                    @if($isSuspendedNow)
-                        <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" @class([
-                            'text-success-600 dark:text-success-400' => $displayColor === 'success',
-                            'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
-                            'text-info-600 dark:text-info-400' => $displayColor === 'info',
-                            'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
-                        ]) />
-                    @else
-                        <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" @class([
-                            'text-success-600 dark:text-success-400' => $displayColor === 'success',
-                            'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
-                            'text-info-600 dark:text-info-400' => $displayColor === 'info',
-                            'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
-                        ]) />
-                    @endif
+                    <x-heroicon-o-identification style="width: 1.25rem; height: 1.25rem;" @class([
+                        'text-success-600 dark:text-success-400' => $displayColor === 'success',
+                        'text-danger-600 dark:text-danger-400' => $displayColor === 'danger',
+                        'text-warning-600 dark:text-warning-400' => $displayColor === 'warning',
+                        'text-info-600 dark:text-info-400' => $displayColor === 'info',
+                        'text-gray-400 dark:text-gray-500' => $displayColor === 'gray',
+                    ]) />
                 </div>
                 <div>
                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">الحالة</p>
@@ -132,6 +181,7 @@
                         'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold',
                         'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $displayColor === 'success',
                         'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $displayColor === 'danger',
+                        'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $displayColor === 'warning',
                         'bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400' => $displayColor === 'info',
                         'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400' => $displayColor === 'gray',
                     ])>{{ $displayLabel }}</span>
@@ -250,5 +300,52 @@
                 </a>
             </div>
         </x-filament::section>
+
+        {{-- Warnings Modal --}}
+        @if($hasWarnings || $isDismissed)
+            @php $failCounts = $this->getCourseFailCounts(); @endphp
+            <x-filament::modal id="warnings-modal" width="md">
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-exclamation-triangle style="width: 1.1rem; height: 1.1rem;" class="{{ $isDismissed ? 'text-danger-500' : 'text-warning-500' }}" />
+                        <span>تفاصيل التحذيرات</span>
+                    </div>
+                </x-slot>
+
+                <div class="space-y-3">
+                    @foreach($activeWarnings as $warning)
+                        <div @class([
+                            'flex items-start gap-3 p-3 rounded-lg border text-sm',
+                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10' => $isDismissed,
+                            'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => ! $isDismissed,
+                        ])>
+                            @if($warning->type === \App\Enums\WarningType::CourseFailure)
+                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $isDismissed ? 'bg-danger-100 dark:bg-danger-500/20' : 'bg-warning-100 dark:bg-warning-500/20' }}">
+                                    <x-heroicon-o-x-circle style="width: 1rem; height: 1rem;" class="{{ $isDismissed ? 'text-danger-500' : 'text-warning-500' }}" />
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <p class="font-semibold {{ $isDismissed ? 'text-danger-800 dark:text-danger-300' : 'text-warning-800 dark:text-warning-300' }}">{{ $warning->course?->name ?? 'غير محددة' }}</p>
+                                        @php $count = $failCounts[$warning->course_id] ?? 1; @endphp
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $isDismissed ? 'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' : 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' }}">
+                                            رسوب {{ $count === 1 ? 'مرة واحدة' : ($count === 2 ? 'مرتين' : $count . ' مرات') }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs {{ $isDismissed ? 'text-danger-600 dark:text-danger-400' : 'text-warning-600 dark:text-warning-400' }} mt-1">السبب: رسوب في مادة</p>
+                                </div>
+                            @else
+                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $isDismissed ? 'bg-danger-100 dark:bg-danger-500/20' : 'bg-warning-100 dark:bg-warning-500/20' }}">
+                                    <x-heroicon-o-clock style="width: 1rem; height: 1rem;" class="{{ $isDismissed ? 'text-danger-500' : 'text-warning-500' }}" />
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-semibold {{ $isDismissed ? 'text-danger-800 dark:text-danger-300' : 'text-warning-800 dark:text-warning-300' }}">انقطاع متتالي عن الدراسة</p>
+                                    <p class="text-xs {{ $isDismissed ? 'text-danger-600 dark:text-danger-400' : 'text-warning-600 dark:text-warning-400' }} mt-1">السبب: انقطاع — {{ $warning->semester?->name ?? '' }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </x-filament::modal>
+        @endif
     @endif
 </x-filament-panels::page>

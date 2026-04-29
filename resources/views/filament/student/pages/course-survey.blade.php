@@ -6,25 +6,10 @@
         $statuses        = $this->getEnrollmentStatuses();
         $surveySubmitted = $selectedCount > 0 && $semester && ! $semester->survey_open;
         $student         = auth()->user()->student;
-        $isSuspended     = $student && $semester && $student->isSuspendedInSemester($semester);
     @endphp
 
     @if($student)
         @include('filament.components.status-block-banner', ['student' => $student])
-    @endif
-
-    @if($isSuspended)
-        <x-filament::section>
-            <div class="flex items-start gap-4 p-4 rounded-xl border bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
-                    <x-heroicon-o-pause-circle style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
-                </div>
-                <div class="flex-1">
-                    <p class="font-semibold text-danger-800 dark:text-danger-300 text-sm">قيدك موقوف لهذا الفصل</p>
-                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">تم قبول طلب إيقاف القيد. لا يمكنك تقديم اختيارات استطلاع المقررات لهذا الفصل. ستبقى بياناتك متاحة للعرض.</p>
-                </div>
-            </div>
-        </x-filament::section>
     @endif
 
     {{-- No active semester --}}
@@ -81,7 +66,7 @@
                                 </span>
                                 <div>
                                     <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $course->name }}</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $course->code }} — {{ $course->credits }} ساعة</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $course->code }} — {{ $course->credits }} وحدة</p>
                                 </div>
                             </div>
                             <span @class([
@@ -161,7 +146,7 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                         <span class="font-mono">{{ $course->code }}</span>
                                         <span class="mx-1.5 text-gray-300 dark:text-gray-600">·</span>
-                                        {{ $course->credits }} ساعة
+                                        {{ $course->credits }} وحدة
                                         <span class="mx-1.5 text-gray-300 dark:text-gray-600">·</span>
                                         {{ $course->type?->label() }}
                                     </p>
@@ -186,5 +171,146 @@
                 </div>
             @endif
         </x-filament::section>
+
+        {{-- Retake section --}}
+        @php
+            $retakeableCourses = $this->getRetakeableCourses();
+            $retakeRequests = $this->getRetakeRequests();
+            $retakeRequestCourseIds = $retakeRequests->pluck('course_id')->all();
+            $confirmCourseId = $this->retakeConfirmCourseId;
+            $confirmCourse = $confirmCourseId ? $retakeableCourses->firstWhere('id', $confirmCourseId) : null;
+        @endphp
+
+        @if($retakeableCourses->isNotEmpty() || $retakeRequests->isNotEmpty())
+            <x-filament::section>
+                <x-slot name="heading">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <x-heroicon-o-arrow-path style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                            <span>طلب إعادة مادة</span>
+                        </div>
+                        @if($retakeRequests->isNotEmpty())
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400">
+                                {{ $retakeRequests->count() }} طلب
+                            </span>
+                        @endif
+                    </div>
+                </x-slot>
+                <x-slot name="description">يمكنك طلب إعادة مادة سبق أن اجتزتها لتحسين تقديرك ومعدلك التراكمي.</x-slot>
+
+                {{-- Existing retake requests with status --}}
+                @if($retakeRequests->isNotEmpty())
+                    <div class="space-y-2 mb-4">
+                        @foreach($retakeRequests as $req)
+                            @php
+                                $isApproved = $req->is_processed && $req->rejected_at === null;
+                                $isRejected = $req->rejected_at !== null;
+                            @endphp
+                            <div @class([
+                                'flex items-center justify-between p-3 rounded-xl border',
+                                'border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10' => $isApproved,
+                                'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10' => $isRejected,
+                                'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => ! $isApproved && ! $isRejected,
+                            ])>
+                                <div class="flex items-center gap-3">
+                                    <div @class([
+                                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                                        'bg-success-100 dark:bg-success-500/20' => $isApproved,
+                                        'bg-danger-100 dark:bg-danger-500/20' => $isRejected,
+                                        'bg-warning-100 dark:bg-warning-500/20' => ! $isApproved && ! $isRejected,
+                                    ])>
+                                        @if($isApproved)
+                                            <x-heroicon-o-check-circle style="width: 1rem; height: 1rem;" class="text-success-600 dark:text-success-400" />
+                                        @elseif($isRejected)
+                                            <x-heroicon-o-x-circle style="width: 1rem; height: 1rem;" class="text-danger-600 dark:text-danger-400" />
+                                        @else
+                                            <x-heroicon-o-arrow-path style="width: 1rem; height: 1rem;" class="text-warning-600 dark:text-warning-400" />
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $req->course->name }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $req->course->code }}</p>
+                                    </div>
+                                </div>
+                                <span @class([
+                                    'rounded-lg px-2.5 py-1 text-xs font-semibold',
+                                    'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $isApproved,
+                                    'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $isRejected,
+                                    'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => ! $isApproved && ! $isRejected,
+                                ])>
+                                    @if($isApproved) تمت الموافقة
+                                    @elseif($isRejected) مرفوض
+                                    @else قيد المراجعة
+                                    @endif
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Available courses for retake --}}
+                @if($semester->survey_open)
+                    @php $availableRetakes = $retakeableCourses->whereNotIn('id', $retakeRequestCourseIds); @endphp
+                    @if($availableRetakes->isNotEmpty())
+                        <div class="space-y-2">
+                            @foreach($availableRetakes as $course)
+                                <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10">
+                                            <x-heroicon-o-book-open style="width: 1rem; height: 1rem;" class="text-gray-400 dark:text-gray-500" />
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $course->name }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $course->code }} — {{ $course->credits }} وحدة</p>
+                                        </div>
+                                    </div>
+                                    <x-filament::button
+                                        wire:click="confirmRetake({{ $course->id }})"
+                                        size="xs"
+                                        color="warning"
+                                        icon="heroicon-o-arrow-path"
+                                    >
+                                        طلب إعادة
+                                    </x-filament::button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
+            </x-filament::section>
+        @endif
+
+        {{-- Retake confirmation modal --}}
+        @if($confirmCourse)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" wire:click.self="cancelRetake">
+                <div class="w-full max-w-md mx-4 rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <div class="p-6 text-center">
+                        <div class="flex items-center justify-center w-14 h-14 rounded-full bg-warning-100 dark:bg-warning-500/20 mx-auto mb-4">
+                            <x-heroicon-o-arrow-path style="width: 1.75rem; height: 1.75rem;" class="text-warning-600 dark:text-warning-400" />
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">طلب إعادة مادة</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">هل تريد تقديم طلب إعادة لمادة:</p>
+                        <p class="text-base font-semibold text-gray-900 dark:text-white mb-1">{{ $confirmCourse->name }}</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 font-mono mb-4">{{ $confirmCourse->code }} — {{ $confirmCourse->credits }} وحدة</p>
+                        <div class="rounded-xl bg-warning-50 dark:bg-warning-500/10 border border-warning-200 dark:border-warning-500/20 p-3 text-sm text-warning-800 dark:text-warning-300 mb-6 text-start">
+                            <p class="font-medium mb-1">ملاحظة:</p>
+                            <ul class="text-xs text-warning-700 dark:text-warning-400 space-y-1 list-disc list-inside">
+                                <li>سيتم مراجعة طلبك من قبل الإدارة</li>
+                                <li>في حال الموافقة، ستُحتسب الدرجة الجديدة في المعدل</li>
+                                <li>الإعادة تُحتسب ضمن الحد الأقصى للمقررات في الفصل</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 px-6 py-4 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-white/10">
+                        <x-filament::button wire:click="cancelRetake" color="gray" class="flex-1">
+                            إلغاء
+                        </x-filament::button>
+                        <x-filament::button wire:click="submitRetake({{ $confirmCourse->id }})" color="warning" icon="heroicon-o-arrow-path" class="flex-1">
+                            تأكيد الطلب
+                        </x-filament::button>
+                    </div>
+                </div>
+            </div>
+        @endif
     @endif
 </x-filament-panels::page>

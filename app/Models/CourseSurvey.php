@@ -12,6 +12,7 @@ class CourseSurvey extends Model
         'semester_id',
         'course_id',
         'priority',
+        'is_retake',
         'is_processed',
         'rejected_at',
     ];
@@ -20,6 +21,7 @@ class CourseSurvey extends Model
     {
         return [
             'priority' => 'integer',
+            'is_retake' => 'boolean',
             'is_processed' => 'boolean',
             'rejected_at' => 'datetime',
         ];

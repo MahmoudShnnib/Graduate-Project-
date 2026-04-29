@@ -2,6 +2,7 @@
 
 namespace App\Filament\Student\Pages;
 
+use App\Enums\GradeStatus;
 use App\Models\Course;
 use App\Models\CourseSurvey;
 use App\Models\Semester;
@@ -23,6 +24,8 @@ class CourseSurveyPage extends Page
 
     /** @var array<int, int> course_id => priority */
     public array $selections = [];
+
+    public ?int $retakeConfirmCourseId = null;
 
     public function mount(): void
     {
@@ -155,7 +158,7 @@ class CourseSurveyPage extends Page
         if (! $student->canPerformActions($activeSemester)) {
             Notification::make()
                 ->title('لا يمكنك تقديم هذا الطلب')
-                ->body('حسابك ليس في حالة نشطة أو أن قيدك موقوف لهذا الفصل.')
+                ->body('حسابك ليس في حالة نشطة. لا يمكنك تقديم هذا الطلب.')
                 ->danger()
                 ->send();
 
@@ -191,5 +194,123 @@ class CourseSurveyPage extends Page
         }
 
         Notification::make()->title('تم حفظ اختياراتك بنجاح')->success()->send();
+    }
+
+    /** Courses the student passed with a grade below A — eligible for retake. */
+    public function getRetakeableCourses(): Collection
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return collect();
+        }
+
+        $nonACourseIds = $student->enrollments()
+            ->whereHas('grade', fn ($q) => $q
+                ->where('status', GradeStatus::Approved)
+                ->whereNotNull('letter')
+                ->where('letter', '!=', 'F')
+                ->where('letter', '!=', 'A'))
+            ->with('courseOffering:id,course_id')
+            ->get()
+            ->pluck('courseOffering.course_id')
+            ->unique()
+            ->values();
+
+        if ($nonACourseIds->isEmpty()) {
+            return collect();
+        }
+
+        // Exclude courses the student is currently enrolled in this semester
+        $currentlyEnrolledCourseIds = $student->activeEnrollments()
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->with('courseOffering:id,course_id')
+            ->get()
+            ->pluck('courseOffering.course_id')
+            ->all();
+
+        return Course::whereIn('id', $nonACourseIds)
+            ->whereNotIn('id', $currentlyEnrolledCourseIds)
+            ->where('is_active', true)
+            ->whereHas('semesters', fn ($q) => $q->where('semesters.id', $activeSemester->id))
+            ->orderBy('name')
+            ->get();
+    }
+
+    /** Get existing retake requests for the active semester. */
+    public function getRetakeRequests(): Collection
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return collect();
+        }
+
+        return CourseSurvey::where('student_id', $student->id)
+            ->where('semester_id', $activeSemester->id)
+            ->where('is_retake', true)
+            ->with('course')
+            ->get();
+    }
+
+    public function confirmRetake(int $courseId): void
+    {
+        $this->retakeConfirmCourseId = $courseId;
+    }
+
+    public function cancelRetake(): void
+    {
+        $this->retakeConfirmCourseId = null;
+    }
+
+    public function submitRetake(int $courseId): void
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return;
+        }
+
+        if (! $student->canPerformActions($activeSemester)) {
+            Notification::make()
+                ->title('لا يمكنك تقديم هذا الطلب')
+                ->body('حسابك ليس في حالة نشطة.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if (! $activeSemester->survey_open) {
+            Notification::make()->title('الاستطلاع مغلق حالياً')->danger()->send();
+
+            return;
+        }
+
+        $exists = CourseSurvey::where('student_id', $student->id)
+            ->where('semester_id', $activeSemester->id)
+            ->where('course_id', $courseId)
+            ->where('is_retake', true)
+            ->exists();
+
+        if ($exists) {
+            Notification::make()->title('تم تقديم طلب إعادة لهذه المادة مسبقاً')->warning()->send();
+
+            return;
+        }
+
+        CourseSurvey::create([
+            'student_id' => $student->id,
+            'semester_id' => $activeSemester->id,
+            'course_id' => $courseId,
+            'priority' => 0,
+            'is_retake' => true,
+        ]);
+
+        $this->retakeConfirmCourseId = null;
+        Notification::make()->title('تم تقديم طلب الإعادة بنجاح')->success()->send();
     }
 }

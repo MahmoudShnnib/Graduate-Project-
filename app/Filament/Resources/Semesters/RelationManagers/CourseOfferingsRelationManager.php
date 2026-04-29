@@ -67,7 +67,7 @@ class CourseOfferingsRelationManager extends RelationManager
                     ->color('gray'),
 
                 TextColumn::make('course.credits')
-                    ->label('الساعات')
+                    ->label('الوحدات')
                     ->badge()
                     ->color('info'),
 

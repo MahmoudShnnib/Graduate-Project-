@@ -6,6 +6,7 @@ use App\Enums\EnrollmentStatus;
 use App\Enums\GradeStatus;
 use App\Enums\StudentStatus;
 use App\Enums\SuspensionStatus;
+use App\Enums\WarningType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +45,9 @@ class Student extends Model
         'delegation_entity',
         'is_transfer',
         'degree_image',
+        'dismissed_at',
+        'dismissal_type',
+        'dismissal_course_id',
     ];
 
     protected function casts(): array
@@ -55,6 +59,8 @@ class Student extends Model
             'suspension_count' => 'integer',
             'is_transfer' => 'boolean',
             'birth_date' => 'date',
+            'dismissed_at' => 'datetime',
+            'dismissal_type' => WarningType::class,
         ];
     }
 
@@ -121,9 +127,14 @@ class Student extends Model
             ->exists();
     }
 
-    public function thesisRegistration(): HasOne
+    public function thesisRegistrations(): HasMany
     {
-        return $this->hasOne(ThesisRegistration::class);
+        return $this->hasMany(ThesisRegistration::class);
+    }
+
+    public function latestThesisRegistration(): HasOne
+    {
+        return $this->hasOne(ThesisRegistration::class)->latestOfMany();
     }
 
     public function clearanceRequest(): HasOne
@@ -134,6 +145,26 @@ class Student extends Model
     public function transferCourses(): HasMany
     {
         return $this->hasMany(TransferCourse::class);
+    }
+
+    public function warnings(): HasMany
+    {
+        return $this->hasMany(StudentWarning::class);
+    }
+
+    public function activeWarnings(): HasMany
+    {
+        return $this->hasMany(StudentWarning::class)->where('is_active', true);
+    }
+
+    public function dismissalCourse(): BelongsTo
+    {
+        return $this->belongsTo(Course::class, 'dismissal_course_id');
+    }
+
+    public function exceptionalRequests(): HasMany
+    {
+        return $this->hasMany(ExceptionalRequest::class);
     }
 
     public function completedCoursesCount(): int
@@ -156,80 +187,85 @@ class Student extends Model
 
     public function isEligibleForThesis(): bool
     {
-        return $this->completedCoursesCount() >= 10
-            && (float) $this->gpa >= 3.0;
+        if ((float) $this->gpa < 3.0 || ! $this->specialization_id) {
+            return false;
+        }
+
+        $breakdown = $this->getThesisEligibilityBreakdown();
+
+        return $breakdown['general']['completed'] >= $breakdown['general']['required']
+            && $breakdown['specialized']['completed'] >= $breakdown['specialized']['required']
+            && $breakdown['elective']['completed'] >= 2;
+    }
+
+    /** @return array{general: array{required: int, completed: int}, specialized: array{required: int, completed: int}, elective: array{required: int, completed: int}} */
+    public function getThesisEligibilityBreakdown(): array
+    {
+        $completedCourseIds = $this->getCompletedCourseIds();
+
+        $breakdown = [];
+        foreach (['general', 'specialized', 'elective'] as $type) {
+            $courseIds = Course::query()
+                ->whereHas('specializations', fn ($q) => $q
+                    ->where('specialization_id', $this->specialization_id)
+                    ->where('type', $type))
+                ->pluck('id')
+                ->all();
+
+            $breakdown[$type] = [
+                'required' => $type === 'elective' ? 2 : count($courseIds),
+                'completed' => count(array_intersect($courseIds, $completedCourseIds)),
+            ];
+        }
+
+        return $breakdown;
+    }
+
+    /** @return int[] */
+    public function getCompletedCourseIds(): array
+    {
+        $enrollmentIds = $this->enrollments()
+            ->whereHas('grade', fn ($q) => $q
+                ->where('status', GradeStatus::Approved)
+                ->whereNotNull('letter')
+                ->where('letter', '!=', 'F'))
+            ->with('courseOffering:id,course_id')
+            ->get()
+            ->pluck('courseOffering.course_id')
+            ->all();
+
+        $transferIds = $this->transferCourses()
+            ->whereNotNull('letter')
+            ->where('letter', '!=', 'F')
+            ->pluck('course_id')
+            ->all();
+
+        return array_values(array_unique(array_merge($enrollmentIds, $transferIds)));
     }
 
     /**
      * Single source of truth for "can this student submit / be written to".
-     * Returns false for any non-Active global status (Inactive / Withdrawn /
-     * Graduated) or when an approved semester-scoped suspension blocks the
-     * given semester.
+     * Only Active students may perform actions. All other statuses are view-only.
      */
     public function canPerformActions(?Semester $semester = null): bool
     {
-        if ($this->status !== StudentStatus::Active) {
-            return false;
-        }
-
-        if ($semester && $this->isSuspendedInSemester($semester)) {
-            return false;
-        }
-
-        return true;
+        return $this->status === StudentStatus::Active;
     }
 
-    /**
-     * Arabic label for UI display. Precedence (highest wins):
-     *   1. Global Withdrawn / Graduated — terminal states authoritative over anything.
-     *   2. Global Inactive — permanent pause; label matches semester suspension.
-     *   3. Semester-scoped approved suspension for the active semester.
-     *   4. Global Active — "نشط".
-     */
     public function getDisplayStatusLabel(): string
     {
-        if ($this->status === StudentStatus::Withdrawn || $this->status === StudentStatus::Graduated) {
-            return $this->status->label();
-        }
-
-        if ($this->status === StudentStatus::Inactive) {
-            return StudentStatus::Inactive->label();
-        }
-
-        $activeSemester = Semester::where('is_active', true)->first();
-
-        if ($activeSemester && $this->isSuspendedInSemester($activeSemester)) {
-            return 'القيد موقوف مؤقتًا';
-        }
-
         return $this->status?->label() ?? '—';
     }
 
-    /**
-     * Filament color token matching {@see self::getDisplayStatusLabel()}.
-     */
     public function getDisplayStatusColor(): string
     {
-        if ($this->status === StudentStatus::Withdrawn) {
-            return 'danger';
-        }
-
-        if ($this->status === StudentStatus::Graduated) {
-            return 'info';
-        }
-
-        if ($this->status === StudentStatus::Inactive) {
-            return 'danger';
-        }
-
-        $activeSemester = Semester::where('is_active', true)->first();
-
-        if ($activeSemester && $this->isSuspendedInSemester($activeSemester)) {
-            return 'danger';
-        }
-
         return match ($this->status) {
             StudentStatus::Active => 'success',
+            StudentStatus::OnHold => 'danger',
+            StudentStatus::Inactive => 'warning',
+            StudentStatus::Transferred => 'info',
+            StudentStatus::Graduated => 'info',
+            StudentStatus::Dismissed => 'danger',
             default => 'gray',
         };
     }

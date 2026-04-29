@@ -49,9 +49,9 @@ class EnrollStudentInOffering
                 ->exists();
 
             if (! $isAlreadyActive) {
-                // Global status check: Inactive / Withdrawn / Graduated
-                // students cannot be written to. First check because it's
-                // the cheapest and independent of the offering.
+                // Global status check: only Active students can be enrolled.
+                // First check because it's the cheapest and independent of
+                // the offering.
                 if ($student->status !== StudentStatus::Active) {
                     throw new StudentNotActiveException($student);
                 }

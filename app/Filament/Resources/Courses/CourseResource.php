@@ -52,7 +52,7 @@ class CourseResource extends Resource
                     ->maxLength(50),
 
                 TextInput::make('credits')
-                    ->label('الساعات المعتمدة')
+                    ->label('الوحدات')
                     ->numeric()
                     ->default(3)
                     ->minValue(1)
@@ -84,7 +84,7 @@ class CourseResource extends Resource
                     ->separator(','),
 
                 TextColumn::make('credits')
-                    ->label('الساعات')
+                    ->label('الوحدات')
                     ->numeric()
                     ->sortable(),
 

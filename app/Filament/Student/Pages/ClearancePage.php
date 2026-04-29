@@ -27,9 +27,9 @@ class ClearancePage extends Page
 
     public function isThesisApproved(): bool
     {
-        $thesis = auth()->user()->student?->thesisRegistration;
+        $thesis = auth()->user()->student?->latestThesisRegistration;
 
-        return $thesis?->status === 'approved';
+        return $thesis?->status === \App\Enums\ThesisStatus::Approved;
     }
 
     public function requestClearance(): void

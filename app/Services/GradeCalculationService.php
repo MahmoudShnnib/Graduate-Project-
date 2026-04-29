@@ -22,10 +22,15 @@ class GradeCalculationService
             ->with(['grade', 'courseOffering.course'])
             ->get();
 
+        // When a student retakes a course, only the latest grade counts toward GPA.
+        $latestPerCourse = $enrollments
+            ->groupBy(fn ($e) => $e->courseOffering->course_id)
+            ->map(fn ($group) => $group->sortByDesc('id')->first());
+
         $totalPoints = 0;
         $totalCredits = 0;
 
-        foreach ($enrollments as $enrollment) {
+        foreach ($latestPerCourse as $enrollment) {
             $credits = $enrollment->courseOffering->course->credits;
             $points = (float) $enrollment->grade->points;
             $totalPoints += $points * $credits;
