@@ -35,7 +35,7 @@ The lifecycle flows roughly top-to-bottom through these layers:
 7. **Grade entry** — faculty sees their own courses via `MyCourseResource` (scoped by `faculty_id == auth()->id()`), enters coursework + final grades in `ViewMyCourse`. The `Grade` model's `booted()` saving hook auto-computes `total`, `letter` (A/B+/B/C+/C/D+/D/F), and `points` (4.0/3.5/…/0.0). Status starts as `Draft`, moves to `PendingApproval`.
 8. **Grade approval** — admin/secretary reviews in the Grades resource and sets `status = Approved`. The `GradeObserver::updated` hook catches the status change and calls `GradeCalculationService::recalculateStudentGPA` which updates `Student::gpa` (weighted by course credits, including transfer courses).
 9. **Student-side reads** — student portal pages read through the status-filtered relations (`activeEnrollments`, `activeCourseOfferings`), always limited to approved grades for transcripts.
-10. **Support flows** — thesis registration (eligible when `completedCoursesCount >= 10 && gpa >= 3.0`), suspension requests (with PDF form), clearance requests (with PDF form and transcript), and notifications via email + optional WhatsApp.
+10. **Support flows** — thesis registration (eligible when all general + specialized courses + 2 electives completed with `gpa >= 3.0`), **discussion request** (4-phase pipeline: review → scheduled → discussed → result → binding/submission), suspension requests (with PDF form), clearance requests (with PDF form and transcript — now gated by discussion completion, not just thesis approval), and notifications via email + optional WhatsApp.
 
 ## Data flow / architecture
 
@@ -58,7 +58,7 @@ The pattern is **thin controllers/pages → Action → Model write → Observer 
 
 **Models (17 total, relationships worth knowing)**
 - `User` — implements `FilamentUser`; `canAccessPanel` routes based on `role` + `is_active`; hasOne `Student`; hasOne `Application`
-- `Student` — `SoftDeletes`; hasMany `enrollments` (all) + `activeEnrollments` (filtered); belongsToMany `courseOfferings` through pivot; hasOne `thesisRegistration`/`clearanceRequest`; `completedCoursesCount()` + `isEligibleForThesis()` domain methods
+- `Student` — `SoftDeletes`; hasMany `enrollments` (all) + `activeEnrollments` (filtered); belongsToMany `courseOfferings` through pivot; hasMany `thesisRegistrations` + `discussionRequests`; hasOne `clearanceRequest`; `completedCoursesCount()` + `isEligibleForThesis()` domain methods
 - `CourseOffering` — belongs to Course + Semester + `faculty` (User); has `activeEnrollments`; stores `coursework_max`/`final_max` for grade distribution
 - `StudentEnrollment` — rich pivot with `status` enum; `scopeActive()` Builder scope; has one `Grade` (FK `enrollment_id` with `cascadeOnDelete`)
 - `Grade` — `booted()` saving hook auto-fills `total`/`letter`/`points`; static `convertToLetter()` holds the grading scale

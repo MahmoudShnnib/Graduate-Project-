@@ -14,10 +14,17 @@ class GradeCalculationService
             return;
         }
 
+        $specializationId = $student->specialization_id;
+
         $enrollments = $student->activeEnrollments()
             ->whereHas('grade', function ($query) {
                 $query->where('status', GradeStatus::Approved)
                     ->whereNotNull('letter');
+            })
+            ->where(function ($query) use ($specializationId) {
+                $query->whereHas('courseOffering.course.specializations', function ($q) use ($specializationId) {
+                    $q->where('specialization_id', $specializationId);
+                })->orWhereDoesntHave('courseOffering.course.specializations');
             })
             ->with(['grade', 'courseOffering.course'])
             ->get();
@@ -39,6 +46,11 @@ class GradeCalculationService
 
         $transferCourses = $student->transferCourses()
             ->whereNotNull('points')
+            ->where(function ($query) use ($specializationId) {
+                $query->whereHas('course.specializations', function ($q) use ($specializationId) {
+                    $q->where('specialization_id', $specializationId);
+                })->orWhereDoesntHave('course.specializations');
+            })
             ->with('course')
             ->get();
 

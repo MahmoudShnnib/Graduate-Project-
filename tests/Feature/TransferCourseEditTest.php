@@ -30,7 +30,9 @@ it('persists transfer_courses on edit save and recalculates gpa', function () {
     ['student' => $student] = studentWithRecord(['is_transfer' => true, 'gpa' => 0]);
 
     $courseA = Course::factory()->create(['credits' => 3]);
+    $courseA->specializations()->attach($student->specialization_id, ['type' => 'general']);
     $courseB = Course::factory()->create(['credits' => 3]);
+    $courseB->specializations()->attach($student->specialization_id, ['type' => 'general']);
 
     $this->actingAs(adminUser());
 

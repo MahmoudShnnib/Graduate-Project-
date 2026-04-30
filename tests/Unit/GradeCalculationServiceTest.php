@@ -32,6 +32,7 @@ test('calculates gpa correctly from approved grades', function () {
 
     foreach ($gradeData as $data) {
         $course = Course::factory()->create(['credits' => $data['credits']]);
+        $course->specializations()->attach($this->student->specialization_id, ['type' => 'general']);
         $offering = CourseOffering::factory()->create([
             'course_id' => $course->id,
             'semester_id' => $this->semester->id,

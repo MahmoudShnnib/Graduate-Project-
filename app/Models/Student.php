@@ -167,6 +167,16 @@ class Student extends Model
         return $this->hasMany(ExceptionalRequest::class);
     }
 
+    public function discussionRequests(): HasMany
+    {
+        return $this->hasMany(DiscussionRequest::class);
+    }
+
+    public function latestDiscussionRequest(): HasOne
+    {
+        return $this->hasOne(DiscussionRequest::class)->latestOfMany();
+    }
+
     public function completedCoursesCount(): int
     {
         $enrollmentCount = $this->activeEnrollments()

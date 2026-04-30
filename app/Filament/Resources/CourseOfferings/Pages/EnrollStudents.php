@@ -133,9 +133,19 @@ class EnrollStudents extends Page implements HasTable
                 ->color(fn (): string => $this->record->is_open ? 'danger' : 'success')
                 ->requiresConfirmation()
                 ->modalHeading(fn (): string => $this->record->is_open ? 'إغلاق المقرر' : 'فتح المقرر')
-                ->modalDescription(fn (): string => $this->record->is_open
-                    ? 'سيتم إلغاء تسجيل جميع الطلاب المسجلين في هذا المقرر. هل أنت متأكد؟'
-                    : 'سيتم فتح المقرر للتسجيل.')
+                ->modalDescription(function (): string {
+                    if (! $this->record->is_open) {
+                        return 'سيتم فتح المقرر للتسجيل.';
+                    }
+
+                    $count = $this->record->activeEnrollments()->count();
+
+                    if ($count > 0) {
+                        return "هذه المادة فيها {$count} طالب مسجل. سيتم إلغاء تسجيلهم جميعاً عند الإغلاق. هل أنت متأكد؟";
+                    }
+
+                    return 'هل أنت متأكد من إغلاق هذا المقرر؟';
+                })
                 ->action(function () {
                     $this->record->update(['is_open' => ! $this->record->is_open]);
 

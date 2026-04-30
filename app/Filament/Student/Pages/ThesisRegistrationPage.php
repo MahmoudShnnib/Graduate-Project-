@@ -2,7 +2,9 @@
 
 namespace App\Filament\Student\Pages;
 
+use App\Enums\DiscussionStatus;
 use App\Enums\ThesisStatus;
+use App\Models\DiscussionRequest;
 use App\Models\Supervisor;
 use App\Models\ThesisRegistration;
 use App\Models\User;
@@ -213,5 +215,67 @@ class ThesisRegistrationPage extends Page
         $this->proposalFile = null;
 
         Notification::make()->title('تم إرسال طلب تسجيل الرسالة للمراجعة')->success()->send();
+    }
+
+    public function getLatestDiscussionRequest(): ?DiscussionRequest
+    {
+        return auth()->user()->student?->latestDiscussionRequest;
+    }
+
+    public function canRequestDiscussion(): bool
+    {
+        $registration = $this->getLatestRegistration();
+
+        if (! $registration || $registration->status !== ThesisStatus::Approved) {
+            return false;
+        }
+
+        $latest = $this->getLatestDiscussionRequest();
+
+        if (! $latest) {
+            return true;
+        }
+
+        return in_array($latest->status, [
+            DiscussionStatus::Rejected,
+            DiscussionStatus::DiscussionRejected,
+        ]);
+    }
+
+    public function requestDiscussion(): void
+    {
+        $student = auth()->user()->student;
+
+        if (! $student) {
+            Notification::make()->title('لا يوجد سجل طالب')->danger()->send();
+
+            return;
+        }
+
+        if (! $student->canPerformActions()) {
+            Notification::make()
+                ->title('لا يمكنك تقديم هذا الطلب')
+                ->body('حسابك ليس في حالة نشطة حالياً.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if (! $this->canRequestDiscussion()) {
+            Notification::make()->title('لا يمكنك تقديم طلب مناقشة حالياً')->warning()->send();
+
+            return;
+        }
+
+        $registration = $this->getLatestRegistration();
+
+        DiscussionRequest::create([
+            'student_id' => $student->id,
+            'thesis_registration_id' => $registration->id,
+            'status' => DiscussionStatus::Pending,
+        ]);
+
+        Notification::make()->title('تم إرسال طلب المناقشة للمراجعة')->success()->send();
     }
 }

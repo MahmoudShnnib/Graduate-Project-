@@ -98,7 +98,22 @@ class CourseOfferingsRelationManager extends RelationManager
                 Action::make('toggle_open')
                     ->label(fn (CourseOffering $record): string => $record->is_open ? 'إغلاق' : 'فتح')
                     ->icon(fn (CourseOffering $record) => $record->is_open ? Heroicon::LockClosed : Heroicon::LockOpen)
-                    ->color(fn (CourseOffering $record): string => $record->is_open ? 'warning' : 'success')
+                    ->color(fn (CourseOffering $record): string => $record->is_open ? 'danger' : 'success')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (CourseOffering $record): string => $record->is_open ? 'إغلاق المقرر' : 'فتح المقرر')
+                    ->modalDescription(function (CourseOffering $record): string {
+                        if (! $record->is_open) {
+                            return 'سيتم فتح المقرر للتسجيل.';
+                        }
+
+                        $count = $record->activeEnrollments()->count();
+
+                        if ($count > 0) {
+                            return "هذه المادة فيها {$count} طالب مسجل. سيتم إلغاء تسجيلهم جميعاً عند الإغلاق. هل أنت متأكد؟";
+                        }
+
+                        return 'هل أنت متأكد من إغلاق هذا المقرر؟';
+                    })
                     ->action(function (CourseOffering $record): void {
                         $record->update(['is_open' => ! $record->is_open]);
 

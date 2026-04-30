@@ -2,9 +2,12 @@
 
 namespace App\Filament\Student\Pages;
 
+use App\Enums\DiscussionStatus;
 use App\Enums\ExceptionalRequestStatus;
 use App\Enums\StudentStatus;
+use App\Enums\ThesisStatus;
 use App\Enums\WarningType;
+use App\Models\DiscussionRequest;
 use App\Models\ExceptionalRequest;
 use App\Models\Semester;
 use App\Models\Student;
@@ -75,6 +78,40 @@ class StudentDashboard extends Page
             ->groupBy('course_offerings.course_id')
             ->pluck('fail_count', 'course_offerings.course_id')
             ->all();
+    }
+
+    public function getActiveDiscussionRequest(): ?DiscussionRequest
+    {
+        $student = $this->getStudent();
+
+        if (! $student) {
+            return null;
+        }
+
+        return $student->discussionRequests()
+            ->whereNotIn('status', [
+                DiscussionStatus::Rejected,
+                DiscussionStatus::DiscussionRejected,
+            ])
+            ->latest()
+            ->first();
+    }
+
+    public function isThesisApprovedWithoutDiscussion(): bool
+    {
+        $student = $this->getStudent();
+
+        if (! $student) {
+            return false;
+        }
+
+        $thesis = $student->latestThesisRegistration;
+
+        if (! $thesis || $thesis->status !== ThesisStatus::Approved) {
+            return false;
+        }
+
+        return ! $this->getActiveDiscussionRequest();
     }
 
     public function getDismissalReasonText(): ?string
