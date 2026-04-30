@@ -49,6 +49,85 @@
             </div>
         @endif
 
+        {{-- Thesis Approved — Prompt to Request Discussion --}}
+        @if($this->isThesisApprovedWithoutDiscussion())
+            <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-success-300 bg-success-50 dark:bg-success-500/10 dark:border-success-500/40 ring-2 ring-success-200 dark:ring-success-500/30">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-100 dark:bg-success-500/20">
+                    <x-heroicon-o-check-badge style="width: 1.25rem; height: 1.25rem;" class="text-success-600 dark:text-success-400" />
+                </div>
+                <div class="flex-1">
+                    <p class="font-bold text-success-800 dark:text-success-300 text-sm">رسالتك مقبولة — يمكنك طلب المناقشة</p>
+                    <p class="text-sm text-success-700 dark:text-success-400 mt-1">تم قبول رسالتك العلمية. يمكنك الآن تقديم طلب المناقشة من صفحة <a href="{{ route('filament.student.pages.thesis-registration-page') }}" class="underline font-semibold hover:text-success-900 dark:hover:text-success-300">تسجيل الرسالة</a>.</p>
+                </div>
+            </div>
+        @endif
+
+        {{-- Discussion Request Banner --}}
+        @php $activeDiscussion = $this->getActiveDiscussionRequest(); @endphp
+        @if($activeDiscussion)
+            @if($activeDiscussion->status === \App\Enums\DiscussionStatus::Pending)
+                <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-warning-300 bg-warning-50 dark:bg-warning-500/10 dark:border-warning-500/40 ring-2 ring-warning-200 dark:ring-warning-500/30">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning-100 dark:bg-warning-500/20">
+                        <x-heroicon-o-clock style="width: 1.25rem; height: 1.25rem;" class="text-warning-600 dark:text-warning-400" />
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-warning-800 dark:text-warning-300 text-sm">طلب المناقشة قيد المراجعة</p>
+                        <p class="text-sm text-warning-700 dark:text-warning-400 mt-1">تم إرسال طلب المناقشة وهو بانتظار مراجعة الإدارة. يمكنك متابعة حالة الطلب من صفحة <a href="{{ route('filament.student.pages.thesis-registration-page') }}" class="underline font-semibold hover:text-warning-900 dark:hover:text-warning-300">تسجيل الرسالة</a>.</p>
+                    </div>
+                </div>
+            @elseif($activeDiscussion->status === \App\Enums\DiscussionStatus::Scheduled)
+                <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-info-300 bg-info-50 dark:bg-info-500/10 dark:border-info-500/40 ring-2 ring-info-200 dark:ring-info-500/30">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info-100 dark:bg-info-500/20">
+                        <x-heroicon-o-calendar-days style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-info-800 dark:text-info-300 text-sm">موعد المناقشة</p>
+                        <p class="text-sm text-info-700 dark:text-info-400 mt-1">تم تحديد موعد مناقشة رسالتك: <span class="font-bold">{{ $activeDiscussion->discussion_date->format('Y/m/d') }}</span></p>
+                    </div>
+                </div>
+            @elseif($activeDiscussion->status === \App\Enums\DiscussionStatus::Discussed)
+                <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-info-300 bg-info-50 dark:bg-info-500/10 dark:border-info-500/40 ring-2 ring-info-200 dark:ring-info-500/30">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info-100 dark:bg-info-500/20">
+                        <x-heroicon-o-chat-bubble-left-right style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-info-800 dark:text-info-300 text-sm">تمت المناقشة — بانتظار النتيجة</p>
+                        <p class="text-sm text-info-700 dark:text-info-400 mt-1">تمت مناقشة رسالتك وجارٍ تحديد النتيجة من قبل الإدارة.</p>
+                    </div>
+                </div>
+            @elseif($activeDiscussion->status === \App\Enums\DiscussionStatus::AcceptedWithEdits)
+                <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-warning-300 bg-warning-50 dark:bg-warning-500/10 dark:border-warning-500/40 ring-2 ring-warning-200 dark:ring-warning-500/30">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning-100 dark:bg-warning-500/20">
+                        <x-heroicon-o-pencil-square style="width: 1.25rem; height: 1.25rem;" class="text-warning-600 dark:text-warning-400" />
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-warning-800 dark:text-warning-300 text-sm">مقبول مع تعديلات</p>
+                        <p class="text-sm text-warning-700 dark:text-warning-400 mt-1">تم قبول مناقشتك مع طلب تعديلات — بانتظار إتمام التعديلات.</p>
+                    </div>
+                </div>
+            @elseif($activeDiscussion->status === \App\Enums\DiscussionStatus::DiscussionApproved)
+                <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-success-300 bg-success-50 dark:bg-success-500/10 dark:border-success-500/40 ring-2 ring-success-200 dark:ring-success-500/30">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-100 dark:bg-success-500/20">
+                        <x-heroicon-o-check-badge style="width: 1.25rem; height: 1.25rem;" class="text-success-600 dark:text-success-400" />
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-success-800 dark:text-success-300 text-sm">تمت الموافقة على المناقشة</p>
+                        <p class="text-sm text-success-700 dark:text-success-400 mt-1">بانتظار التجليد والتسليم.</p>
+                    </div>
+                </div>
+            @elseif($activeDiscussion->status === \App\Enums\DiscussionStatus::Completed)
+                <div class="flex items-start gap-4 p-5 rounded-xl border-2 border-success-300 bg-success-50 dark:bg-success-500/10 dark:border-success-500/40 ring-2 ring-success-200 dark:ring-success-500/30">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-100 dark:bg-success-500/20">
+                        <x-heroicon-o-check-badge style="width: 1.25rem; height: 1.25rem;" class="text-success-600 dark:text-success-400" />
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-success-800 dark:text-success-300 text-sm">تمت الموافقة النهائية</p>
+                        <p class="text-sm text-success-700 dark:text-success-400 mt-1">تم التجليد والتسليم — يمكنك الآن تقديم طلب الاستماحة من صفحة <a href="{{ route('filament.student.pages.clearance-page') }}" class="underline font-semibold hover:text-success-900 dark:hover:text-success-300">الاستماحة</a>.</p>
+                    </div>
+                </div>
+            @endif
+        @endif
+
         {{-- Welcome Banner --}}
         <div class="rounded-xl border border-primary-200 dark:border-primary-500/30 bg-primary-50 dark:bg-primary-500/10 px-6 py-5">
             <div class="flex items-center justify-between gap-4 flex-wrap">
@@ -316,22 +395,32 @@
                     @foreach($activeWarnings as $warning)
                         <div @class([
                             'flex items-start gap-3 p-3 rounded-lg border text-sm',
-                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10' => $isDismissed,
-                            'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => ! $isDismissed,
+                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10' => $isDismissed || $warning->has_exceptional_chance,
+                            'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => ! $isDismissed && ! $warning->has_exceptional_chance,
                         ])>
                             @if($warning->type === \App\Enums\WarningType::CourseFailure)
-                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $isDismissed ? 'bg-danger-100 dark:bg-danger-500/20' : 'bg-warning-100 dark:bg-warning-500/20' }}">
-                                    <x-heroicon-o-x-circle style="width: 1rem; height: 1rem;" class="{{ $isDismissed ? 'text-danger-500' : 'text-warning-500' }}" />
+                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ ($isDismissed || $warning->has_exceptional_chance) ? 'bg-danger-100 dark:bg-danger-500/20' : 'bg-warning-100 dark:bg-warning-500/20' }}">
+                                    <x-heroicon-o-x-circle style="width: 1rem; height: 1rem;" class="{{ ($isDismissed || $warning->has_exceptional_chance) ? 'text-danger-500' : 'text-warning-500' }}" />
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex items-center justify-between">
-                                        <p class="font-semibold {{ $isDismissed ? 'text-danger-800 dark:text-danger-300' : 'text-warning-800 dark:text-warning-300' }}">{{ $warning->course?->name ?? 'غير محددة' }}</p>
+                                        <p class="font-semibold {{ ($isDismissed || $warning->has_exceptional_chance) ? 'text-danger-800 dark:text-danger-300' : 'text-warning-800 dark:text-warning-300' }}">{{ $warning->course?->name ?? 'غير محددة' }}</p>
                                         @php $count = $failCounts[$warning->course_id] ?? 1; @endphp
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $isDismissed ? 'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' : 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' }}">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ ($isDismissed || $warning->has_exceptional_chance) ? 'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' : 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' }}">
                                             رسوب {{ $count === 1 ? 'مرة واحدة' : ($count === 2 ? 'مرتين' : $count . ' مرات') }}
                                         </span>
                                     </div>
-                                    <p class="text-xs {{ $isDismissed ? 'text-danger-600 dark:text-danger-400' : 'text-warning-600 dark:text-warning-400' }} mt-1">السبب: رسوب في مادة</p>
+                                    @if($warning->has_exceptional_chance)
+                                        <div class="mt-2 p-2 rounded-md bg-danger-100 dark:bg-danger-500/20 border border-danger-300 dark:border-danger-500/40">
+                                            <p class="text-xs font-bold text-danger-800 dark:text-danger-300 flex items-center gap-1.5">
+                                                <x-heroicon-o-shield-exclamation style="width: 0.875rem; height: 0.875rem;" class="flex-shrink-0" />
+                                                هذه فرصتك الأخيرة في هذه المادة
+                                            </p>
+                                            <p class="text-xs text-danger-700 dark:text-danger-400 mt-0.5">في حال الرسوب مرة أخرى سيتم فصلك نهائياً من الدراسة.</p>
+                                        </div>
+                                    @else
+                                        <p class="text-xs {{ $isDismissed ? 'text-danger-600 dark:text-danger-400' : 'text-warning-600 dark:text-warning-400' }} mt-1">السبب: رسوب في مادة</p>
+                                    @endif
                                 </div>
                             @else
                                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $isDismissed ? 'bg-danger-100 dark:bg-danger-500/20' : 'bg-warning-100 dark:bg-warning-500/20' }}">

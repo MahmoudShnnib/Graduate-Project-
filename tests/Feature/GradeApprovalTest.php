@@ -59,7 +59,14 @@ test('grade below 50 gets letter F', function () {
 test('approving a grade recalculates student GPA', function () {
     ['student' => $student] = studentWithRecord(['gpa' => 0.0]);
 
-    $enrollment = StudentEnrollment::factory()->create(['student_id' => $student->id]);
+    $course = \App\Models\Course::factory()->create(['credits' => 3]);
+    $course->specializations()->attach($student->specialization_id, ['type' => 'general']);
+
+    $offering = \App\Models\CourseOffering::factory()->create(['course_id' => $course->id]);
+    $enrollment = StudentEnrollment::factory()->create([
+        'student_id' => $student->id,
+        'course_offering_id' => $offering->id,
+    ]);
 
     $grade = Grade::factory()->create([
         'enrollment_id' => $enrollment->id,

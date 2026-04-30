@@ -2,6 +2,7 @@
 
 namespace App\Filament\Student\Pages;
 
+use App\Enums\DiscussionStatus;
 use App\Models\ClearanceRequest;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -25,11 +26,17 @@ class ClearancePage extends Page
         return $student?->clearanceRequest;
     }
 
-    public function isThesisApproved(): bool
+    public function isDiscussionCompleted(): bool
     {
-        $thesis = auth()->user()->student?->latestThesisRegistration;
+        $student = auth()->user()->student;
 
-        return $thesis?->status === \App\Enums\ThesisStatus::Approved;
+        if (! $student) {
+            return false;
+        }
+
+        return $student->discussionRequests()
+            ->where('status', DiscussionStatus::Completed)
+            ->exists();
     }
 
     public function requestClearance(): void
@@ -52,8 +59,8 @@ class ClearancePage extends Page
             return;
         }
 
-        if (! $this->isThesisApproved()) {
-            Notification::make()->title('يجب قبول الرسالة أولاً قبل طلب الاستماحة')->danger()->send();
+        if (! $this->isDiscussionCompleted()) {
+            Notification::make()->title('يجب إتمام المناقشة والتجليد والتسليم قبل طلب الاستماحة')->danger()->send();
 
             return;
         }

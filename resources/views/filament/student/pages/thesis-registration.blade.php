@@ -396,6 +396,129 @@
         </x-filament::section>
     @endif
 
+    {{-- Discussion Request Section (only when thesis is approved) --}}
+    @if($registration && $registration->status === \App\Enums\ThesisStatus::Approved)
+        @php
+            $discussion = $this->getLatestDiscussionRequest();
+            $canRequestDiscussion = $this->canRequestDiscussion();
+        @endphp
+
+        <x-filament::section>
+            <x-slot name="heading">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-chat-bubble-left-right style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
+                    <span>طلب المناقشة</span>
+                </div>
+            </x-slot>
+
+            @if($discussion && ! in_array($discussion->status, [\App\Enums\DiscussionStatus::Rejected, \App\Enums\DiscussionStatus::DiscussionRejected]))
+                @php
+                    $dLabel = $discussion->status->studentLabel();
+                    $dColor = $discussion->status->studentColor();
+                @endphp
+
+                <div class="flex justify-between items-center mb-5">
+                    <span @class([
+                        'inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium',
+                        'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $dColor === 'warning',
+                        'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $dColor === 'success',
+                        'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'   => $dColor === 'danger',
+                    ])>{{ $dLabel }}</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500">{{ $discussion->created_at->format('Y/m/d') }}</span>
+                </div>
+
+                @if($discussion->discussion_date)
+                    <div class="flex items-start gap-4 p-4 rounded-xl border border-info-200 bg-info-50 dark:border-info-500/30 dark:bg-info-500/10">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info-100 dark:bg-info-500/20">
+                            <x-heroicon-o-calendar-days style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
+                        </div>
+                        <div>
+                            <p class="font-semibold text-info-800 dark:text-info-300 text-sm">موعد المناقشة</p>
+                            <p class="text-sm text-info-700 dark:text-info-400 mt-0.5">{{ $discussion->discussion_date->format('Y/m/d') }}</p>
+                        </div>
+                    </div>
+                @endif
+
+                @if($discussion->status === \App\Enums\DiscussionStatus::DiscussionApproved || $discussion->status === \App\Enums\DiscussionStatus::Completed)
+                    <div class="flex items-start gap-4 p-4 rounded-xl border border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10 mt-4">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-100 dark:bg-success-500/20">
+                            <x-heroicon-o-check-badge style="width: 1.25rem; height: 1.25rem;" class="text-success-600 dark:text-success-400" />
+                        </div>
+                        <div>
+                            <p class="font-semibold text-success-800 dark:text-success-300 text-sm">تمت الموافقة النهائية على المناقشة</p>
+                            @if($discussion->status === \App\Enums\DiscussionStatus::Completed)
+                                <p class="text-sm text-success-700 dark:text-success-400 mt-0.5">تم التجليد والتسليم — يمكنك الآن تقديم طلب الاستماحة.</p>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+            @elseif($discussion && in_array($discussion->status, [\App\Enums\DiscussionStatus::Rejected, \App\Enums\DiscussionStatus::DiscussionRejected]))
+                {{-- Rejected discussion — show rejection notice --}}
+                <div class="flex items-start gap-4 p-4 rounded-xl border bg-danger-50 border-danger-200 dark:bg-danger-500/10 dark:border-danger-500/30 mb-4">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-500/20">
+                        <x-heroicon-o-x-mark style="width: 1.25rem; height: 1.25rem;" class="text-danger-600 dark:text-danger-400" />
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-danger-800 dark:text-danger-300 text-sm">تم رفض طلب المناقشة — {{ $discussion->decided_at?->format('Y/m/d') ?? $discussion->updated_at->format('Y/m/d') }}</p>
+                        @if($discussion->rejection_reason)
+                            <p class="text-sm text-danger-700 dark:text-danger-400 mt-1">سبب الرفض: {{ $discussion->rejection_reason }}</p>
+                        @endif
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">يمكنك إعادة تقديم طلب مناقشة جديد.</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center text-center py-6">
+                    <x-filament::button
+                        x-on:click="$dispatch('open-modal', { id: 'confirm-discussion-request' })"
+                        icon="heroicon-o-paper-airplane"
+                    >
+                        إعادة تقديم طلب المناقشة
+                    </x-filament::button>
+                </div>
+
+            @elseif($canRequestDiscussion && $student?->canPerformActions())
+                {{-- No discussion request yet — show submit button --}}
+                <div class="flex flex-col items-center text-center py-6">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-500/20 mb-4">
+                        <x-heroicon-o-chat-bubble-left-right style="width: 1.75rem; height: 1.75rem;" class="text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <p class="font-semibold text-gray-900 dark:text-white mb-1">رسالتك مقبولة — يمكنك طلب المناقشة</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">سيتم تحديد موعد المناقشة بعد مراجعة طلبك من قبل الإدارة.</p>
+                    <x-filament::button
+                        x-on:click="$dispatch('open-modal', { id: 'confirm-discussion-request' })"
+                        icon="heroicon-o-paper-airplane"
+                    >
+                        تقديم طلب المناقشة
+                    </x-filament::button>
+                </div>
+            @endif
+        </x-filament::section>
+
+        {{-- Confirmation Modal --}}
+        @if($canRequestDiscussion && $student?->canPerformActions())
+            <x-filament::modal id="confirm-discussion-request" width="md">
+                <x-slot name="heading">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-chat-bubble-left-right style="width: 1.1rem; height: 1.1rem;" class="text-primary-500" />
+                        <span>تأكيد تقديم طلب المناقشة</span>
+                    </div>
+                </x-slot>
+
+                <p class="text-sm text-gray-600 dark:text-gray-400">سيتم إرسال طلب مناقشة رسالتك للمراجعة من قبل الإدارة. سيتم تحديد موعد المناقشة بعد القبول.</p>
+
+                <x-slot name="footerActions">
+                    <x-filament::button wire:click="requestDiscussion" x-on:click="$dispatch('close-modal', { id: 'confirm-discussion-request' })" icon="heroicon-o-paper-airplane">
+                        تأكيد الإرسال
+                    </x-filament::button>
+                    <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'confirm-discussion-request' })">
+                        إلغاء
+                    </x-filament::button>
+                </x-slot>
+            </x-filament::modal>
+        @endif
+    @endif
+
     {{-- Previous registrations history --}}
     @if($student && $student->thesisRegistrations()->count() > 1)
         <x-filament::section collapsible collapsed>

@@ -66,8 +66,8 @@ it('accepts an exceptional request and reactivates the student', function () {
     $admin = adminUser();
     $this->actingAs($admin);
 
-    Livewire\Livewire::test(\App\Filament\Pages\ExceptionalOpportunitiesPage::class)
-        ->call('acceptRequest', $request->id);
+    Livewire\Livewire::test(\App\Filament\Pages\ViewExceptionalStudent::class, ['student' => $this->student->id])
+        ->callAction('accept');
 
     $student = $this->student->fresh();
     expect($student->status)->toBe(StudentStatus::Active)
@@ -99,8 +99,8 @@ it('rejects an exceptional request and student stays dismissed', function () {
     $admin = adminUser();
     $this->actingAs($admin);
 
-    Livewire\Livewire::test(\App\Filament\Pages\ExceptionalOpportunitiesPage::class)
-        ->call('rejectRequest', $request->id);
+    Livewire\Livewire::test(\App\Filament\Pages\ViewExceptionalStudent::class, ['student' => $this->student->id])
+        ->callAction('reject');
 
     expect($this->student->fresh()->status)->toBe(StudentStatus::Dismissed)
         ->and($request->fresh()->status)->toBe(ExceptionalRequestStatus::Rejected);
@@ -122,10 +122,8 @@ it('sends a summon message that shows on student dashboard', function () {
     $admin = adminUser();
     $this->actingAs($admin);
 
-    Livewire\Livewire::test(\App\Filament\Pages\ExceptionalOpportunitiesPage::class)
-        ->call('openSummonModal', $request->id)
-        ->set('summonMessage', 'يرجى الحضور للإدارة يوم الأحد')
-        ->call('sendSummon');
+    Livewire\Livewire::test(\App\Filament\Pages\ViewExceptionalStudent::class, ['student' => $this->student->id])
+        ->callAction('summon', data: ['summon_message' => 'يرجى الحضور للإدارة يوم الأحد']);
 
     $request->refresh();
     expect($request->status)->toBe(ExceptionalRequestStatus::Summoned)
@@ -177,8 +175,8 @@ it('bans reapply when student fails course again after exceptional acceptance', 
     $admin = adminUser();
     $this->actingAs($admin);
 
-    Livewire\Livewire::test(\App\Filament\Pages\ExceptionalOpportunitiesPage::class)
-        ->call('acceptRequest', $request->id);
+    Livewire\Livewire::test(\App\Filament\Pages\ViewExceptionalStudent::class, ['student' => $this->student->id])
+        ->callAction('accept');
 
     $student = $this->student->fresh();
     expect($student->status)->toBe(StudentStatus::Active);
@@ -230,8 +228,8 @@ it('accepts inactive dismissal and gives fresh start with zero warnings', functi
     $admin = adminUser();
     $this->actingAs($admin);
 
-    Livewire\Livewire::test(\App\Filament\Pages\ExceptionalOpportunitiesPage::class)
-        ->call('acceptRequest', $request->id);
+    Livewire\Livewire::test(\App\Filament\Pages\ViewExceptionalStudent::class, ['student' => $this->student->id])
+        ->callAction('accept');
 
     $student = $this->student->fresh();
     expect($student->status)->toBe(StudentStatus::Active)
