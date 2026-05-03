@@ -18,6 +18,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ThesisRegistrationResource extends Resource
 {
@@ -34,6 +35,16 @@ class ThesisRegistrationResource extends Resource
     protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
 
     protected static ?int $navigationSort = 5;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $latestIds = ThesisRegistration::query()
+            ->selectRaw('MAX(id) as id')
+            ->groupBy('student_id')
+            ->pluck('id');
+
+        return parent::getEloquentQuery()->whereIn('id', $latestIds);
+    }
 
     public static function form(Schema $schema): Schema
     {

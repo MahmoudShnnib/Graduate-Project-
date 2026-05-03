@@ -8,6 +8,8 @@ use App\Models\DiscussionRequest;
 use App\Models\Supervisor;
 use App\Models\ThesisRegistration;
 use App\Models\User;
+use App\Rules\ArabicOnly;
+use App\Rules\EnglishOnly;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\WithFileUploads;
@@ -171,8 +173,8 @@ class ThesisRegistrationPage extends Page
         }
 
         $rules = [
-            'thesisTitle' => 'required|min:5',
-            'thesisTitleEn' => 'required|min:5',
+            'thesisTitle' => ['required', 'min:5', new ArabicOnly(allowNumbers: true)],
+            'thesisTitleEn' => ['required', 'min:5', new EnglishOnly],
             'selectedSupervisorId' => 'required',
             'proposalFile' => 'required|file|max:10240',
         ];
@@ -208,13 +210,9 @@ class ThesisRegistrationPage extends Page
 
         ThesisRegistration::create($data);
 
-        $this->thesisTitle = '';
-        $this->thesisTitleEn = '';
-        $this->supervisorType = 'internal';
-        $this->selectedSupervisorId = null;
-        $this->proposalFile = null;
-
         Notification::make()->title('تم إرسال طلب تسجيل الرسالة للمراجعة')->success()->send();
+
+        $this->redirectRoute('filament.student.pages.thesis-registration-page');
     }
 
     public function getLatestDiscussionRequest(): ?DiscussionRequest
@@ -277,5 +275,7 @@ class ThesisRegistrationPage extends Page
         ]);
 
         Notification::make()->title('تم إرسال طلب المناقشة للمراجعة')->success()->send();
+
+        $this->redirectRoute('filament.student.pages.thesis-registration-page');
     }
 }

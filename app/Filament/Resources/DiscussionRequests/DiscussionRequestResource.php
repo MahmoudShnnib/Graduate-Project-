@@ -43,7 +43,9 @@ class DiscussionRequestResource extends Resource
             ->groupBy('student_id')
             ->pluck('id');
 
-        return parent::getEloquentQuery()->whereIn('id', $latestIds);
+        return parent::getEloquentQuery()
+            ->whereIn('id', $latestIds)
+            ->where('status', '!=', DiscussionStatus::Completed);
     }
 
     public static function table(Table $table): Table
