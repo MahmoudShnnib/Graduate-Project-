@@ -6,7 +6,6 @@ use App\Enums\GradeStatus;
 use App\Filament\Resources\Grades\GradeResource;
 use App\Models\CourseOffering;
 use App\Models\Grade;
-use App\Services\GradeCalculationService;
 use App\Services\NotificationService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -30,6 +29,14 @@ class ViewCourseGrades extends Page implements HasTable
     protected string $view = 'filament.resources.grades.pages.view-course-grades';
 
     public CourseOffering $record;
+
+    public function boot(): void
+    {
+        $user = auth()->user();
+        if (isset($this->record) && $user->role === 'faculty' && $this->record->faculty_id !== $user->id) {
+            abort(403);
+        }
+    }
 
     public function getTitle(): string
     {
@@ -106,15 +113,13 @@ class ViewCourseGrades extends Page implements HasTable
                     ->requiresConfirmation()
                     ->modalHeading('اعتماد الدرجة')
                     ->modalDescription('هل تريد اعتماد هذه الدرجة؟ لن يمكن تعديلها بعد الاعتماد.')
-                    ->action(function (Grade $record, GradeCalculationService $calculator, NotificationService $notifier): void {
+                    ->action(function (Grade $record, NotificationService $notifier): void {
                         $record->update([
                             'status' => GradeStatus::Approved,
                             'approved_by' => auth()->id(),
                             'approved_at' => now(),
                         ]);
 
-                        $student = $record->enrollment->student;
-                        $calculator->recalculateStudentGPA($student);
                         $notifier->notifyGradePublished($record);
 
                         Notification::make()->title('تم اعتماد الدرجة بنجاح')->success()->send();
@@ -137,7 +142,7 @@ class ViewCourseGrades extends Page implements HasTable
                     ->fillForm(fn (Grade $record): array => [
                         'status' => $record->status->value,
                     ])
-                    ->action(function (Grade $record, array $data, GradeCalculationService $calculator, NotificationService $notifier): void {
+                    ->action(function (Grade $record, array $data, NotificationService $notifier): void {
                         $newStatus = GradeStatus::from($data['status']);
                         $wasApproved = $record->status === GradeStatus::Approved;
 
@@ -151,8 +156,6 @@ class ViewCourseGrades extends Page implements HasTable
                         $record->update($updateData);
 
                         if ($newStatus === GradeStatus::Approved && ! $wasApproved) {
-                            $student = $record->enrollment->student;
-                            $calculator->recalculateStudentGPA($student);
                             $notifier->notifyGradePublished($record);
                         }
 
@@ -201,7 +204,7 @@ class ViewCourseGrades extends Page implements HasTable
                     ->requiresConfirmation()
                     ->modalHeading('اعتماد الدرجات المحددة')
                     ->modalDescription('سيتم اعتماد جميع الدرجات المحددة. لن يمكن تعديلها بعد الاعتماد.')
-                    ->action(function (Collection $records, GradeCalculationService $calculator, NotificationService $notifier): void {
+                    ->action(function (Collection $records, NotificationService $notifier): void {
                         $count = 0;
 
                         foreach ($records as $grade) {
@@ -215,8 +218,6 @@ class ViewCourseGrades extends Page implements HasTable
                                 'approved_at' => now(),
                             ]);
 
-                            $student = $grade->enrollment->student;
-                            $calculator->recalculateStudentGPA($student);
                             $notifier->notifyGradePublished($grade);
                             $count++;
                         }

@@ -19,6 +19,7 @@ class CreateApplication
     {
         return Application::create([
             'name' => $data['name'],
+            'name_en' => $data['name_en'] ?? null,
             'email' => $data['email'],
             'password' => $data['password'] ?? null,
             'phone' => $data['phone'],

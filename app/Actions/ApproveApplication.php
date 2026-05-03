@@ -26,6 +26,10 @@ class ApproveApplication
             throw new \Exception('تمت الموافقة على هذا الطلب بالفعل');
         }
 
+        if (User::where('email', $application->email)->exists()) {
+            throw new \Exception('البريد الإلكتروني "'.$application->email.'" مسجل بالفعل في النظام. لا يمكن قبول هذا الطلب — قد يكون مقدم الطلب مسجلاً كطالب أو مستخدم آخر.');
+        }
+
         DB::transaction(function () use ($application) {
             $application->update([
                 'status' => ApplicationStatus::Accepted,

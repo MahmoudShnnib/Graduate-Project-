@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CreateApplication;
+use App\Models\Application;
 use App\Models\Specialization;
+use App\Models\User;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
 use App\Services\NotificationService;
@@ -50,8 +52,24 @@ class RegistrationController extends Controller
                 new ArabicOnly,
                 new MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)'),
             ],
-            'name_en' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/'],
-            'email' => ['required', 'email', 'max:255'],
+            'name_en' => ['required', 'string', 'max:255', "regex:/^[a-zA-Z\\s\\-']+$/"],
+            'email' => [
+                'required', 'email', 'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (User::where('email', $value)->exists()) {
+                        $fail('هذا البريد الإلكتروني مسجل بالفعل في النظام — يمكنك تسجيل الدخول من بوابة الطالب.');
+                    }
+                    $existing = Application::where('email', $value)
+                        ->whereIn('status', ['pending', 'initially_approved'])
+                        ->first();
+                    if ($existing) {
+                        $fail('يوجد طلب قيد المراجعة بهذا البريد الإلكتروني — يرجى انتظار قرار الإدارة أو متابعة طلبك عبر صفحة المتابعة.');
+                    }
+                    if (Application::where('email', $value)->where('status', 'accepted')->exists()) {
+                        $fail('تم قبول طلبك سابقاً — يمكنك تسجيل الدخول كطالب من بوابة الطالب.');
+                    }
+                },
+            ],
             'phone' => [
                 'bail', 'required',
                 function (string $attribute, mixed $value, \Closure $fail): void {
@@ -92,8 +110,21 @@ class RegistrationController extends Controller
                     $v = (string) $value;
                     if (! preg_match('/^\d+$/', $v)) {
                         $fail('الرقم الوطني يتكون من أرقام فقط');
-                    } elseif (strlen($v) !== 12) {
+
+                        return;
+                    }
+                    if (strlen($v) !== 12) {
                         $fail('الرقم الوطني يتكون من 12 رقماً بالضبط');
+
+                        return;
+                    }
+                    $existing = Application::where('national_id', $v)
+                        ->whereIn('status', ['pending', 'initially_approved', 'accepted'])
+                        ->first();
+                    if ($existing && $existing->status->value === 'accepted') {
+                        $fail('تم قبول طلب سابق بهذا الرقم الوطني.');
+                    } elseif ($existing) {
+                        $fail('يوجد طلب قيد المراجعة بهذا الرقم الوطني — يرجى انتظار قرار الإدارة.');
                     }
                 },
             ],

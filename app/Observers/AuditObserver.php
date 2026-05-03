@@ -15,7 +15,7 @@ class AuditObserver
     private const WATCHED_FIELDS = [
         Grade::class => ['coursework_grade', 'final_grade', 'total', 'letter', 'status'],
         Application::class => ['status', 'rejection_reason'],
-        Student::class => ['gpa', 'warnings_count', 'status', 'enrollment_no'],
+        Student::class => ['warnings_count', 'status', 'enrollment_no'],
         StudentEnrollment::class => ['status'],
         ThesisRegistration::class => ['status'],
     ];

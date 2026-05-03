@@ -27,7 +27,13 @@ it('populates the transfer_courses form field from existing TransferCourse rows 
 });
 
 it('persists transfer_courses on edit save and recalculates gpa', function () {
-    ['student' => $student] = studentWithRecord(['is_transfer' => true, 'gpa' => 0]);
+    ['student' => $student] = studentWithRecord([
+        'is_transfer' => true, 'gpa' => 0,
+        'mother_name' => 'فاطمة أحمد', 'birth_date' => '1990-01-01', 'birth_place' => 'طرابلس',
+        'gender' => 'male', 'marital_status' => 'single', 'nationality' => 'ليبية',
+        'national_id' => '111111111111', 'residence' => 'طرابلس', 'permanent_address' => 'طرابلس',
+        'study_type' => 'self_funded',
+    ]);
 
     $courseA = Course::factory()->create(['credits' => 3]);
     $courseA->specializations()->attach($student->specialization_id, ['type' => 'general']);
@@ -52,7 +58,13 @@ it('persists transfer_courses on edit save and recalculates gpa', function () {
 });
 
 it('deletes transfer_courses when is_transfer is toggled off', function () {
-    ['student' => $student] = studentWithRecord(['is_transfer' => true]);
+    ['student' => $student] = studentWithRecord([
+        'is_transfer' => true,
+        'mother_name' => 'فاطمة أحمد', 'birth_date' => '1990-01-01', 'birth_place' => 'طرابلس',
+        'gender' => 'male', 'marital_status' => 'single', 'nationality' => 'ليبية',
+        'national_id' => '222222222222', 'residence' => 'طرابلس', 'permanent_address' => 'طرابلس',
+        'study_type' => 'self_funded',
+    ]);
 
     $course = Course::factory()->create();
     $student->transferCourses()->create([

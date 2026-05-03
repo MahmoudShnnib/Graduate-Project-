@@ -2,7 +2,7 @@
 date: 2026-04-18
 tags: [bug, grades, gpa, audit, observer]
 related: [[../research/2026-04-18-deep-codebase-analysis]], [[../project-context/gotchas]], [[../daily-notes/2026-04-18-deep-codebase-analysis]]
-status: identified
+status: fixed
 ---
 
 # Double GPA recalc + redundant audit rows on grade approval

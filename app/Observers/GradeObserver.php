@@ -26,11 +26,15 @@ class GradeObserver
 
     public function updated(Grade $grade): void
     {
-        if (! $grade->wasChanged('status') || $grade->status !== GradeStatus::Approved) {
+        if ($grade->wasChanged('status') && $grade->status === GradeStatus::Approved) {
+            $this->handleApproval($grade);
+
             return;
         }
 
-        $this->handleApproval($grade);
+        if ($grade->status === GradeStatus::Approved && $grade->wasChanged(['coursework_grade', 'final_grade', 'total', 'letter'])) {
+            $this->handleApproval($grade);
+        }
     }
 
     private function handleApproval(Grade $grade): void

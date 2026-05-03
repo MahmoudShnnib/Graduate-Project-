@@ -29,6 +29,13 @@ class ViewMyCourse extends Page implements HasTable
 
     public CourseOffering $record;
 
+    public function boot(): void
+    {
+        if (isset($this->record) && $this->record->faculty_id !== auth()->id()) {
+            abort(403);
+        }
+    }
+
     public function getTitle(): string
     {
         return $this->record->course->name.' — '.$this->record->semester->name;

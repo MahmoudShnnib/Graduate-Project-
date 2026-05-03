@@ -14,7 +14,9 @@ Route::get('/apply/sample', [RegistrationController::class, 'sample'])
     ->middleware('throttle:20,1')
     ->name('registration.sample');
 Route::get('/apply/track', [ApplicationTrackingController::class, 'show'])->name('application.track.show');
-Route::post('/apply/track', [ApplicationTrackingController::class, 'track'])->name('application.track');
+Route::post('/apply/track', [ApplicationTrackingController::class, 'track'])
+    ->middleware('throttle:5,1')
+    ->name('application.track');
 
 Route::get('/admin/course-offerings/{courseOffering}/print-students', PrintCourseStudentsController::class)
     ->middleware(['auth'])
