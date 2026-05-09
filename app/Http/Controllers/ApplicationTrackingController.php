@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Application;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -13,7 +14,7 @@ class ApplicationTrackingController extends Controller
         return view('registration.track');
     }
 
-    public function track(Request $request): View
+    public function track(Request $request): RedirectResponse|View
     {
         $validated = $request->validate([
             'tracking_code' => ['required', 'string'],
@@ -28,7 +29,7 @@ class ApplicationTrackingController extends Controller
             ->first();
 
         if (! $application) {
-            return view('registration.track')->withErrors([
+            return back()->withErrors([
                 'tracking_code' => 'لم يتم العثور على طلب بهذه البيانات. تأكد من صحة رقم التتبع والرقم الوطني.',
             ])->withInput();
         }

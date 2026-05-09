@@ -14,6 +14,7 @@ use App\Exceptions\StudentSuspendedInSemesterException;
 use App\Filament\Resources\AddDropRequests\Pages\ListAddDropRequests;
 use App\Models\AddDropRequest;
 use App\Models\Semester;
+use App\Services\AuditService;
 use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -42,6 +43,16 @@ class AddDropRequestResource extends Resource
     protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
 
     protected static ?int $navigationSort = 6;
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) AddDropRequest::where('status', 'pending')->count() ?: null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'warning';
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -162,6 +173,7 @@ class AddDropRequestResource extends Resource
                     ->action(function (
                         AddDropRequest $record,
                         NotificationService $notifier,
+                        AuditService $audit,
                         EnrollStudentInOffering $enroll,
                         DropStudentFromOffering $drop,
                     ) {
@@ -222,6 +234,7 @@ class AddDropRequestResource extends Resource
                             'decided_at' => now(),
                         ]);
 
+                        $audit->log('add_drop_approved', $record);
                         $notifier->notifyAddDropDecision($record);
                         Notification::make()->title('تم قبول الطلب')->success()->send();
                     }),
@@ -240,13 +253,14 @@ class AddDropRequestResource extends Resource
                         return $semester?->is_active && $semester?->isAddDropOpen();
                     })
                     ->requiresConfirmation()
-                    ->action(function (AddDropRequest $record, NotificationService $notifier) {
+                    ->action(function (AddDropRequest $record, NotificationService $notifier, AuditService $audit) {
                         $record->update([
                             'status' => 'rejected',
                             'decided_by' => auth()->id(),
                             'decided_at' => now(),
                         ]);
 
+                        $audit->log('add_drop_rejected', $record);
                         $notifier->notifyAddDropDecision($record);
                         Notification::make()->title('تم رفض الطلب')->success()->send();
                     }),

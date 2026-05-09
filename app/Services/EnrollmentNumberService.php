@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Semester;
+use App\Models\Specialization;
 use App\Models\Student;
 
 class EnrollmentNumberService
@@ -32,6 +33,34 @@ class EnrollmentNumberService
 
         $seq = str_pad($lastSeq + 1, 2, '0', STR_PAD_LEFT);
 
+        $enrollmentNo = "{$prefix}{$seq}";
+
+        $student->enrollment_no = $enrollmentNo;
+        $student->save();
+
+        return $enrollmentNo;
+    }
+
+    /**
+     * Re-issue a new enrollment number when a student switches specialization.
+     * Preserves the original year (YY) and session flag from the existing number
+     * so only the spec code segment changes.
+     */
+    public function regenerateForSpecializationChange(Student $student, Specialization $newSpecialization): string
+    {
+        $currentNo = $student->enrollment_no;
+        $yy = substr($currentNo, 0, 2);
+        $sessionFlag = substr($currentNo, -3, 1);
+        $newSpecCode = $newSpecialization->code;
+        $prefix = "{$yy}{$newSpecCode}{$sessionFlag}";
+
+        $maxEnrollmentNo = Student::withTrashed()
+            ->whereNotNull('enrollment_no')
+            ->where('enrollment_no', 'like', "{$prefix}%")
+            ->max('enrollment_no');
+
+        $lastSeq = $maxEnrollmentNo ? (int) substr((string) $maxEnrollmentNo, strlen($prefix)) : 0;
+        $seq = str_pad($lastSeq + 1, 2, '0', STR_PAD_LEFT);
         $enrollmentNo = "{$prefix}{$seq}";
 
         $student->enrollment_no = $enrollmentNo;

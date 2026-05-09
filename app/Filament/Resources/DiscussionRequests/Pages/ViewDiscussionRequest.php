@@ -5,6 +5,7 @@ namespace App\Filament\Resources\DiscussionRequests\Pages;
 use App\Enums\DiscussionStatus;
 use App\Filament\Resources\DiscussionRequests\DiscussionRequestResource;
 use App\Models\DiscussionRequest;
+use App\Services\AuditService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
@@ -73,13 +74,15 @@ class ViewDiscussionRequest extends ViewRecord
                     ->required()
                     ->rows(3),
             ])
-            ->action(function (array $data) {
+            ->action(function (array $data, AuditService $audit) {
                 $this->record->update([
                     'status' => DiscussionStatus::Rejected,
                     'rejection_reason' => $data['rejection_reason'],
                     'decided_by' => auth()->id(),
                     'decided_at' => now(),
                 ]);
+
+                $audit->log('discussion_rejected', $this->record);
 
                 Notification::make()
                     ->title('تم رفض طلب المناقشة')
@@ -106,13 +109,15 @@ class ViewDiscussionRequest extends ViewRecord
                     ->native(false)
                     ->minDate(now()),
             ])
-            ->action(function (array $data) {
+            ->action(function (array $data, AuditService $audit) {
                 $this->record->update([
                     'status' => DiscussionStatus::Scheduled,
                     'discussion_date' => $data['discussion_date'],
                     'decided_by' => auth()->id(),
                     'decided_at' => now(),
                 ]);
+
+                $audit->log('discussion_scheduled', $this->record);
 
                 Notification::make()
                     ->title('تم قبول الطلب وتحديد موعد المناقشة')
@@ -133,11 +138,13 @@ class ViewDiscussionRequest extends ViewRecord
             ->modalHeading('تأكيد إتمام المناقشة')
             ->modalDescription('هل تمت مناقشة الرسالة بنجاح؟ سيتم الانتقال لتحديد نتيجة المناقشة.')
             ->modalSubmitActionLabel('تأكيد')
-            ->action(function () {
+            ->action(function (AuditService $audit) {
                 $this->record->update([
                     'status' => DiscussionStatus::Discussed,
                     'discussed_at' => now(),
                 ]);
+
+                $audit->log('discussion_done', $this->record);
 
                 Notification::make()
                     ->title('تم تسجيل إتمام المناقشة')
@@ -164,13 +171,15 @@ class ViewDiscussionRequest extends ViewRecord
                     ->required()
                     ->rows(3),
             ])
-            ->action(function (array $data) {
+            ->action(function (array $data, AuditService $audit) {
                 $this->record->update([
                     'status' => DiscussionStatus::DiscussionRejected,
                     'rejection_reason' => $data['rejection_reason'],
                     'decided_by' => auth()->id(),
                     'decided_at' => now(),
                 ]);
+
+                $audit->log('discussion_rejected_post', $this->record);
 
                 Notification::make()
                     ->title('تم رفض نتيجة المناقشة')
@@ -190,12 +199,14 @@ class ViewDiscussionRequest extends ViewRecord
             ->modalHeading('قبول نتيجة المناقشة')
             ->modalDescription('سيتم قبول نتيجة المناقشة والانتقال لمرحلة التجليد والتسليم.')
             ->modalSubmitActionLabel('تأكيد القبول')
-            ->action(function () {
+            ->action(function (AuditService $audit) {
                 $this->record->update([
                     'status' => DiscussionStatus::DiscussionApproved,
                     'decided_by' => auth()->id(),
                     'decided_at' => now(),
                 ]);
+
+                $audit->log('discussion_approved', $this->record);
 
                 Notification::make()
                     ->title('تمت الموافقة على نتيجة المناقشة')
@@ -266,11 +277,13 @@ class ViewDiscussionRequest extends ViewRecord
             ->modalHeading('تأكيد التجليد والتسليم')
             ->modalDescription('هل تم التجليد والتسليم؟ سيتمكن الطالب بعد ذلك من تقديم طلب الاستماحة.')
             ->modalSubmitActionLabel('تأكيد')
-            ->action(function () {
+            ->action(function (AuditService $audit) {
                 $this->record->update([
                     'status' => DiscussionStatus::Completed,
                     'completed_at' => now(),
                 ]);
+
+                $audit->log('discussion_completed', $this->record);
 
                 Notification::make()
                     ->title('تم التجليد والتسليم')

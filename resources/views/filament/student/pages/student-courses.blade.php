@@ -80,9 +80,11 @@
                                 <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{{ $enrollment->courseOffering->course->credits }}</td>
                                 <td class="fi-ta-cell px-4 py-2.5 text-gray-600 dark:text-gray-400">{{ $enrollment->courseOffering->faculty?->name ?? '—' }}</td>
                                 <td class="fi-ta-cell px-4 py-2.5 text-center">
-                                    @if($enrollment->grade)
+                                    @if($enrollment->grade?->published_at)
                                         <span class="font-bold text-gray-900 dark:text-white">{{ $enrollment->grade->letter }}</span>
                                         <span class="text-gray-400 dark:text-gray-500 text-xs ms-1">({{ number_format((float)$enrollment->grade->total, 1) }})</span>
+                                    @elseif($enrollment->grade?->midterm_published_at)
+                                        <span class="text-xs font-medium text-info-600 dark:text-info-400">أعمال: {{ $enrollment->grade->coursework_grade }}</span>
                                     @else
                                         <span class="text-gray-400 dark:text-gray-500">—</span>
                                     @endif

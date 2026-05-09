@@ -31,6 +31,16 @@ class DiscussionRequestResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) DiscussionRequest::where('status', DiscussionStatus::Pending)->count() ?: null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'warning';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([]);
@@ -43,7 +53,9 @@ class DiscussionRequestResource extends Resource
             ->groupBy('student_id')
             ->pluck('id');
 
-        return parent::getEloquentQuery()->whereIn('id', $latestIds);
+        return parent::getEloquentQuery()
+            ->whereIn('id', $latestIds)
+            ->where('status', '!=', DiscussionStatus::Completed);
     }
 
     public static function table(Table $table): Table

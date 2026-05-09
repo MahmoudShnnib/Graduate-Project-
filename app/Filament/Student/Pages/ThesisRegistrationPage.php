@@ -8,6 +8,9 @@ use App\Models\DiscussionRequest;
 use App\Models\Supervisor;
 use App\Models\ThesisRegistration;
 use App\Models\User;
+use App\Rules\ArabicOnly;
+use App\Rules\EnglishOnly;
+use App\Services\AuditService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Livewire\WithFileUploads;
@@ -119,7 +122,7 @@ class ThesisRegistrationPage extends Page
         }
 
         $lastSemester = $student->enrollments()
-            ->whereHas('grade', fn ($q) => $q->where('status', 'approved'))
+            ->whereHas('grade', fn ($q) => $q->whereNotNull('published_at'))
             ->join('course_offerings', 'student_enrollments.course_offering_id', '=', 'course_offerings.id')
             ->join('semesters', 'course_offerings.semester_id', '=', 'semesters.id')
             ->orderByDesc('semesters.end_date')
@@ -171,8 +174,8 @@ class ThesisRegistrationPage extends Page
         }
 
         $rules = [
-            'thesisTitle' => 'required|min:5',
-            'thesisTitleEn' => 'required|min:5',
+            'thesisTitle' => ['required', 'min:5', new ArabicOnly(allowNumbers: true)],
+            'thesisTitleEn' => ['required', 'min:5', new EnglishOnly],
             'selectedSupervisorId' => 'required',
             'proposalFile' => 'required|file|max:10240',
         ];
@@ -206,15 +209,13 @@ class ThesisRegistrationPage extends Page
             $data['supervisor_id'] = $this->selectedSupervisorId;
         }
 
-        ThesisRegistration::create($data);
+        $thesis = ThesisRegistration::create($data);
 
-        $this->thesisTitle = '';
-        $this->thesisTitleEn = '';
-        $this->supervisorType = 'internal';
-        $this->selectedSupervisorId = null;
-        $this->proposalFile = null;
+        app(AuditService::class)->log('thesis_submitted', $thesis);
 
         Notification::make()->title('تم إرسال طلب تسجيل الرسالة للمراجعة')->success()->send();
+
+        $this->redirectRoute('filament.student.pages.thesis-registration-page');
     }
 
     public function getLatestDiscussionRequest(): ?DiscussionRequest
@@ -270,12 +271,16 @@ class ThesisRegistrationPage extends Page
 
         $registration = $this->getLatestRegistration();
 
-        DiscussionRequest::create([
+        $discussion = DiscussionRequest::create([
             'student_id' => $student->id,
             'thesis_registration_id' => $registration->id,
             'status' => DiscussionStatus::Pending,
         ]);
 
+        app(AuditService::class)->log('discussion_requested', $discussion);
+
         Notification::make()->title('تم إرسال طلب المناقشة للمراجعة')->success()->send();
+
+        $this->redirectRoute('filament.student.pages.thesis-registration-page');
     }
 }

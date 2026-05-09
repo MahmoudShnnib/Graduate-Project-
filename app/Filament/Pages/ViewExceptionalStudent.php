@@ -9,6 +9,7 @@ use App\Models\ExceptionalRequest;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\StudentWarning;
+use App\Services\AuditService;
 use App\Services\WarningService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -78,7 +79,7 @@ class ViewExceptionalStudent extends Page
             ->modalHeading('قبول الطلب الاستثنائي')
             ->modalDescription('سيتم إعادة الطالب إلى الحالة النشطة. هل أنت متأكد؟')
             ->modalSubmitActionLabel('تأكيد القبول')
-            ->action(function () use ($request) {
+            ->action(function (AuditService $audit) use ($request) {
                 $request = ExceptionalRequest::with('student.dismissalCourse')->findOrFail($request->id);
                 $student = $request->student;
 
@@ -119,6 +120,8 @@ class ViewExceptionalStudent extends Page
 
                 app(WarningService::class)->syncWarningsCount($student);
 
+                $audit->log('exceptional_accepted', $request);
+
                 Notification::make()
                     ->title('تم قبول الطلب الاستثنائي')
                     ->body('تم إعادة الطالب '.$student->user->name.' إلى الحالة النشطة.')
@@ -140,7 +143,7 @@ class ViewExceptionalStudent extends Page
             ->modalHeading('رفض الطلب الاستثنائي')
             ->modalDescription('هل أنت متأكد من رفض هذا الطلب؟')
             ->modalSubmitActionLabel('تأكيد الرفض')
-            ->action(function () use ($request) {
+            ->action(function (AuditService $audit) use ($request) {
                 $request = ExceptionalRequest::findOrFail($request->id);
 
                 $request->update([
@@ -148,6 +151,8 @@ class ViewExceptionalStudent extends Page
                     'decided_by' => auth()->id(),
                     'decided_at' => now(),
                 ]);
+
+                $audit->log('exceptional_rejected', $request);
 
                 Notification::make()
                     ->title('تم رفض الطلب الاستثنائي')
@@ -176,7 +181,7 @@ class ViewExceptionalStudent extends Page
                     ->rows(4)
                     ->placeholder('اكتب رسالة الاستدعاء هنا...'),
             ])
-            ->action(function (array $data) use ($request) {
+            ->action(function (array $data, AuditService $audit) use ($request) {
                 $request = ExceptionalRequest::findOrFail($request->id);
 
                 $request->update([
@@ -184,6 +189,8 @@ class ViewExceptionalStudent extends Page
                     'summon_message' => $data['summon_message'],
                     'summon_sent_at' => now(),
                 ]);
+
+                $audit->log('exceptional_summoned', $request);
 
                 Notification::make()
                     ->title('تم إرسال الاستدعاء')

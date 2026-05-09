@@ -46,6 +46,7 @@ test('calculates gpa correctly from approved grades', function () {
             'coursework_grade' => $data['coursework'],
             'final_grade' => $data['final'],
             'status' => GradeStatus::Approved,
+            'published_at' => now(),
         ]);
     }
 

@@ -3,3 +3,15 @@
 @source "../../../views/filament/pages/**/*.blade.php";
 @source "../../../views/filament/resources/**/*.blade.php";
 @source "../../../views/components/admin/**/*.blade.php";
+
+@font-face {
+    font-family: 'Noto Kufi Arabic';
+    src: url('/fonts/Noto_Kufi_Arabic/NotoKufiArabic-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@theme {
+    --font-sans: 'Noto Kufi Arabic', ui-sans-serif, system-ui, sans-serif;
+}

@@ -36,6 +36,16 @@ class SuspensionRequestResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) SuspensionRequest::where('status', SuspensionStatus::Pending)->count() ?: null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'warning';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([]);
@@ -135,7 +145,7 @@ class SuspensionRequestResource extends Resource
                             ->label('سبب الرفض')
                             ->required(),
                     ])
-                    ->action(function (SuspensionRequest $record, array $data, NotificationService $notifier) {
+                    ->action(function (SuspensionRequest $record, array $data, NotificationService $notifier, AuditService $audit) {
                         $record->update([
                             'status' => SuspensionStatus::Rejected,
                             'decided_by' => auth()->id(),
@@ -143,6 +153,7 @@ class SuspensionRequestResource extends Resource
                             'decision_notes' => $data['decision_notes'],
                         ]);
 
+                        $audit->log('suspension_rejected', $record);
                         $notifier->notifySuspensionDecision($record->fresh());
 
                         Notification::make()->title('تم رفض الطلب')->success()->send();

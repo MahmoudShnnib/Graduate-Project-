@@ -290,7 +290,7 @@ class StudentResource extends Resource
                         ->label('الاسم بالإنجليزية (كما في جواز السفر)')
                         ->placeholder('Full name as in passport')
                         ->required()
-                        ->regex('/^[a-zA-Z\s]+$/')
+                        ->regex("/^[a-zA-Z\\s\\-']+$/")
                         ->maxLength(255)
                         ->columnSpan(2),
 
@@ -298,7 +298,15 @@ class StudentResource extends Resource
                         ->label('البريد الإلكتروني')
                         ->email()
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->rules([
+                            fn (?\Filament\Resources\Pages\Page $livewire): string => $livewire instanceof \App\Filament\Resources\Students\Pages\EditStudent
+                                ? 'unique:users,email,'.$livewire->getRecord()->user_id
+                                : 'unique:users,email',
+                        ])
+                        ->validationMessages([
+                            'unique' => 'هذا البريد الإلكتروني مستخدم بالفعل.',
+                        ]),
 
                     TextInput::make('user_phone')
                         ->label('رقم النقال')
@@ -324,20 +332,24 @@ class StudentResource extends Resource
                         ->columnSpan(2),
 
                     TextInput::make('mother_name')
-                        ->label('اسم الأم'),
+                        ->label('اسم الأم')
+                        ->required(),
 
                     DatePicker::make('birth_date')
-                        ->label('تاريخ الميلاد'),
+                        ->label('تاريخ الميلاد')
+                        ->required(),
 
                     TextInput::make('birth_place')
-                        ->label('مكان الميلاد'),
+                        ->label('مكان الميلاد')
+                        ->required(),
 
                     Select::make('gender')
                         ->label('الجنس')
                         ->options([
                             'male' => 'ذكر',
                             'female' => 'أنثى',
-                        ]),
+                        ])
+                        ->required(),
 
                     Select::make('marital_status')
                         ->label('الحالة الاجتماعية')
@@ -346,23 +358,32 @@ class StudentResource extends Resource
                             'married' => 'متزوج / متزوجة',
                             'divorced' => 'مطلق / مطلقة',
                             'widowed' => 'أرمل / أرملة',
-                        ]),
+                        ])
+                        ->required(),
 
                     TextInput::make('nationality')
                         ->label('الجنسية')
-                        ->default('ليبية'),
+                        ->default('ليبية')
+                        ->required(),
 
                     TextInput::make('national_id')
-                        ->label('الرقم الوطني'),
+                        ->label('الرقم الوطني')
+                        ->required()
+                        ->unique(table: 'students', ignoreRecord: true)
+                        ->validationMessages([
+                            'unique' => 'هذا الرقم الوطني مسجل بالفعل لطالب آخر.',
+                        ]),
 
                     TextInput::make('card_number')
                         ->label('رقم البطاقة'),
 
                     TextInput::make('residence')
-                        ->label('مكان الإقامة'),
+                        ->label('مكان الإقامة')
+                        ->required(),
 
                     TextInput::make('permanent_address')
                         ->label('العنوان الدائم')
+                        ->required()
                         ->columnSpan(2),
 
                     TextInput::make('profession')
@@ -377,6 +398,7 @@ class StudentResource extends Resource
                 ->components([
                     Radio::make('study_type')
                         ->label('نوع الدراسة')
+                        ->required()
                         ->options([
                             'self_funded' => 'الدراسة على حسابي الخاص',
                             'internally_delegated' => 'موفد بموجب قرار إيفاد داخلي',
@@ -425,6 +447,17 @@ class StudentResource extends Resource
                                                 $specId = $get('../../specialization_filter');
                                                 if ($specId) {
                                                     $query->whereHas('specializations', fn ($q) => $q->where('specializations.id', $specId));
+                                                }
+
+                                                $ownValue = $get('course_id');
+                                                $takenIds = collect($get('../../courses') ?? [])
+                                                    ->pluck('course_id')
+                                                    ->filter(fn ($id) => $id && $id != $ownValue)
+                                                    ->values()
+                                                    ->all();
+
+                                                if (! empty($takenIds)) {
+                                                    $query->whereNotIn('id', $takenIds);
                                                 }
 
                                                 return $query->orderBy('name')->pluck('name', 'id')->toArray();

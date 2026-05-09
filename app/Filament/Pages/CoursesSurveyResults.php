@@ -29,6 +29,23 @@ class CoursesSurveyResults extends Page
 
     protected static ?int $navigationSort = 10;
 
+    public static function getNavigationBadge(): ?string
+    {
+        $activeSemester = Semester::where('is_active', true)->value('id');
+        if (! $activeSemester) {
+            return null;
+        }
+
+        return (string) CourseSurvey::where('semester_id', $activeSemester)
+            ->where('is_processed', false)
+            ->count() ?: null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'info';
+    }
+
     /** @var array<int, int> */
     public array $selectedCourses = [];
 

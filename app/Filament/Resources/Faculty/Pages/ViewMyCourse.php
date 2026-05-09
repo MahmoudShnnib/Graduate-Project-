@@ -7,6 +7,7 @@ use App\Filament\Resources\Faculty\MyCourseResource;
 use App\Models\CourseOffering;
 use App\Models\Grade;
 use App\Models\StudentEnrollment;
+use App\Services\AuditService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
@@ -28,6 +29,13 @@ class ViewMyCourse extends Page implements HasTable
     protected string $view = 'filament.resources.faculty.pages.view-my-course';
 
     public CourseOffering $record;
+
+    public function boot(): void
+    {
+        if (isset($this->record) && $this->record->faculty_id !== auth()->id()) {
+            abort(403);
+        }
+    }
 
     public function getTitle(): string
     {
@@ -119,10 +127,12 @@ class ViewMyCourse extends Page implements HasTable
                 ->modalHeading('إرسال الدرجات للاعتماد')
                 ->modalDescription('سيتم إرسال جميع الدرجات المحفوظة (المسودة) إلى الإدارة للمراجعة والاعتماد. لا يمكن تعديلها بعد الإرسال.')
                 ->modalSubmitActionLabel('إرسال الآن')
-                ->action(function (): void {
+                ->action(function (AuditService $audit): void {
                     $count = Grade::whereHas('enrollment', fn (Builder $q) => $q->where('course_offering_id', $this->record->id))
                         ->where('status', GradeStatus::Draft)
                         ->update(['status' => GradeStatus::PendingApproval]);
+
+                    $audit->log('grade_submitted', $this->record);
 
                     Notification::make()
                         ->title("تم إرسال {$count} درجة للاعتماد")

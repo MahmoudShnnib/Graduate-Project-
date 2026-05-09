@@ -147,6 +147,7 @@ it('bans reapply when student fails course again after exceptional acceptance', 
         'coursework_grade' => 10,
         'final_grade' => 15,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     $semester2 = Semester::factory()->create(['season' => Season::Spring, 'year' => 2026]);
@@ -163,6 +164,7 @@ it('bans reapply when student fails course again after exceptional acceptance', 
         'coursework_grade' => 10,
         'final_grade' => 10,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     expect($this->student->fresh()->status)->toBe(StudentStatus::Dismissed);
@@ -195,6 +197,7 @@ it('bans reapply when student fails course again after exceptional acceptance', 
         'coursework_grade' => 10,
         'final_grade' => 5,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     $student->refresh();

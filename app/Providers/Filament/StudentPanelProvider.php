@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Http\Middleware\EnsureStudentRole;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -25,6 +26,7 @@ class StudentPanelProvider extends PanelProvider
         return $panel
             ->id('student')
             ->path('portal')
+            ->font('Noto Kufi Arabic', url: asset('css/noto-kufi-arabic.css'), provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/student/theme.css')
             ->login()
             ->brandName('بوابة الطالب')

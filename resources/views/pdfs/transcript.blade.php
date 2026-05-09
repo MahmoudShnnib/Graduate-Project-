@@ -47,7 +47,7 @@
         </thead>
         <tbody>
             @foreach($student->enrollments as $enrollment)
-                @if($enrollment->grade)
+                @if($enrollment->grade && $enrollment->grade->published_at)
                     <tr>
                         <td>{{ $enrollment->courseOffering?->course?->name }}</td>
                         <td>{{ $enrollment->courseOffering?->course?->code }}</td>

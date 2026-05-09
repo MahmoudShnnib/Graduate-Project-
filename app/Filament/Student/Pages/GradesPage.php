@@ -30,14 +30,12 @@ class GradesPage extends Page
             return collect();
         }
 
-        // Show every semester the student has ever had an enrollment in with
-        // an approved grade — regardless of current enrollment status. This
-        // keeps transcript visibility intact after cascade withdrawal (when
-        // the student is moved to Inactive / Withdrawn / Graduated).
         return Semester::whereHas(
             'courseOfferings.enrollments',
             fn ($q) => $q->where('student_id', $student->id)
-                ->whereHas('grade', fn ($g) => $g->where('status', \App\Enums\GradeStatus::Approved))
+                ->whereHas('grade', fn ($g) => $g->where(fn ($q) => $q
+                    ->whereNotNull('midterm_published_at')
+                    ->orWhereNotNull('published_at')))
         )
             ->orderByDesc('year')
             ->get();
@@ -51,13 +49,11 @@ class GradesPage extends Page
             return collect();
         }
 
-        // No ->active() filter — we want the transcript to include approved
-        // grades even on enrollments that were withdrawn via cascade (status
-        // change on the student). The whereHas('grade') below keeps this
-        // from including enrollments that were dropped without grades.
         $query = StudentEnrollment::where('student_id', $student->id)
             ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
-            ->whereHas('grade');
+            ->whereHas('grade', fn ($g) => $g->where(fn ($q) => $q
+                ->whereNotNull('midterm_published_at')
+                ->orWhereNotNull('published_at')));
 
         if ($this->selectedSemesterId) {
             $query->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $this->selectedSemesterId));

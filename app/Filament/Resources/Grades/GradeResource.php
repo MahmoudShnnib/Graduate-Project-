@@ -45,7 +45,8 @@ class GradeResource extends Resource
                     ->withCount([
                         'activeEnrollments as total_students',
                         'activeEnrollments as pending_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('status', GradeStatus::PendingApproval)),
-                        'activeEnrollments as approved_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('status', GradeStatus::Approved)),
+                        'activeEnrollments as approved_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('status', GradeStatus::Approved)->whereNull('published_at')),
+                        'activeEnrollments as published_count' => fn ($q) => $q->whereHas('grade', fn ($g) => $g->whereNotNull('published_at')),
                     ])
             )
             ->columns([
@@ -79,7 +80,12 @@ class GradeResource extends Resource
                     ->color('warning'),
 
                 TextColumn::make('approved_count')
-                    ->label('معتمدة')
+                    ->label('معتمدة (غير منشورة)')
+                    ->badge()
+                    ->color('info'),
+
+                TextColumn::make('published_count')
+                    ->label('منشورة')
                     ->badge()
                     ->color('success'),
             ])

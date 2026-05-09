@@ -18,6 +18,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ThesisRegistrationResource extends Resource
 {
@@ -34,6 +35,26 @@ class ThesisRegistrationResource extends Resource
     protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
 
     protected static ?int $navigationSort = 5;
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) ThesisRegistration::where('status', ThesisStatus::Pending)->count() ?: null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'warning';
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $latestIds = ThesisRegistration::query()
+            ->selectRaw('MAX(id) as id')
+            ->groupBy('student_id')
+            ->pluck('id');
+
+        return parent::getEloquentQuery()->whereIn('id', $latestIds);
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -86,11 +107,13 @@ class ThesisRegistrationResource extends Resource
                     ->modalHeading('طباعة للوزارة')
                     ->modalDescription('سيتم تغيير حالة الطلب إلى "في انتظار الوزارة". هل تريد المتابعة؟')
                     ->modalSubmitActionLabel('تأكيد الطباعة')
-                    ->action(function (ThesisRegistration $record) {
+                    ->action(function (ThesisRegistration $record, AuditService $audit) {
                         $record->update([
                             'status' => ThesisStatus::Printed,
                             'printed_at' => now(),
                         ]);
+
+                        $audit->log('thesis_printed', $record);
 
                         Notification::make()
                             ->title('تم تسجيل الطباعة')
@@ -148,7 +171,7 @@ class ThesisRegistrationResource extends Resource
                             ->required()
                             ->rows(3),
                     ])
-                    ->action(function (ThesisRegistration $record, array $data, NotificationService $notifier) {
+                    ->action(function (ThesisRegistration $record, array $data, NotificationService $notifier, AuditService $audit) {
                         $record->update([
                             'status' => ThesisStatus::Rejected,
                             'rejection_reason' => $data['rejection_reason'],
@@ -156,6 +179,7 @@ class ThesisRegistrationResource extends Resource
                             'decided_at' => now(),
                         ]);
 
+                        $audit->log('thesis_rejected', $record);
                         $notifier->notifyThesisDecision($record->fresh());
 
                         Notification::make()->title('تم رفض الطلب')->success()->send();

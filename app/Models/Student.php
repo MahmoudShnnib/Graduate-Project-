@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\EnrollmentStatus;
-use App\Enums\GradeStatus;
 use App\Enums\StudentStatus;
 use App\Enums\SuspensionStatus;
 use App\Enums\WarningType;
@@ -181,7 +180,7 @@ class Student extends Model
     {
         $enrollmentCount = $this->activeEnrollments()
             ->whereHas('grade', function ($query) {
-                $query->where('status', GradeStatus::Approved)
+                $query->whereNotNull('published_at')
                     ->whereNotNull('letter')
                     ->where('letter', '!=', 'F');
             })
@@ -236,7 +235,7 @@ class Student extends Model
     {
         $enrollmentIds = $this->enrollments()
             ->whereHas('grade', fn ($q) => $q
-                ->where('status', GradeStatus::Approved)
+                ->whereNotNull('published_at')
                 ->whereNotNull('letter')
                 ->where('letter', '!=', 'F'))
             ->with('courseOffering:id,course_id')

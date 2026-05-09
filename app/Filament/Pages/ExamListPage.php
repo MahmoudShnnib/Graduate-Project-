@@ -6,6 +6,7 @@ use App\Actions\ApproveApplication;
 use App\Enums\ApplicationStatus;
 use App\Models\Application;
 use App\Models\Specialization;
+use App\Services\AuditService;
 use App\Services\NotificationService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -61,6 +62,7 @@ class ExamListPage extends Page
 
         $approve = app(ApproveApplication::class);
         $notifier = app(NotificationService::class);
+        $audit = app(AuditService::class);
         $successCount = 0;
         $errors = [];
 
@@ -77,6 +79,7 @@ class ExamListPage extends Page
                 ]);
 
                 $approve->handle($application);
+                $audit->log('exam_passed', $application, newValues: ['exam_score' => $application->exam_score]);
                 $notifier->notifyApplicationExamPassed($application);
                 $successCount++;
             } catch (\Throwable $e) {
@@ -112,6 +115,7 @@ class ExamListPage extends Page
         }
 
         $notifier = app(NotificationService::class);
+        $audit = app(AuditService::class);
 
         $applications = Application::whereIn('id', $this->selected)
             ->where('status', ApplicationStatus::InitiallyApproved)
@@ -126,6 +130,7 @@ class ExamListPage extends Page
                 'exam_result_date' => now(),
             ]);
 
+            $audit->log('exam_failed', $application, newValues: ['exam_score' => $application->exam_score]);
             $notifier->notifyApplicationStatusChanged($application);
         }
 

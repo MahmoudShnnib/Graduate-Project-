@@ -24,6 +24,16 @@ class ExceptionalOpportunitiesPage extends Page
 
     protected static ?int $navigationSort = 10;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) ExceptionalRequest::where('status', ExceptionalRequestStatus::Pending)->count() ?: null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'warning';
+    }
+
     public function getDismissedWithoutRequest(): Collection
     {
         return Student::where('status', StudentStatus::Dismissed)

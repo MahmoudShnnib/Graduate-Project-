@@ -22,6 +22,8 @@ class Grade extends Model
         'paper_sheet_path',
         'approved_by',
         'approved_at',
+        'midterm_published_at',
+        'published_at',
     ];
 
     protected function casts(): array
@@ -33,6 +35,8 @@ class Grade extends Model
             'points' => 'decimal:1',
             'status' => GradeStatus::class,
             'approved_at' => 'datetime',
+            'midterm_published_at' => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 
@@ -71,6 +75,10 @@ class Grade extends Model
                 $conversion = self::convertToLetter((float) $grade->total);
                 $grade->letter = $conversion['letter'];
                 $grade->points = $conversion['points'];
+            } else {
+                $grade->total = null;
+                $grade->letter = null;
+                $grade->points = null;
             }
         });
     }

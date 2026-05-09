@@ -427,7 +427,7 @@
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ $discussion->created_at->format('Y/m/d') }}</span>
                 </div>
 
-                @if($discussion->discussion_date)
+                @if($discussion->discussion_date && ! in_array($discussion->status, [\App\Enums\DiscussionStatus::DiscussionApproved, \App\Enums\DiscussionStatus::Completed]))
                     <div class="flex items-start gap-4 p-4 rounded-xl border border-info-200 bg-info-50 dark:border-info-500/30 dark:bg-info-500/10">
                         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info-100 dark:bg-info-500/20">
                             <x-heroicon-o-calendar-days style="width: 1.25rem; height: 1.25rem;" class="text-info-600 dark:text-info-400" />
@@ -530,7 +530,7 @@
             </x-slot>
 
             <div class="space-y-3">
-                @foreach($student->thesisRegistrations()->latest()->skip(1)->get() as $old)
+                @foreach($student->thesisRegistrations()->latest()->get()->slice(1) as $old)
                     <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-white/10 text-sm">
                         <div>
                             <p class="font-medium text-gray-900 dark:text-white">{{ $old->title }}</p>

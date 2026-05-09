@@ -104,26 +104,33 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                         @foreach($grades as $enrollment)
+                            @php
+                                $grade = $enrollment->grade;
+                                $isFullyPublished = $grade?->published_at !== null;
+                                $isMidtermOnly = ! $isFullyPublished && $grade?->midterm_published_at !== null;
+                            @endphp
                             <tr class="fi-ta-row hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                 <td class="fi-ta-cell px-4 py-2.5 text-gray-400 dark:text-gray-500 text-xs font-mono">{{ $enrollment->courseOffering->semester->name }}</td>
                                 <td class="fi-ta-cell px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ $enrollment->courseOffering->course->name }}</td>
                                 <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{{ $enrollment->courseOffering->course->credits }}</td>
-                                <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{{ $enrollment->grade->coursework_grade ?? '—' }}</td>
-                                <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{{ $enrollment->grade->final_grade ?? '—' }}</td>
-                                <td class="fi-ta-cell px-4 py-2.5 text-center font-semibold text-gray-900 dark:text-white">{{ $enrollment->grade->total ?? '—' }}</td>
+                                <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{{ $grade->coursework_grade ?? '—' }}</td>
+                                <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{{ $isFullyPublished ? ($grade->final_grade ?? '—') : '—' }}</td>
+                                <td class="fi-ta-cell px-4 py-2.5 text-center font-semibold text-gray-900 dark:text-white">{{ $isFullyPublished ? ($grade->total ?? '—') : '—' }}</td>
                                 <td class="fi-ta-cell px-4 py-2.5 text-center">
-                                    @if($enrollment->grade?->letter)
+                                    @if($isFullyPublished && $grade?->letter)
                                         <span @class([
                                             'inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold',
-                                            'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => ! in_array($enrollment->grade->letter, ['F', 'D']),
-                                            'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $enrollment->grade->letter === 'F',
-                                            'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $enrollment->grade->letter === 'D',
-                                        ])>{{ $enrollment->grade->letter }}</span>
+                                            'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => ! in_array($grade->letter, ['F', 'D']),
+                                            'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $grade->letter === 'F',
+                                            'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $grade->letter === 'D',
+                                        ])>{{ $grade->letter }}</span>
+                                    @elseif($isMidtermOnly)
+                                        <span class="inline-flex items-center justify-center px-2 h-6 rounded-md text-xs font-medium bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400">منتصف</span>
                                     @else
                                         <span class="text-gray-400">—</span>
                                     @endif
                                 </td>
-                                <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400 font-mono">{{ $enrollment->grade->points ?? '—' }}</td>
+                                <td class="fi-ta-cell px-4 py-2.5 text-center text-gray-600 dark:text-gray-400 font-mono">{{ $isFullyPublished ? ($grade->points ?? '—') : '—' }}</td>
                             </tr>
                         @endforeach
                     </tbody>

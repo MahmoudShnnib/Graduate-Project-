@@ -3,7 +3,6 @@
 namespace App\Filament\Student\Pages;
 
 use App\Enums\EnrollmentStatus;
-use App\Enums\GradeStatus;
 use App\Models\Course;
 use App\Models\Semester;
 use App\Models\Student;
@@ -102,7 +101,7 @@ class CourseTreePage extends Page
             $grade = $enrollment->grade;
 
             $isPassed = $grade
-                && $grade->status === GradeStatus::Approved
+                && $grade->published_at !== null
                 && $grade->letter !== 'F';
 
             $isCurrentlyTaking = $enrollment->status === EnrollmentStatus::Enrolled
