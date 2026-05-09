@@ -4,7 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { useGrades, useMe, useSemesters } from '@/api/queries';
 import type { Enrollment } from '@/api/types';
-import { Card, Pill, SkeletonCard } from '@/components/primitives';
+import { Card, ErrorState, Pill, SkeletonCard } from '@/components/primitives';
 import { Screen } from '@/components/Screen';
 import { colors } from '@/theme/tokens';
 
@@ -88,7 +88,7 @@ export default function GradesScreen() {
   const activeSemesterId = (semesters ?? []).find((s) => s.is_active)?.id;
   const semesterId = selected ?? activeSemesterId ?? null;
 
-  const { data: rows, isLoading } = useGrades(semesterId ?? undefined);
+  const { data: rows, isLoading, isError, refetch } = useGrades(semesterId ?? undefined);
 
   return (
     <Screen title="الدرجات">
@@ -114,7 +114,9 @@ export default function GradesScreen() {
 
       <View className="h-3" />
 
-      {isLoading ? (
+      {isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : isLoading ? (
         <>
           <SkeletonCard />
           <SkeletonCard />

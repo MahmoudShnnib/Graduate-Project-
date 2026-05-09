@@ -4,6 +4,7 @@ export type { BannerKind, BannerTone } from './Banner';
 export { Button } from './Button';
 export { Card } from './Card';
 export { EmptyState } from './EmptyState';
+export { ErrorState } from './ErrorState';
 export { Input } from './Input';
 export { Pill } from './Pill';
 export type { PillTone } from './Pill';

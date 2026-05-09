@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { useCourseTree } from '@/api/queries';
 import type { CourseTreeRow } from '@/api/types';
-import { Card, SkeletonCard } from '@/components/primitives';
+import { Card, ErrorState, SkeletonCard } from '@/components/primitives';
 import { Screen } from '@/components/Screen';
 import { colors } from '@/theme/tokens';
 
@@ -75,11 +75,13 @@ function Section({
 }
 
 export default function CourseTreeScreen() {
-  const { data, isLoading } = useCourseTree();
+  const { data, isLoading, isError, refetch } = useCourseTree();
 
   return (
     <Screen title="شجرة المقررات">
-      {isLoading || !data ? (
+      {isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : isLoading || !data ? (
         <>
           <SkeletonCard />
           <SkeletonCard />

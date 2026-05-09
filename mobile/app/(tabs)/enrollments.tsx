@@ -7,6 +7,7 @@ import { useEnrollments, useSemesters } from '@/api/queries';
 import {
   Card,
   EmptyState,
+  ErrorState,
   Pill,
   SkeletonCard,
   StatusBadge,
@@ -42,7 +43,7 @@ export default function EnrollmentsScreen() {
   const activeSemesterId = (semesters ?? []).find((s) => s.is_active)?.id;
   const semesterId = selected ?? activeSemesterId ?? null;
 
-  const { data: enrollments, isLoading } = useEnrollments(semesterId ?? undefined);
+  const { data: enrollments, isLoading, isError, refetch } = useEnrollments(semesterId ?? undefined);
 
   return (
     <Screen title="مقرراتي">
@@ -61,7 +62,9 @@ export default function EnrollmentsScreen() {
         </View>
       )}
 
-      {isLoading ? (
+      {isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : isLoading ? (
         <>
           <SkeletonCard />
           <SkeletonCard />

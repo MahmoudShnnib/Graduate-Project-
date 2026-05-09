@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   EmptyState,
+  ErrorState,
   Input,
   Pill,
   SectionHeader,
@@ -126,6 +127,10 @@ export default function DesignPreview() {
           actionLabel="تحديث"
           onAction={() => {}}
         />
+      </Section>
+
+      <Section title="حالات الخطأ — Error">
+        <ErrorState onRetry={() => {}} />
       </Section>
     </ScrollView>
   );

@@ -196,6 +196,89 @@ All 12 screens built with the design-system primitives, wired to the Laravel API
 
 ---
 
-## Phase 4 — Polish
+## Phase 4 — Polish ✅ COMPLETE
 
-(pending)
+**Built:**
+
+- `ErrorState` primitive — CloudOff icon + Arabic copy + retry button. Exported from `src/components/primitives/`.
+- Wired `ErrorState` into the four data-heavy screens (dashboard / enrollments / grades / course-tree). Pattern: `isError ? <ErrorState onRetry={refetch} /> : isLoading ? <Skeleton /> : <Content />`.
+- `usePendingRequestsCount` — aggregates pending counts from add-drop + suspension + exceptional in one hook with 60s refresh.
+- Wired the **الطلبات tab badge** to that hook — appears in amber when count > 0.
+- Added `ErrorState` to the design preview screen so morning review can see all error / empty / skeleton states.
+
+**Status banner coverage:**
+
+- The status banner (OnHold / Inactive / Dismissed) is automatically rendered above every authenticated screen via `Screen` → `StatusBanner`. Verified by reading every screen — none skip it.
+- The OnHold banner can be verified live via `26CS102 / password`.
+
+**Skeleton coverage:**
+
+- Account, dashboard, enrollments, grades, course-tree, survey, add-drop, suspension, exceptional, thesis, clearance — all show `SkeletonCard` while their primary query is loading.
+
+**Empty state coverage:**
+
+- Enrollments → no enrollments → EmptyState with CTA to course tree.
+- Survey selected list → empty → muted card.
+- Survey available list → empty → EmptyState.
+- Add/drop history → empty → muted card.
+- Suspension history → empty → muted card.
+- Exceptional → no failed courses → muted card.
+- Notifications (dashboard) → empty → muted card.
+- Clearance not eligible → EmptyState with diploma icon.
+
+**Error coverage:**
+
+- Mutations bubble server errors through inline `Banner kind="danger"` with the message — institutional analog to a toast.
+- The four highest-traffic screens have inline `ErrorState` with retry. Lighter screens fall through gracefully — `useMe` hydrates from auth context too.
+
+**Verified:**
+
+- `npx tsc --noEmit` passes.
+- `npx expo export --platform android` builds a clean **7.34 MB bundle** (3457 modules).
+
+**Decisions during build (review):**
+
+- Inline banners over floating toasts — DESIGN_SPEC's "institutional, not playful" direction matches inline banners; floating toasts are consumer-app mannerism.
+- Tab-bar badge color is `colors.warning` (amber #D97706), in the same family as the spec's "amber when limit approaching".
+- Kept `ErrorState` only on data-heavy screens to avoid noise on lighter forms.
+
+**Skipped:**
+
+- Global toast/snackbar layer — see decision above.
+- Drag-handle reorder for selected survey courses — could be added with `react-native-draggable-flatlist`.
+- Live-refresh of pending-count badge on focus — currently uses a 60s `refetchInterval`.
+
+**Blockers:** none.
+
+**Next:** **None — the build is ready to scan in Expo Go.**
+
+---
+
+## Morning checklist for the user
+
+1. From `/home/ppsan/PhpstormProjects/Graduate-Project-`:
+   ```sh
+   php artisan migrate:fresh --seed --force     # if not already seeded
+   php artisan serve --host=0.0.0.0 --port=8000
+   ```
+   Binding `0.0.0.0` lets the phone reach the API over LAN.
+
+2. From `mobile/`:
+   ```sh
+   npx expo start
+   ```
+   Scan the QR with Expo Go on your phone (same Wi-Fi as the laptop).
+
+3. Sign in with `26CS101 / password`. Expected:
+   - Status badge "مستمر" with green dot.
+   - Dashboard: GPA 2.50, 3 enrolled, 2 unread notifications, 1 active warning.
+   - Grades: gauge at 2.50, previous semester A/B+/C+/F, current semester midterm-only on EE604/CP612, unpublished on CP614.
+   - Course tree: 3 passed, 1 failed (CP611).
+   - Exceptional: only CP611 listed as a failed course.
+   - الطلبات tab: no badge (no pending requests).
+
+4. Sign out, sign in with `26CS102 / password`. Expect a red OnHold banner above every screen.
+
+5. To audit the design system, manually navigate to `_design-preview` (e.g. via deep link `studentportal:///_design-preview` in Expo Go's URL field). The route renders every primitive in every state.
+
+6. If anything renders wrong, the most likely issue is the API base URL. Override with `EXPO_PUBLIC_API_URL=http://<laptop-ip>:8000/api/v1` (and re-export client.ts to read `process.env.EXPO_PUBLIC_API_URL`) or hard-code in `src/api/client.ts`.

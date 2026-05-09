@@ -2,9 +2,12 @@ import { Tabs } from 'expo-router';
 import { BookOpen, FileText, GraduationCap, Home, UserCircle } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
+import { usePendingRequestsCount } from '@/hooks/usePendingRequestsCount';
 import { colors } from '@/theme/tokens';
 
 export default function TabsLayout() {
+  const { data: pendingCount } = usePendingRequestsCount();
+
   return (
     <Tabs
       screenOptions={{
@@ -22,6 +25,11 @@ export default function TabsLayout() {
           fontFamily: 'NotoKufiArabic-Medium',
           fontSize: 11,
           marginTop: 2,
+        },
+        tabBarBadgeStyle: {
+          fontFamily: 'NotoKufiArabic-Medium',
+          fontSize: 10,
+          backgroundColor: colors.warning,
         },
       }}
     >
@@ -44,6 +52,7 @@ export default function TabsLayout() {
         options={{
           title: 'الطلبات',
           tabBarIcon: ({ color, size }) => <FileText color={color} size={size} />,
+          tabBarBadge: pendingCount && pendingCount > 0 ? pendingCount : undefined,
         }}
       />
       <Tabs.Screen

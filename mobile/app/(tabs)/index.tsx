@@ -18,6 +18,7 @@ import {
 } from '@/api/queries';
 import {
   Card,
+  ErrorState,
   Pill,
   SectionHeader,
   SkeletonCard,
@@ -70,7 +71,7 @@ function QuickAction({
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { data: student, isLoading: meLoading } = useMe();
+  const { data: student, isLoading: meLoading, isError: meError, refetch: refetchMe } = useMe();
   const { data: semester } = useActiveSemester();
   const { data: enrollments } = useEnrollments();
   const { data: notifications } = useNotifications();
@@ -83,7 +84,9 @@ export default function HomeScreen() {
       title={student ? `مرحباً، ${student.name?.split(' ').slice(0, 2).join(' ')}` : 'الرئيسية'}
       subtitle={student ? `رقم القيد: ${student.enrollment_no}` : undefined}
     >
-      {meLoading || !student ? (
+      {meError ? (
+        <ErrorState onRetry={() => refetchMe()} />
+      ) : meLoading || !student ? (
         <SkeletonCard />
       ) : (
         <>
