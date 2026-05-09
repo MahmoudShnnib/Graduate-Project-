@@ -92,9 +92,57 @@ A continuously-updated log of what was built, what's pending, and decisions you 
 
 ---
 
-## Phase 2 — Expo skeleton + design system
+## Phase 2 — Expo skeleton + design system ✅ COMPLETE
 
-(pending)
+**Built:**
+
+- Scaffolded Expo SDK 54 + RN 0.81 + React 19 + TypeScript via `create-expo-app --template blank-typescript`.
+- Switched main entry to `expo-router/entry`, deleted `App.tsx`/`index.ts`.
+- Installed deps: expo-router, expo-font, expo-secure-store, expo-localization, expo-system-ui, RN safe-area / screens / reanimated / gesture-handler / svg, nativewind 4 + tailwindcss 3.4, @tanstack/react-query, axios, react-hook-form + zod + @hookform/resolvers, lucide-react-native, react-native-worklets, babel-preset-expo.
+- Configured **NativeWind v4**: `tailwind.config.js` (theme tokens matching DESIGN_SPEC hex codes), `babel.config.js` (jsxImportSource + nativewind/babel preset), `metro.config.js` (`withNativeWind`), `global.css` (@tailwind directives), `nativewind-env.d.ts`.
+- `tsconfig.json` paths alias `@/* -> src/*`.
+- `app.json`: bundle ID, scheme, fonts plugin (3 TTF entries), expo-router + expo-secure-store + expo-localization plugins, typedRoutes experiment.
+- Downloaded **3 distinct static-weight TTFs** (Regular 400, Medium 500, Bold 700) from fontsource into `assets/fonts/`.
+- Folder structure under `src/`: `api/`, `components/{primitives,feature}`, `hooks/`, `lib/`, `theme/`.
+- **Design tokens** (`src/theme/tokens.ts`) — exact DESIGN_SPEC hex values exported as TS const.
+- **Token storage** (`src/lib/secureStore.ts`) — wraps expo-secure-store for the bearer token.
+- **Axios client** (`src/api/client.ts`) — auto-resolves base URL from Expo dev host (LAN IP) or falls back to `10.0.2.2`/`127.0.0.1`. Bearer interceptor + 401 handler.
+- **Type definitions** (`src/api/types.ts`) — every API resource shape from Phase 1, hand-typed to match the Laravel resources.
+- **Auth context** (`src/hooks/useAuth.tsx`) — `loading | authenticated | unauthenticated`, hydrates from secure-store on boot, calls `/auth/me` to refresh, integrates with the unauthorized handler.
+- **10 design primitives** (`src/components/primitives/`): Button (5 variants × 2 sizes × loading/disabled/icon-left), Card, Pill (6 tones, optional dot, sm/md), Banner (5 tones × 7 kinds), Input (label/error/hint, RTL-aligned), Avatar (initials), EmptyState, Skeleton + SkeletonCard, StatusBadge (wraps StatusEnum→Pill), SectionHeader.
+- **Composed components**: `Screen` (auto safe-area + header + status banner + scroll), `PageHeader`, `StatusBanner` (auth-aware, shows OnHold/Inactive/Dismissed banner from student status).
+- **Routing tree**:
+  - `app/_layout.tsx` — RTL force, font load, QueryClient, AuthProvider, AuthGate (redirects unauth → `/login`, auth → `/(tabs)`).
+  - `app/(auth)/login.tsx` — RHF + zod, end-to-end working against the Laravel API.
+  - `app/(tabs)/_layout.tsx` — 5 bottom tabs with lucide icons + Arabic Kufi labels: الرئيسية / مقرراتي / الطلبات / الدرجات / حسابي.
+  - `app/(tabs)/{index,enrollments,grades,account}.tsx` + `requests/{_layout,index}.tsx` — Phase-3 placeholders.
+  - **`app/_design-preview.tsx`** — every primitive in every state, scrollable, hidden route.
+
+**Verified:**
+
+- `npx expo export --platform android` builds a clean **7.25 MB bundle** (3457 modules) with all 3 distinct font TTFs included.
+- `npx tsc --noEmit` compiles with **no TypeScript errors**.
+
+**Decisions during build (review):**
+
+- **NativeWind v4** (current latest) over v3 — v4 supports Tailwind v3.4 cleanly and ships with the `withNativeWind` Metro helper. The user's spec said "NativeWind (Tailwind v3)" — interpreted as Tailwind v3 (we're on 3.4.19); NativeWind itself is v4.
+- **Variable→static font swap** — first attempt used Google Fonts' variable `NotoKufiArabic[wght].ttf` thrice; weights collapsed visually. Switched to fontsource static TTFs (400/500/700) so Bold/Medium actually render distinctly.
+- **API base-URL auto-resolves** from `Constants.expoConfig.hostUri` so a phone running Expo Go hits the host laptop's LAN IP automatically. Falls back to `10.0.2.2` (Android emulator) / `127.0.0.1` (iOS sim).
+- **Status banner** shown above all screen content (DESIGN_SPEC core rule). Logged in `StatusBanner` and inserted into `Screen` so every screen gets it for free.
+- **No emojis anywhere** — entire UI uses lucide icons only.
+- **`accent: F97316`** vs **`warning: D97706`** — DESIGN_SPEC distinguishes "Accent orange" (CTAs/chips) from "Warning amber" (status). Pill `tone="warning"` uses amber. `accent` Tailwind class kept available for future non-status uses.
+- **No Zustand** — auth state in React Context, server state in TanStack Query.
+- **Route segments `(auth)`, `(tabs)`, `requests/`** — Expo Router groups for clean URL paths. Login at `/(auth)/login`, tabs at `/(tabs)/{index,enrollments,...}`, requests subnav supports stacked screens.
+
+**Skipped:**
+
+- Real Expo Go scan/test — that's the morning verification gate.
+- Custom splash icon — kept default Expo splash.
+- Notification badge wiring on الطلبات tab — Phase 3 wires it.
+
+**Blockers:** none.
+
+**Next:** Phase 3 — implement the 12 screens against the API.
 
 ---
 
