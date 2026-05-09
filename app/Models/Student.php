@@ -166,6 +166,11 @@ class Student extends Model
         return $this->hasMany(ExceptionalRequest::class);
     }
 
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class);
+    }
+
     public function discussionRequests(): HasMany
     {
         return $this->hasMany(DiscussionRequest::class);

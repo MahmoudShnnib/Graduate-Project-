@@ -13,6 +13,8 @@ class ExceptionalRequest extends Model
 
     protected $fillable = [
         'student_id',
+        'course_id',
+        'opportunity_type',
         'reason',
         'status',
         'decided_by',
@@ -41,5 +43,10 @@ class ExceptionalRequest extends Model
     public function decidedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'decided_by');
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
     }
 }

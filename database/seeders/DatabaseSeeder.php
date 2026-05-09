@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             ApplicationSeeder::class,
             StudentSeeder::class,
+            MobileTestStudentSeeder::class,
         ]);
     }
 }
