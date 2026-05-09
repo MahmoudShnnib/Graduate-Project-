@@ -7,6 +7,8 @@ use App\Enums\SuspensionStatus;
 use App\Filament\Resources\Students\StudentResource;
 use App\Models\Semester;
 use App\Models\SuspensionRequest;
+use App\Services\AuditService;
+use App\Services\EnrollmentNumberService;
 use App\Services\GradeCalculationService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -75,7 +77,7 @@ class EditStudent extends EditRecord
                             : $get('status')
                     )),
             ])
-            ->action(function (array $data): void {
+            ->action(function (array $data, AuditService $audit): void {
                 $rawStatus = $data['status'] ?? null;
                 $newStatus = $rawStatus instanceof StudentStatus
                     ? $rawStatus
@@ -87,8 +89,16 @@ class EditStudent extends EditRecord
                     return;
                 }
 
+                $oldStatus = $this->record->status;
                 $this->record->update(['status' => $newStatus]);
                 $this->rescindActiveSemesterSuspensionIfOverridden($this->record);
+
+                $audit->log(
+                    'student_status_changed',
+                    $this->record,
+                    oldValues: ['status' => $oldStatus->value],
+                    newValues: ['status' => $newStatus->value],
+                );
 
                 Notification::make()
                     ->title('تم تحديث حالة الطالب')
@@ -145,6 +155,9 @@ class EditStudent extends EditRecord
         $transferCourses = $data['transfer_courses'] ?? [];
         $isTransfer = (bool) ($data['is_transfer'] ?? false);
 
+        $oldSpecializationId = $record->specialization_id;
+        $oldEnrollmentNo = $record->enrollment_no;
+
         // Strip from $data — not a Student column.
         unset($data['transfer_courses']);
 
@@ -168,6 +181,21 @@ class EditStudent extends EditRecord
         // Recalculate GPA — transfer courses count toward it per
         // GradeCalculationService. Non-Active students are skipped inside the service.
         app(GradeCalculationService::class)->recalculateStudentGPA($record);
+
+        // If the specialization changed and the student has an enrollment number,
+        // re-issue a new number under the new spec. Preserves the original year
+        // and session flag from the current number.
+        if ($record->specialization_id !== $oldSpecializationId && $record->enrollment_no) {
+            $record->refresh();
+            $newEnrollmentNo = app(EnrollmentNumberService::class)
+                ->regenerateForSpecializationChange($record, $record->specialization);
+
+            Notification::make()
+                ->title('تم تحديث رقم القيد')
+                ->body("الرقم القديم: {$oldEnrollmentNo} ← الرقم الجديد: {$newEnrollmentNo}")
+                ->success()
+                ->send();
+        }
 
         // Admin-override: if the saved status is Active and there's still an
         // approved semester-scoped suspension for the active semester, the

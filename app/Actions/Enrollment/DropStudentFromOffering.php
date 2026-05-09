@@ -6,9 +6,14 @@ use App\Enums\EnrollmentStatus;
 use App\Models\CourseOffering;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Services\AuditService;
 
 class DropStudentFromOffering
 {
+    public function __construct(
+        private readonly AuditService $audit,
+    ) {}
+
     public function __invoke(
         Student $student,
         CourseOffering $offering,
@@ -25,6 +30,8 @@ class DropStudentFromOffering
         }
 
         $enrollment->update(['status' => $to]);
+
+        $this->audit->log('student_dropped', $enrollment);
 
         return true;
     }

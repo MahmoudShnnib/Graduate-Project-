@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'Noto Kufi Arabic';
+    src: url('/fonts/Noto_Kufi_Arabic/NotoKufiArabic-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}

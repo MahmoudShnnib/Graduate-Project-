@@ -16,22 +16,49 @@ class SemesterObserver
     public function created(Semester $semester): void
     {
         if ($semester->is_active) {
-            $this->processInactiveStudents($semester);
+            $this->resetInactiveStudentsToActive();
         }
     }
 
     public function updated(Semester $semester): void
     {
-        if (! $semester->wasChanged('is_active') || ! $semester->is_active) {
-            return;
+        if ($semester->wasChanged('is_active') && $semester->is_active) {
+            $this->resetInactiveStudentsToActive();
         }
 
-        $this->processInactiveStudents($semester);
+        if ($semester->wasChanged('survey_open')) {
+            $wasOpen = (bool) $semester->getOriginal('survey_open');
+            $isNowOpen = (bool) $semester->survey_open;
+
+            if ($wasOpen && ! $isNowOpen) {
+                $this->processNonSubmittingStudents($semester);
+            }
+        }
     }
 
-    private function processInactiveStudents(Semester $semester): void
+    /**
+     * When a new semester starts, reset all Inactive students to Active so they
+     * get a fresh chance at the survey. Uses updateQuietly to bypass
+     * StudentObserver — their consecutive_inactive warnings must persist and
+     * accumulate across semesters. Only an admin manually changing the status
+     * clears warnings.
+     */
+    private function resetInactiveStudentsToActive(): void
     {
         Student::where('status', StudentStatus::Inactive)
-            ->each(fn (Student $student) => $this->warningService->processInactiveWarning($student, $semester));
+            ->each(fn (Student $student) => $student->updateQuietly(['status' => StudentStatus::Active]));
+    }
+
+    /**
+     * When the survey closes (survey_open: true → false), any Active student
+     * who submitted no survey entries for this semester is marked as Inactive.
+     * Uses a normal update so StudentObserver fires: it creates the
+     * consecutive_inactive warning and cascades withdrawal of active enrollments.
+     */
+    private function processNonSubmittingStudents(Semester $semester): void
+    {
+        Student::where('status', StudentStatus::Active)
+            ->whereDoesntHave('courseSurveys', fn ($q) => $q->where('semester_id', $semester->id))
+            ->each(fn (Student $student) => $student->update(['status' => StudentStatus::Inactive]));
     }
 }

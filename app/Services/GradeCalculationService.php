@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\GradeStatus;
 use App\Enums\StudentStatus;
 use App\Models\Student;
 
@@ -18,7 +17,7 @@ class GradeCalculationService
 
         $enrollments = $student->activeEnrollments()
             ->whereHas('grade', function ($query) {
-                $query->where('status', GradeStatus::Approved)
+                $query->whereNotNull('published_at')
                     ->whereNotNull('letter');
             })
             ->where(function ($query) use ($specializationId) {

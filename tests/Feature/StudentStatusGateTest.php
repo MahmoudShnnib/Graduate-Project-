@@ -97,6 +97,7 @@ it('keeps approved grades visible on GradesPage after cascade', function () {
         'coursework_grade' => 35,
         'final_grade' => 50,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     $this->student->update(['status' => StudentStatus::OnHold]);
@@ -124,6 +125,7 @@ it('GPA is not recalculated for non-active students', function (StudentStatus $s
         'coursework_grade' => 38,
         'final_grade' => 52,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     $this->student->refresh();

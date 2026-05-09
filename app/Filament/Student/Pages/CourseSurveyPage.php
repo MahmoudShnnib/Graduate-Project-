@@ -2,10 +2,10 @@
 
 namespace App\Filament\Student\Pages;
 
-use App\Enums\GradeStatus;
 use App\Models\Course;
 use App\Models\CourseSurvey;
 use App\Models\Semester;
+use App\Services\AuditService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
@@ -193,6 +193,8 @@ class CourseSurveyPage extends Page
             ]);
         }
 
+        app(AuditService::class)->log('survey_submitted', $student, newValues: ['count' => count($this->selections)]);
+
         Notification::make()->title('تم حفظ اختياراتك بنجاح')->success()->send();
     }
 
@@ -208,7 +210,7 @@ class CourseSurveyPage extends Page
 
         $nonACourseIds = $student->enrollments()
             ->whereHas('grade', fn ($q) => $q
-                ->where('status', GradeStatus::Approved)
+                ->whereNotNull('published_at')
                 ->whereNotNull('letter')
                 ->where('letter', '!=', 'F')
                 ->where('letter', '!=', 'A'))

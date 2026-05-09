@@ -41,6 +41,7 @@ it('creates a warning when a student gets an F', function () {
         'coursework_grade' => 10,
         'final_grade' => 15,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     expect(StudentWarning::where('student_id', $this->student->id)->where('is_active', true)->count())->toBe(1)
@@ -60,6 +61,7 @@ it('resolves course failure warning when student passes the course', function ()
         'coursework_grade' => 10,
         'final_grade' => 15,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     expect($this->student->fresh()->warnings_count)->toBe(1);
@@ -78,6 +80,7 @@ it('resolves course failure warning when student passes the course', function ()
         'coursework_grade' => 40,
         'final_grade' => 50,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     expect($this->student->fresh()->warnings_count)->toBe(0)
@@ -94,6 +97,7 @@ it('dismisses student who fails the same course twice', function () {
         'coursework_grade' => 10,
         'final_grade' => 15,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     expect($this->student->fresh()->status)->toBe(StudentStatus::Active);
@@ -113,6 +117,7 @@ it('dismisses student who fails the same course twice', function () {
         'coursework_grade' => 10,
         'final_grade' => 10,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     $student = $this->student->fresh();
@@ -139,6 +144,7 @@ it('does not dismiss when failing different courses', function () {
         'coursework_grade' => 10,
         'final_grade' => 15,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     $e2 = $enroll($this->student->fresh(), $offering2);
@@ -147,6 +153,7 @@ it('does not dismiss when failing different courses', function () {
         'coursework_grade' => 10,
         'final_grade' => 15,
         'status' => GradeStatus::Approved,
+        'published_at' => now(),
     ]);
 
     $student = $this->student->fresh();

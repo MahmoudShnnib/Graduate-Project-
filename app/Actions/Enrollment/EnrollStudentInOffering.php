@@ -14,6 +14,7 @@ use App\Models\CourseSurvey;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\DB;
 
 class EnrollStudentInOffering
@@ -24,6 +25,10 @@ class EnrollStudentInOffering
      * survey-batch, add/drop approval) respects it without duplication.
      */
     public const int MAX_ENROLLMENTS_PER_SEMESTER = 4;
+
+    public function __construct(
+        private readonly AuditService $audit,
+    ) {}
 
     /**
      * @throws StudentNotActiveException when the student's global status is
@@ -116,6 +121,8 @@ class EnrollStudentInOffering
                 ->where('semester_id', $offering->semester_id)
                 ->where('course_id', $offering->course_id)
                 ->update(['is_processed' => true]);
+
+            $this->audit->log('student_enrolled', $enrollment, newValues: ['course_offering_id' => $offering->id]);
 
             return $enrollment;
         });

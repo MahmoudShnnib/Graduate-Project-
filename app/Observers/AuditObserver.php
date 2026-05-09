@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 class AuditObserver
 {
     private const WATCHED_FIELDS = [
-        Grade::class => ['coursework_grade', 'final_grade', 'total', 'letter', 'status'],
+        Grade::class => ['coursework_grade', 'final_grade', 'status', 'midterm_published_at', 'published_at'],
         Application::class => ['status', 'rejection_reason'],
         Student::class => ['warnings_count', 'status', 'enrollment_no'],
         StudentEnrollment::class => ['status'],

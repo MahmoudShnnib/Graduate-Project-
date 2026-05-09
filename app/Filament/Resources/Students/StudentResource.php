@@ -449,6 +449,17 @@ class StudentResource extends Resource
                                                     $query->whereHas('specializations', fn ($q) => $q->where('specializations.id', $specId));
                                                 }
 
+                                                $ownValue = $get('course_id');
+                                                $takenIds = collect($get('../../courses') ?? [])
+                                                    ->pluck('course_id')
+                                                    ->filter(fn ($id) => $id && $id != $ownValue)
+                                                    ->values()
+                                                    ->all();
+
+                                                if (! empty($takenIds)) {
+                                                    $query->whereNotIn('id', $takenIds);
+                                                }
+
                                                 return $query->orderBy('name')->pluck('name', 'id')->toArray();
                                             })
                                             ->searchable()

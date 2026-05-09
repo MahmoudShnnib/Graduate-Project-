@@ -9,6 +9,7 @@ use App\Filament\Resources\Applications\Pages\ListApplications;
 use App\Filament\Resources\Applications\Pages\ViewApplication;
 use App\Filament\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Models\Application;
+use App\Services\AuditService;
 use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -45,6 +46,16 @@ class ApplicationResource extends Resource
     protected static ?int $navigationSort = 2;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) Application::where('status', ApplicationStatus::Pending)->count() ?: null;
+    }
+
+    public static function getNavigationBadgeColor(): string
+    {
+        return 'warning';
+    }
 
     public static function infolist(Schema $schema): Schema
     {
@@ -327,7 +338,7 @@ class ApplicationResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('قبول مبدئي')
                     ->modalDescription('سيتم إضافة الطالب إلى قائمة الامتحان التفاضلي.')
-                    ->action(function (Application $application, NotificationService $notifier, \Livewire\Component $livewire) {
+                    ->action(function (Application $application, NotificationService $notifier, AuditService $audit, \Livewire\Component $livewire) {
                         $examDate = $livewire->scheduledExamDate ?? null;
 
                         if (! $examDate) {
@@ -341,6 +352,7 @@ class ApplicationResource extends Resource
                             'exam_date' => $examDate,
                         ]);
 
+                        $audit->log('application_initial_approval', $application);
                         $notifier->notifyApplicationStatusChanged($application);
 
                         Notification::make()->title('تم القبول المبدئي بنجاح')->success()->send();
@@ -353,9 +365,10 @@ class ApplicationResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('قبول مباشر')
                     ->modalDescription('سيتم قبول الطالب نهائياً وإنشاء سجل طالب بدون امتحان.')
-                    ->action(function (Application $application, ApproveApplication $approve) {
+                    ->action(function (Application $application, ApproveApplication $approve, AuditService $audit) {
                         try {
                             $approve->handle($application);
+                            $audit->log('application_approved', $application);
                             Notification::make()->title('تم القبول بنجاح')->success()->send();
                         } catch (\Exception $e) {
                             Notification::make()->title('خطأ')->body($e->getMessage())->danger()->send();

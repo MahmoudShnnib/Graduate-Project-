@@ -36,6 +36,14 @@ class GradeFactory extends Factory
         ]);
     }
 
+    public function published(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => GradeStatus::Approved,
+            'published_at' => now(),
+        ]);
+    }
+
     public function passing(): static
     {
         return $this->state(function (array $attributes) {
@@ -51,6 +59,7 @@ class GradeFactory extends Factory
                 'letter' => $conversion['letter'],
                 'points' => $conversion['points'],
                 'status' => GradeStatus::Approved,
+                'published_at' => now(),
             ];
         });
     }
@@ -65,6 +74,7 @@ class GradeFactory extends Factory
                 'letter' => 'F',
                 'points' => 0.0,
                 'status' => GradeStatus::Approved,
+                'published_at' => now(),
             ];
         });
     }

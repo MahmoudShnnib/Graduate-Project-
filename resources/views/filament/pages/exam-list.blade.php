@@ -90,11 +90,11 @@
                 <div class="flex gap-2">
                     <x-filament::button wire:click="markFailed" wire:confirm="هل أنت متأكد من رفض الطلاب المحددين؟"
                         color="danger" icon="heroicon-o-x-mark" size="sm">
-                        راسب — رفض
+                        مرفوض
                     </x-filament::button>
                     <x-filament::button wire:click="markPassed" wire:confirm="هل أنت متأكد من قبول الطلاب المحددين نهائياً؟"
                         color="success" icon="heroicon-o-check" size="sm">
-                        ناجح — قبول نهائي
+                        مقبول
                     </x-filament::button>
                 </div>
             </div>

@@ -2,9 +2,10 @@
     @php
         $history = $this->getHistory();
         $hasPending = $this->hasPendingRequest();
+        $hasApproved = $this->hasAnyApprovedRequest();
         $semesters = $this->getSemesters();
-        $approvedSemesterIds = $this->getApprovedSemesterIds();
-        $selectedIsApproved = $this->isSelectedSemesterAlreadyApproved();
+        $blockedSemesterIds = $this->getBlockedSemesterIds();
+        $selectedIsBlocked = $this->isSelectedSemesterBlocked();
         $student = auth()->user()->student;
         $statusBlocks = $student && ! $student->canPerformActions();
     @endphp
@@ -16,6 +17,13 @@
     {{-- New Request Form --}}
     @if($statusBlocks)
         {{-- The banner above already tells the student they can't submit. --}}
+    @elseif($hasApproved)
+        <x-filament::section>
+            <div class="flex items-start gap-3 p-4 rounded-xl bg-danger-50 dark:bg-danger-500/10 border border-danger-200 dark:border-danger-500/30">
+                <x-heroicon-o-no-symbol style="width: 1.25rem; height: 1.25rem; flex-shrink: 0; margin-top: 0.1rem;" class="text-danger-600 dark:text-danger-400" />
+                <p class="text-sm text-danger-800 dark:text-danger-300">تمت الموافقة على طلب انقطاع سابق. لا يُسمح بتقديم طلب جديد نهائياً.</p>
+            </div>
+        </x-filament::section>
     @elseif($hasPending)
         <x-filament::section>
             <div class="flex items-start gap-3 p-4 rounded-xl bg-warning-50 dark:bg-warning-500/10 border border-warning-200 dark:border-warning-500/30">
@@ -42,8 +50,8 @@
                             <option value="">— اختر الفصل —</option>
                             @foreach($semesters as $semester)
                                 <option value="{{ $semester->id }}"
-                                    @disabled(in_array($semester->id, $approvedSemesterIds, true))>
-                                    {{ $semester->name }}@if(in_array($semester->id, $approvedSemesterIds, true)) (تمت الموافقة مسبقاً)@endif
+                                    @disabled(in_array($semester->id, $blockedSemesterIds, true))>
+                                    {{ $semester->name }}@if(in_array($semester->id, $blockedSemesterIds, true)) (لا يمكن إعادة التقديم)@endif
                                 </option>
                             @endforeach
                         </x-filament::input.select>
@@ -51,10 +59,10 @@
                     @error('semesterId') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
 
-                @if($selectedIsApproved)
+                @if($selectedIsBlocked)
                     <div class="flex items-start gap-3 p-4 rounded-xl bg-danger-50 dark:bg-danger-500/10 border border-danger-200 dark:border-danger-500/30">
                         <x-heroicon-o-x-circle style="width: 1.25rem; height: 1.25rem; flex-shrink: 0; margin-top: 0.1rem;" class="text-danger-600 dark:text-danger-400" />
-                        <p class="text-sm text-danger-800 dark:text-danger-300">تمت الموافقة مسبقاً على طلب انقطاع لهذا الفصل الدراسي. لا يمكن تقديم طلب جديد لنفس الفصل.</p>
+                        <p class="text-sm text-danger-800 dark:text-danger-300">يوجد طلب سابق مقبول أو مرفوض لهذا الفصل الدراسي. لا يمكن إعادة التقديم.</p>
                     </div>
                 @endif
 
@@ -64,13 +72,13 @@
                     </label>
                     <x-filament::input.wrapper :valid="! $errors->has('reason')">
                         <textarea wire:model="reason" rows="4"
-                            @disabled($selectedIsApproved)
+                            @disabled($selectedIsBlocked)
                             class="fi-input block w-full border-none bg-transparent px-3 py-1.5 text-sm text-gray-950 outline-none transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 dark:text-white dark:placeholder:text-gray-500 sm:leading-6"
                             placeholder="اكتب سبباً واضحاً ومفصلاً لطلب الانقطاع..."></textarea>
                     </x-filament::input.wrapper>
                     @error('reason') <p class="mt-1 text-xs text-danger-600 dark:text-danger-400">{{ $message }}</p> @enderror
                 </div>
-                <x-filament::button wire:click="submit" icon="heroicon-o-paper-airplane" :disabled="$selectedIsApproved">
+                <x-filament::button wire:click="submit" icon="heroicon-o-paper-airplane" :disabled="$selectedIsBlocked">
                     إرسال الطلب
                 </x-filament::button>
             </div>

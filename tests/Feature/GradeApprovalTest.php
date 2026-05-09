@@ -79,6 +79,7 @@ test('approving a grade recalculates student GPA', function () {
         'status' => GradeStatus::Approved,
         'approved_by' => adminUser()->id,
         'approved_at' => now(),
+        'published_at' => now(),
     ]);
 
     $calculator = app(GradeCalculationService::class);

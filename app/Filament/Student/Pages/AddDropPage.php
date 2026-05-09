@@ -7,6 +7,7 @@ use App\Models\AddDropRequest;
 use App\Models\CourseOffering;
 use App\Models\Semester;
 use App\Models\StudentEnrollment;
+use App\Services\AuditService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
@@ -316,6 +317,9 @@ class AddDropPage extends Page
         $this->addReason = '';
 
         $total = count($dropIds) + count($addIds);
+
+        app(AuditService::class)->log('add_drop_requested', $student, newValues: ['drops' => count($dropIds), 'adds' => count($addIds)]);
+
         Notification::make()->title("تم إرسال {$total} طلب للمراجعة")->success()->send();
     }
 }

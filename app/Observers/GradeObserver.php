@@ -3,7 +3,6 @@
 namespace App\Observers;
 
 use App\Enums\EnrollmentStatus;
-use App\Enums\GradeStatus;
 use App\Models\Grade;
 use App\Services\GradeCalculationService;
 use App\Services\WarningService;
@@ -17,27 +16,29 @@ class GradeObserver
 
     public function created(Grade $grade): void
     {
-        if ($grade->status !== GradeStatus::Approved) {
-            return;
+        if ($grade->published_at !== null) {
+            $this->handlePublication($grade);
         }
+    }
 
-        $this->handleApproval($grade);
+    public function updating(Grade $grade): void
+    {
+        if ($grade->isDirty('coursework_grade')) {
+            $grade->midterm_published_at = null;
+            $grade->published_at = null;
+        } elseif ($grade->isDirty('final_grade')) {
+            $grade->published_at = null;
+        }
     }
 
     public function updated(Grade $grade): void
     {
-        if ($grade->wasChanged('status') && $grade->status === GradeStatus::Approved) {
-            $this->handleApproval($grade);
-
-            return;
-        }
-
-        if ($grade->status === GradeStatus::Approved && $grade->wasChanged(['coursework_grade', 'final_grade', 'total', 'letter'])) {
-            $this->handleApproval($grade);
+        if ($grade->wasChanged('published_at') && $grade->published_at !== null) {
+            $this->handlePublication($grade);
         }
     }
 
-    private function handleApproval(Grade $grade): void
+    private function handlePublication(Grade $grade): void
     {
         $enrollment = $grade->enrollment;
 

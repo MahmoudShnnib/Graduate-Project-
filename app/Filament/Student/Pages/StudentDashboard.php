@@ -71,7 +71,7 @@ class StudentDashboard extends Page
         }
 
         return $student->enrollments()
-            ->whereHas('grade', fn ($q) => $q->where('letter', 'F'))
+            ->whereHas('grade', fn ($q) => $q->whereNotNull('published_at')->where('letter', 'F'))
             ->join('course_offerings', 'student_enrollments.course_offering_id', '=', 'course_offerings.id')
             ->select('course_offerings.course_id')
             ->selectRaw('count(*) as fail_count')
