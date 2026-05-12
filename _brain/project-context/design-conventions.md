@@ -8,6 +8,9 @@ related: [[project-overview]], [[architecture]], [[gotchas]], [[../../CLAUDE]]
 
 > The single source of truth for visual, structural, and code patterns this project uses. Read this before adding any new Filament page, button, banner, or Action. **When in doubt, match a pattern here — don't invent a new one.**
 
+> [!note] Building an admin **view** page (`/admin/{resource}/{id}`)?
+> Use the [[figma-view-page-design|Figma view-page design system]] — hero card + 2-column infolist grid + section cards. Reference implementation: `/admin/students/{id}`. The conventions below still apply on top of that pattern.
+
 Every entry is grounded in a real file in the codebase so you can open it and see the pattern in context.
 
 ---

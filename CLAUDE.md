@@ -30,6 +30,21 @@ related: [[_brain/project-context/README]]
 
 7. **Match existing design conventions — don't invent.** [[_brain/project-context/design-conventions]] is the reference for every visual and structural pattern (colors, badges, banners, buttons, drill-ins, grouped lists, exceptions, observers, etc.). When you need to add a button, banner, modal, or anything user-facing, open that file and pick the existing pattern. When in doubt, match — don't invent.
 
+## Out of Scope — Mobile app (do not touch)
+
+> **HIGH PRIORITY.** See [[_brain/project-context/mobile-app-out-of-scope]] for full rules.
+
+The `mobile/` directory (React Native / Expo) and `database/seeders/MobileTestStudentSeeder.php` are personal exploration, **not** part of this graduation project. Treat them as if they do not exist:
+
+- **Do not** analyze, edit, or suggest changes to anything under `mobile/` or to `MobileTestStudentSeeder.php`.
+- **Do not** factor the mobile app into project summaries, architecture overviews, or feature lists. When describing this project, describe only the Laravel + Filament web system.
+- **Do not** stage mobile files in any commit — if `git status` shows `M mobile/...` or `M database/seeders/MobileTestStudentSeeder.php`, omit them from `git add`. If the user says "commit everything", confirm before staging mobile.
+- **Do not** run mobile builds, Expo commands, or `npm` scripts inside `mobile/`.
+- **Do not** create new `_brain/` notes about mobile. The existing `2026-05-09-mobile-*` notes are historical only.
+- Existing mobile commits on the `mobile-test` branch are harmless history — leave them alone, do not revert.
+
+If the user explicitly asks for mobile work, confirm once ("the mobile app is marked out of scope — do you still want me to work on it?") before touching it.
+
 ## Project Overview
 
 A **Libyan graduate-studies admissions, enrollment, and academic-lifecycle management system** for a single faculty, built as a graduation project. It is an Arabic-first (RTL), multi-panel Laravel + Filament application covering the full student journey:

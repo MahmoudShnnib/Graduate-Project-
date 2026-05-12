@@ -11,19 +11,24 @@ class EditSemester extends EditRecord
 {
     protected static string $resource = SemesterResource::class;
 
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        abort_if(
+            $this->record instanceof Semester && $this->record->isArchived(),
+            403,
+            'هذا الفصل مؤرشف ولا يمكن تعديله',
+        );
+    }
+
     protected function getHeaderActions(): array
     {
         return [DeleteAction::make()];
     }
-
-    protected function mutateFormDataBeforeSave(array $data): array
-    {
-        if (! empty($data['is_active'])) {
-            Semester::where('is_active', true)
-                ->where('id', '!=', $this->record->id)
-                ->update(['is_active' => false]);
-        }
-
-        return $data;
-    }
+    // Note: previously this page also flipped is_active=false on other
+    // semesters in mutateFormDataBeforeSave. That behavior moved to
+    // SemesterObserver::archivePeersOf so EVERY entry point (this page,
+    // CreateSemester, seeders, factories, direct updates) enforces the
+    // one-active-semester invariant uniformly.
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Semesters\RelationManagers;
 use App\Filament\Resources\CourseOfferings\CourseOfferingResource;
 use App\Models\Course;
 use App\Models\CourseOffering;
+use App\Models\Semester;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -92,7 +93,8 @@ class CourseOfferingsRelationManager extends RelationManager
                     ->label('فتح مادة')
                     ->icon(Heroicon::PlusCircle)
                     ->modalHeading('فتح مادة في هذا الفصل')
-                    ->successNotificationTitle('تم فتح المادة بنجاح'),
+                    ->successNotificationTitle('تم فتح المادة بنجاح')
+                    ->hidden(fn (): bool => $this->parentIsArchived()),
             ])
             ->recordActions([
                 Action::make('toggle_open')
@@ -121,14 +123,23 @@ class CourseOfferingsRelationManager extends RelationManager
                             ->title($record->is_open ? 'تم فتح المادة للتسجيل' : 'تم إغلاق المادة')
                             ->success()
                             ->send();
-                    }),
+                    })
+                    ->hidden(fn (): bool => $this->parentIsArchived()),
 
                 EditAction::make()
                     ->label('تعديل')
-                    ->modalHeading('تعديل بيانات المادة'),
+                    ->modalHeading('تعديل بيانات المادة')
+                    ->hidden(fn (): bool => $this->parentIsArchived()),
 
                 DeleteAction::make()
-                    ->label('حذف'),
+                    ->label('حذف')
+                    ->hidden(fn (): bool => $this->parentIsArchived()),
             ]);
+    }
+
+    private function parentIsArchived(): bool
+    {
+        return $this->getOwnerRecord() instanceof Semester
+            && $this->getOwnerRecord()->isArchived();
     }
 }

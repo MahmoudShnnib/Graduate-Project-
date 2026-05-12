@@ -22,6 +22,7 @@ class Semester extends Model
         'add_drop_end',
         'is_active',
         'survey_open',
+        'archived_at',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class Semester extends Model
             'add_drop_end' => 'date',
             'is_active' => 'boolean',
             'survey_open' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -54,6 +56,16 @@ class Semester extends Model
         return $this->hasMany(CourseSurvey::class);
     }
 
+    public function applications(): HasMany
+    {
+        return $this->hasMany(Application::class);
+    }
+
+    public function suspensionRequests(): HasMany
+    {
+        return $this->hasMany(SuspensionRequest::class);
+    }
+
     public function isAddDropOpen(): bool
     {
         if (! $this->add_drop_start || ! $this->add_drop_end) {
@@ -64,5 +76,37 @@ class Semester extends Model
 
         return $today >= $this->add_drop_start->toDateString()
             && $today <= $this->add_drop_end->toDateString();
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /**
+     * Mark this semester as archived in one atomic step: set archived_at,
+     * flip is_active and survey_open off, and close every open offering in
+     * the semester via a query-builder mass update (which intentionally
+     * bypasses CourseOfferingObserver so existing enrollments + grades
+     * stay as historical data). Idempotent — calling on an already-archived
+     * semester is a no-op.
+     */
+    public function archiveCascade(): void
+    {
+        if ($this->isArchived()) {
+            return;
+        }
+
+        \DB::transaction(function (): void {
+            $this->update([
+                'archived_at' => now(),
+                'is_active' => false,
+                'survey_open' => false,
+            ]);
+
+            $this->courseOfferings()
+                ->where('is_open', true)
+                ->update(['is_open' => false]);
+        });
     }
 }

@@ -37,6 +37,16 @@ class EnrollStudents extends Page implements HasTable
 
     public CourseOffering $record;
 
+    /**
+     * True when the parent semester is archived. Used to hide every write
+     * action on this page so the offering becomes a read-only snapshot of
+     * who was enrolled and what grades they got. Printing stays available.
+     */
+    private function isArchived(): bool
+    {
+        return (bool) $this->record->semester?->isArchived();
+    }
+
     public function getTitle(): string
     {
         return 'طلاب المقرر — '.$this->record->course->name;
@@ -131,6 +141,7 @@ class EnrollStudents extends Page implements HasTable
                 ->label(fn (): string => $this->record->is_open ? 'إغلاق المقرر' : 'فتح المقرر')
                 ->icon(fn (): string => $this->record->is_open ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
                 ->color(fn (): string => $this->record->is_open ? 'danger' : 'success')
+                ->visible(fn (): bool => ! $this->isArchived())
                 ->requiresConfirmation()
                 ->modalHeading(fn (): string => $this->record->is_open ? 'إغلاق المقرر' : 'فتح المقرر')
                 ->modalDescription(function (): string {
@@ -168,7 +179,7 @@ class EnrollStudents extends Page implements HasTable
                 ->label(fn (): string => 'طلبوا المادة ('.$this->getSurveyCount().')')
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('warning')
-                ->visible(fn (): bool => (bool) $this->record->is_open)
+                ->visible(fn (): bool => (bool) $this->record->is_open && ! $this->isArchived())
                 ->modalDescription(fn (): ?string => $this->getSurveyCount() === 0
                     ? 'لم يتقدم أي طالب لطلب هذه المادة في الفصل الحالي.'
                     : null)
@@ -262,7 +273,7 @@ class EnrollStudents extends Page implements HasTable
                 ->label(fn (): string => 'طلبات إعادة ('.$this->getRetakeRequestCount().')')
                 ->icon('heroicon-o-arrow-path')
                 ->color('danger')
-                ->visible(fn (): bool => $this->record->is_open && $this->getRetakeRequestCount() > 0)
+                ->visible(fn (): bool => $this->record->is_open && $this->getRetakeRequestCount() > 0 && ! $this->isArchived())
                 ->modalHeading('طلبات إعادة المادة')
                 ->modalDescription('هؤلاء الطلاب سبق أن اجتازوا المادة ويرغبون في إعادتها لتحسين تقديرهم. الموافقة ستسجلهم مباشرة.')
                 ->form(fn (): array => [
@@ -303,7 +314,7 @@ class EnrollStudents extends Page implements HasTable
                 ->label('إضافة طالب')
                 ->icon('heroicon-o-user-plus')
                 ->color('primary')
-                ->visible(fn (): bool => (bool) $this->record->is_open)
+                ->visible(fn (): bool => (bool) $this->record->is_open && ! $this->isArchived())
                 ->slideOver()
                 ->form([
                     Select::make('student_ids')
@@ -434,7 +445,10 @@ class EnrollStudents extends Page implements HasTable
             ->query(
                 Student::query()
                     ->whereHas('activeEnrollments', fn (Builder $q) => $q->where('course_offering_id', $offeringId))
-                    ->with(['user:id,name'])
+                    ->with([
+                        'user:id,name',
+                        'activeEnrollments' => fn ($q) => $q->where('course_offering_id', $offeringId)->with('grade'),
+                    ])
             )
             ->columns([
                 TextColumn::make('enrollment_no')
@@ -445,12 +459,42 @@ class EnrollStudents extends Page implements HasTable
                 TextColumn::make('user.name')
                     ->label('اسم الطالب')
                     ->searchable(),
+
+                TextColumn::make('coursework_grade')
+                    ->label('الأعمال')
+                    ->placeholder('—')
+                    ->getStateUsing(fn (Student $record): ?string => $record->activeEnrollments->first()?->grade?->coursework_grade),
+
+                TextColumn::make('final_grade')
+                    ->label('النهائي')
+                    ->placeholder('—')
+                    ->getStateUsing(fn (Student $record): ?string => $record->activeEnrollments->first()?->grade?->final_grade),
+
+                TextColumn::make('total')
+                    ->label('المجموع')
+                    ->placeholder('—')
+                    ->getStateUsing(fn (Student $record): ?string => $record->activeEnrollments->first()?->grade?->total),
+
+                TextColumn::make('letter')
+                    ->label('التقدير')
+                    ->placeholder('—')
+                    ->badge()
+                    ->getStateUsing(fn (Student $record): ?string => $record->activeEnrollments->first()?->grade?->letter)
+                    ->color(fn (?string $state): string => match ($state) {
+                        'A' => 'success',
+                        'B+', 'B' => 'info',
+                        'C+', 'C' => 'warning',
+                        'D+', 'D' => 'gray',
+                        'F' => 'danger',
+                        default => 'gray',
+                    }),
             ])
             ->recordActions([
                 Action::make('unenroll')
                     ->label('حذف')
                     ->icon('heroicon-o-trash')
                     ->color('danger')
+                    ->visible(fn (): bool => ! $this->isArchived())
                     ->requiresConfirmation()
                     ->action(function (Student $record, DropStudentFromOffering $drop) {
                         $drop($record, $this->record);
@@ -466,6 +510,7 @@ class EnrollStudents extends Page implements HasTable
                     ->label('إلغاء تسجيل المحددين')
                     ->icon('heroicon-o-user-minus')
                     ->color('danger')
+                    ->visible(fn (): bool => ! $this->isArchived())
                     ->requiresConfirmation()
                     ->action(function (Collection $records, DropStudentFromOffering $drop) {
                         $count = 0;

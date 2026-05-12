@@ -4,6 +4,6 @@
     <img
         src="{{ $url }}"
         alt="{{ $alt }}"
-        class="max-w-full max-h-[75vh] rounded-lg shadow-sm"
+        class="max-h-[75vh] max-w-full rounded-lg shadow-sm"
     />
 </div>

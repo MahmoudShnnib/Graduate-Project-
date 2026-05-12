@@ -8,6 +8,7 @@ use App\Filament\Resources\Semesters\Pages\EditSemester;
 use App\Filament\Resources\Semesters\Pages\ListSemesters;
 use App\Filament\Resources\Semesters\Pages\ViewSemester;
 use App\Filament\Resources\Semesters\RelationManagers\CourseOfferingsRelationManager;
+use App\Filament\Resources\Semesters\RelationManagers\DecidedApplicationsRelationManager;
 use App\Models\Course;
 use App\Models\Semester;
 use App\Models\Specialization;
@@ -20,17 +21,14 @@ use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -54,45 +52,44 @@ class SemesterResource extends Resource
     {
         return $schema->components([
             Section::make('بيانات الفصل الدراسي')
+                ->columnSpanFull()
                 ->columns(3)
                 ->components([
-                    Grid::make(3)->components([
-                        TextEntry::make('name')
-                            ->label('اسم الفصل'),
+                    TextEntry::make('name')
+                        ->label('اسم الفصل'),
 
-                        TextEntry::make('year')
-                            ->label('السنة'),
+                    TextEntry::make('year')
+                        ->label('السنة'),
 
-                        TextEntry::make('season')
-                            ->label('الموسم')
-                            ->formatStateUsing(fn (Season $state): string => $state->label()),
+                    TextEntry::make('season')
+                        ->label('الموسم')
+                        ->formatStateUsing(fn (Season $state): string => $state->label()),
 
-                        TextEntry::make('start_date')
-                            ->label('تاريخ البداية')
-                            ->date(),
+                    TextEntry::make('start_date')
+                        ->label('تاريخ البداية')
+                        ->date(),
 
-                        TextEntry::make('end_date')
-                            ->label('تاريخ النهاية')
-                            ->date(),
+                    TextEntry::make('end_date')
+                        ->label('تاريخ النهاية')
+                        ->date(),
 
-                        IconEntry::make('is_active')
-                            ->label('الفصل الحالي')
-                            ->boolean(),
+                    TextEntry::make('archived_at')
+                        ->label('الحالة')
+                        ->badge()
+                        ->state(fn (Semester $record): string => $record->isArchived()
+                            ? 'مؤرشف منذ '.$record->archived_at->format('Y-m-d')
+                            : 'نشط')
+                        ->color(fn (Semester $record): string => $record->isArchived() ? 'gray' : 'success'),
 
-                        TextEntry::make('add_drop_start')
-                            ->label('بداية الإضافة والحذف')
-                            ->date()
-                            ->placeholder('—'),
+                    TextEntry::make('add_drop_start')
+                        ->label('بداية الإضافة والحذف')
+                        ->date()
+                        ->placeholder('—'),
 
-                        TextEntry::make('add_drop_end')
-                            ->label('نهاية الإضافة والحذف')
-                            ->date()
-                            ->placeholder('—'),
-
-                        IconEntry::make('survey_open')
-                            ->label('الاستطلاع مفتوح')
-                            ->boolean(),
-                    ]),
+                    TextEntry::make('add_drop_end')
+                        ->label('نهاية الإضافة والحذف')
+                        ->date()
+                        ->placeholder('—'),
                 ]),
         ]);
     }
@@ -130,13 +127,14 @@ class SemesterResource extends Resource
                 DatePicker::make('add_drop_end')
                     ->label('نهاية فترة الإضافة والحذف'),
 
-                Toggle::make('is_active')
-                    ->label('الفصل الحالي')
-                    ->helperText('يمكن أن يكون فصل واحد فقط نشطاً في نفس الوقت'),
-
-                Toggle::make('survey_open')
-                    ->label('فتح الاستطلاع للطلاب')
-                    ->helperText('عند التفعيل يستطيع الطلاب اختيار مقرراتهم المفضلة'),
+                Actions::make([
+                    self::openSurveyAction(),
+                    self::editSurveyCoursesAction(),
+                    self::closeSurveyAction(),
+                    self::archiveSemesterAction(),
+                ])
+                    ->columnSpanFull()
+                    ->hiddenOn('create'),
             ]);
     }
 
@@ -164,17 +162,12 @@ class SemesterResource extends Resource
                     ->label('النهاية')
                     ->date(),
 
-                IconColumn::make('is_active')
-                    ->label('الحالي')
-                    ->boolean(),
-
-                IconColumn::make('survey_open')
-                    ->label('الاستطلاع')
-                    ->boolean()
-                    ->trueIcon(Heroicon::LockOpen)
-                    ->falseIcon(Heroicon::LockClosed)
-                    ->trueColor('success')
-                    ->falseColor('gray'),
+                TextColumn::make('archived_at')
+                    ->label('الحالة')
+                    ->badge()
+                    ->state(fn (Semester $record): string => $record->isArchived() ? 'مؤرشف' : 'نشط')
+                    ->color(fn (Semester $record): string => $record->isArchived() ? 'gray' : 'success')
+                    ->icon(fn (Semester $record): string => $record->isArchived() ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open'),
 
                 TextColumn::make('surveys_count')
                     ->label('ردود الاستطلاع')
@@ -184,105 +177,13 @@ class SemesterResource extends Resource
             ])
             ->recordUrl(fn (Semester $record): string => static::getUrl('view', ['record' => $record]))
             ->recordActions([
-                Action::make('open_survey')
-                    ->label('فتح الاستطلاع')
-                    ->icon(Heroicon::LockOpen)
-                    ->color('success')
-                    ->modalHeading('فتح الاستطلاع — اختيار المقررات المتاحة')
-                    ->modalDescription('اختر المقررات التي ستكون متاحة للطلاب في هذا الفصل.')
-                    ->modalSubmitActionLabel('فتح الاستطلاع')
-                    ->fillForm(fn (Semester $record): array => [
-                        'course_ids' => $record->courses()->pluck('courses.id')->toArray(),
-                    ])
-                    ->schema([
-                        Select::make('specialization_filter')
-                            ->label('تصفية حسب التخصص')
-                            ->options(fn () => Specialization::orderBy('name')->pluck('name', 'id'))
-                            ->placeholder('جميع التخصصات')
-                            ->live()
-                            ->dehydrated(false),
-
-                        CheckboxList::make('course_ids')
-                            ->label('المقررات')
-                            ->options(fn (Get $get) => Course::where('is_active', true)
-                                ->when($get('specialization_filter'), fn ($q, $id) => $q->whereHas('specializations', fn ($s) => $s->where('specializations.id', $id)))
-                                ->orderBy('name')
-                                ->get()
-                                ->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code]))
-                            ->columns(2)
-                            ->searchable()
-                            ->bulkToggleable()
-                            ->required(),
-                    ])
-                    ->action(function (Semester $record, array $data) {
-                        $record->courses()->sync($data['course_ids']);
-                        $record->update(['survey_open' => true]);
-
-                        Notification::make()
-                            ->title('تم فتح الاستطلاع وتحديد '.count($data['course_ids']).' مقرر')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn (Semester $record) => ! $record->survey_open),
-
-                Action::make('edit_survey_courses')
-                    ->label('تعديل المقررات')
-                    ->icon(Heroicon::Pencil)
-                    ->color('info')
-                    ->modalHeading('تعديل المقررات المتاحة للاستطلاع')
-                    ->modalSubmitActionLabel('حفظ التعديلات')
-                    ->fillForm(fn (Semester $record): array => [
-                        'course_ids' => $record->courses()->pluck('courses.id')->toArray(),
-                    ])
-                    ->schema([
-                        Select::make('specialization_filter')
-                            ->label('تصفية حسب التخصص')
-                            ->options(fn () => Specialization::orderBy('name')->pluck('name', 'id'))
-                            ->placeholder('جميع التخصصات')
-                            ->live()
-                            ->dehydrated(false),
-
-                        CheckboxList::make('course_ids')
-                            ->label('المقررات')
-                            ->options(fn (Get $get) => Course::where('is_active', true)
-                                ->when($get('specialization_filter'), fn ($q, $id) => $q->whereHas('specializations', fn ($s) => $s->where('specializations.id', $id)))
-                                ->orderBy('name')
-                                ->get()
-                                ->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code]))
-                            ->columns(2)
-                            ->searchable()
-                            ->bulkToggleable()
-                            ->required(),
-                    ])
-                    ->action(function (Semester $record, array $data) {
-                        $record->courses()->sync($data['course_ids']);
-
-                        Notification::make()
-                            ->title('تم تحديث المقررات المتاحة')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn (Semester $record) => $record->survey_open),
-
-                Action::make('close_survey')
-                    ->label('إغلاق الاستطلاع')
-                    ->icon(Heroicon::LockClosed)
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->modalHeading('إغلاق الاستطلاع')
-                    ->modalDescription('سيتم إغلاق الاستطلاع ولن يتمكن الطلاب من تعديل اختياراتهم.')
-                    ->action(function (Semester $record) {
-                        $record->update(['survey_open' => false]);
-
-                        Notification::make()
-                            ->title('تم إغلاق الاستطلاع')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn (Semester $record) => $record->survey_open),
-
-                EditAction::make(),
-                DeleteAction::make(),
+                self::openSurveyAction(),
+                self::editSurveyCoursesAction(),
+                self::closeSurveyAction(),
+                EditAction::make()
+                    ->hidden(fn (Semester $record): bool => $record->isArchived()),
+                DeleteAction::make()
+                    ->hidden(fn (Semester $record): bool => $record->isArchived()),
             ])
             ->toolbarActions([
                 DeleteBulkAction::make(),
@@ -293,6 +194,7 @@ class SemesterResource extends Resource
     {
         return [
             CourseOfferingsRelationManager::class,
+            DecidedApplicationsRelationManager::class,
         ];
     }
 
@@ -304,5 +206,130 @@ class SemesterResource extends Resource
             'view' => ViewSemester::route('/{record}'),
             'edit' => EditSemester::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Shared schema used by both "open survey" and "edit survey courses" modals
+     * — a specialization filter + a checkbox list of active courses. Reused from
+     * the table-level actions AND the edit-form button so the popup is identical.
+     */
+    private static function surveyCourseSelectionSchema(): array
+    {
+        return [
+            Select::make('specialization_filter')
+                ->label('تصفية حسب التخصص')
+                ->options(fn () => Specialization::orderBy('name')->pluck('name', 'id'))
+                ->placeholder('جميع التخصصات')
+                ->live()
+                ->dehydrated(false),
+
+            CheckboxList::make('course_ids')
+                ->label('المقررات')
+                ->options(fn (Get $get) => Course::where('is_active', true)
+                    ->when($get('specialization_filter'), fn ($q, $id) => $q->whereHas('specializations', fn ($s) => $s->where('specializations.id', $id)))
+                    ->orderBy('name')
+                    ->get()
+                    ->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code]))
+                ->columns(2)
+                ->searchable()
+                ->bulkToggleable()
+                ->required(),
+        ];
+    }
+
+    public static function openSurveyAction(): Action
+    {
+        return Action::make('open_survey')
+            ->label('فتح الاستطلاع')
+            ->icon(Heroicon::LockOpen)
+            ->color('success')
+            ->modalHeading('فتح الاستطلاع — اختيار المقررات المتاحة')
+            ->modalDescription('اختر المقررات التي ستكون متاحة للطلاب في هذا الفصل.')
+            ->modalSubmitActionLabel('فتح الاستطلاع')
+            ->fillForm(fn (Semester $record): array => [
+                'course_ids' => $record->courses()->pluck('courses.id')->toArray(),
+            ])
+            ->schema(self::surveyCourseSelectionSchema())
+            ->action(function (Semester $record, array $data) {
+                $record->courses()->sync($data['course_ids']);
+                $record->update(['survey_open' => true]);
+
+                Notification::make()
+                    ->title('تم فتح الاستطلاع وتحديد '.count($data['course_ids']).' مقرر')
+                    ->success()
+                    ->send();
+            })
+            ->visible(fn (Semester $record) => ! $record->survey_open && ! $record->isArchived());
+    }
+
+    public static function editSurveyCoursesAction(): Action
+    {
+        return Action::make('edit_survey_courses')
+            ->label('تعديل الاستطلاع')
+            ->icon(Heroicon::Pencil)
+            ->color('info')
+            ->modalHeading('تعديل المقررات المتاحة للاستطلاع')
+            ->modalSubmitActionLabel('حفظ التعديلات')
+            ->fillForm(fn (Semester $record): array => [
+                'course_ids' => $record->courses()->pluck('courses.id')->toArray(),
+            ])
+            ->schema(self::surveyCourseSelectionSchema())
+            ->action(function (Semester $record, array $data) {
+                $record->courses()->sync($data['course_ids']);
+
+                Notification::make()
+                    ->title('تم تحديث المقررات المتاحة')
+                    ->success()
+                    ->send();
+            })
+            ->visible(fn (Semester $record) => $record->survey_open && ! $record->isArchived());
+    }
+
+    public static function closeSurveyAction(): Action
+    {
+        return Action::make('close_survey')
+            ->label('إغلاق الاستطلاع')
+            ->icon(Heroicon::LockClosed)
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading('إغلاق الاستطلاع')
+            ->modalDescription('سيتم إغلاق الاستطلاع ولن يتمكن الطلاب من تعديل اختياراتهم.')
+            ->action(function (Semester $record) {
+                $record->update(['survey_open' => false]);
+
+                Notification::make()
+                    ->title('تم إغلاق الاستطلاع')
+                    ->success()
+                    ->send();
+            })
+            ->visible(fn (Semester $record) => $record->survey_open && ! $record->isArchived());
+    }
+
+    /**
+     * Archive the semester permanently via Semester::archiveCascade().
+     * After success, lands the admin on the semester's view page (the edit
+     * page would 403 once archived).
+     */
+    public static function archiveSemesterAction(): Action
+    {
+        return Action::make('archive_semester')
+            ->label('إغلاق الفصل')
+            ->icon(Heroicon::ArchiveBox)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('إغلاق وأرشفة الفصل الدراسي')
+            ->modalDescription(fn (Semester $record): string => 'سيتم إغلاق الفصل نهائياً وأرشفته. لن تتمكن من إعادة فتحه أو تعديله أو فتح مقررات جديدة فيه. التسجيلات والدرجات الحالية ستُحفظ كسجل تاريخي. هذا الإجراء لا يمكن التراجع عنه.')
+            ->modalSubmitActionLabel('تأكيد الإغلاق والأرشفة')
+            ->action(function (Semester $record): void {
+                $record->archiveCascade();
+
+                Notification::make()
+                    ->title('تمت أرشفة الفصل')
+                    ->body('الفصل أصبح للقراءة فقط. لا يمكن إعادة فتحه.')
+                    ->success()
+                    ->send();
+            })
+            ->successRedirectUrl(fn (Semester $record): string => self::getUrl('view', ['record' => $record]))
+            ->visible(fn (Semester $record): bool => ! $record->isArchived());
     }
 }
