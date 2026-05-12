@@ -18,7 +18,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -140,12 +139,13 @@ class CourseOfferingResource extends Resource
                     ->label('مفتوح')
                     ->boolean(),
             ])
-            ->filters([
-                SelectFilter::make('semester_id')
-                    ->label('الفصل')
-                    ->relationship('semester', 'name'),
-            ])
-            ->modifyQueryUsing(fn ($query) => $query->where('is_open', true))
+            ->modifyQueryUsing(function ($query) {
+                $activeSemesterId = Semester::where('is_active', true)->value('id');
+
+                return $query
+                    ->where('is_open', true)
+                    ->where('semester_id', $activeSemesterId ?: 0);
+            })
             ->recordUrl(fn (CourseOffering $record): string => static::getUrl('enroll', ['record' => $record]))
             ->recordActions([
                 EditAction::make(),

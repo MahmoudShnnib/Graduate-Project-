@@ -105,6 +105,7 @@ class ViewMyCourse extends Page implements HasTable
                 ->form([
                     FileUpload::make('paper_sheet_path')
                         ->label('ورقة الدرجات (صورة أو PDF)')
+                        ->disk('public')
                         ->directory('grades/sheets')
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])
                         ->maxSize(5120)

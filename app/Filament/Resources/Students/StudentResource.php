@@ -20,8 +20,6 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Infolists\Components\IconEntry;
-use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -57,187 +55,179 @@ class StudentResource extends Resource
         return $schema
             ->columns(2)
             ->components([
-                Section::make()
-                    ->columnSpanFull()
-                    ->compact()
+                // Right column (RTL): Personal data + Degree document stacked.
+                Grid::make(1)
+                    ->columnSpan(1)
                     ->components([
-                        Grid::make(['default' => 2, 'sm' => 4])
+                        Section::make('البيانات الشخصية')
+                            ->extraAttributes(['class' => 'fsv-card fsv-card-personal'])
                             ->components([
-                                TextEntry::make('enrollment_no')
-                                    ->label('رقم القيد')
-                                    ->placeholder('-'),
-
-                                TextEntry::make('user.name')
-                                    ->label('الاسم الرباعي'),
-
                                 TextEntry::make('last_name')
                                     ->label('اللقب')
+                                    ->icon(Heroicon::User)
+                                    ->inlineLabel()
                                     ->placeholder('-'),
 
-                                TextEntry::make('status')
-                                    ->label('الحالة')
-                                    ->badge()
-                                    ->state(fn (Student $record): string => $record->getDisplayStatusLabel())
-                                    ->color(fn (Student $record): string => $record->getDisplayStatusColor()),
+                                TextEntry::make('mother_name')
+                                    ->label('اسم الأم')
+                                    ->icon(Heroicon::Users)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('birth_date')
+                                    ->label('تاريخ الميلاد')
+                                    ->icon(Heroicon::Calendar)
+                                    ->inlineLabel()
+                                    ->date()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('birth_place')
+                                    ->label('مكان الميلاد')
+                                    ->icon(Heroicon::MapPin)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('gender')
+                                    ->label('الجنس')
+                                    ->icon(Heroicon::Identification)
+                                    ->inlineLabel()
+                                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                        'male' => 'ذكر',
+                                        'female' => 'أنثى',
+                                        default => '-',
+                                    })
+                                    ->placeholder('-'),
+
+                                TextEntry::make('marital_status')
+                                    ->label('الحالة الاجتماعية')
+                                    ->icon(Heroicon::Heart)
+                                    ->inlineLabel()
+                                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                        'single' => 'أعزب / عزباء',
+                                        'married' => 'متزوج / متزوجة',
+                                        'divorced' => 'مطلق / مطلقة',
+                                        'widowed' => 'أرمل / أرملة',
+                                        default => '-',
+                                    })
+                                    ->placeholder('-'),
+
+                                TextEntry::make('nationality')
+                                    ->label('الجنسية')
+                                    ->icon(Heroicon::Flag)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('card_number')
+                                    ->label('رقم البطاقة')
+                                    ->icon(Heroicon::Identification)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('profession')
+                                    ->label('المهنة')
+                                    ->icon(Heroicon::Briefcase)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+                            ]),
+
+                        Section::make('الوثيقة العلمية')
+                            ->extraAttributes(['class' => 'fsv-card fsv-card-degree'])
+                            ->components([
+                                \Filament\Schemas\Components\View::make('filament.resources.students.partials.degree-document'),
                             ]),
                     ]),
 
-                Section::make('أولاً: البيانات الشخصية')
-                    ->columnSpanFull()
-                    ->columns(3)
-                    ->components([
-                        TextEntry::make('mother_name')
-                            ->label('اسم الأم')
-                            ->placeholder('-'),
-
-                        TextEntry::make('birth_date')
-                            ->label('تاريخ الميلاد')
-                            ->date()
-                            ->placeholder('-'),
-
-                        TextEntry::make('birth_place')
-                            ->label('مكان الميلاد')
-                            ->placeholder('-'),
-
-                        TextEntry::make('gender')
-                            ->label('الجنس')
-                            ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                'male' => 'ذكر',
-                                'female' => 'أنثى',
-                                default => '-',
-                            })
-                            ->placeholder('-'),
-
-                        TextEntry::make('marital_status')
-                            ->label('الحالة الاجتماعية')
-                            ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                'single' => 'أعزب / عزباء',
-                                'married' => 'متزوج / متزوجة',
-                                'divorced' => 'مطلق / مطلقة',
-                                'widowed' => 'أرمل / أرملة',
-                                default => '-',
-                            })
-                            ->placeholder('-'),
-
-                        TextEntry::make('nationality')
-                            ->label('الجنسية')
-                            ->placeholder('-'),
-
-                        TextEntry::make('national_id')
-                            ->label('الرقم الوطني')
-                            ->placeholder('-'),
-
-                        TextEntry::make('card_number')
-                            ->label('رقم البطاقة')
-                            ->placeholder('-'),
-
-                        TextEntry::make('residence')
-                            ->label('مكان الإقامة')
-                            ->placeholder('-'),
-
-                        TextEntry::make('permanent_address')
-                            ->label('العنوان الدائم')
-                            ->columnSpan(2)
-                            ->placeholder('-'),
-
-                        TextEntry::make('profession')
-                            ->label('المهنة')
-                            ->placeholder('-'),
-
-                        TextEntry::make('workplace')
-                            ->label('مكان العمل')
-                            ->placeholder('-'),
-
-                        IconEntry::make('is_transfer')
-                            ->label('منتقل من كلية أخرى')
-                            ->boolean(),
-                    ]),
-
-                Section::make('ثانياً: بيانات التواصل والقسم')
+                // Left column (RTL): two stacked cards — Contact, then Study.
+                Grid::make(1)
                     ->columnSpan(1)
-                    ->columns(1)
                     ->components([
-                        TextEntry::make('user.email')
-                            ->label('البريد الإلكتروني'),
+                        Section::make('بيانات التواصل والموقع')
+                            ->extraAttributes(['class' => 'fsv-card fsv-card-contact'])
+                            ->components([
+                                TextEntry::make('user.email')
+                                    ->label('البريد الإلكتروني')
+                                    ->icon(Heroicon::Envelope)
+                                    ->inlineLabel()
+                                    ->weight('semibold')
+                                    ->placeholder('-'),
 
-                        TextEntry::make('user.phone')
-                            ->label('رقم النقال')
-                            ->placeholder('-'),
+                                TextEntry::make('user.phone')
+                                    ->label('رقم النقال')
+                                    ->icon(Heroicon::Phone)
+                                    ->inlineLabel()
+                                    ->weight('semibold')
+                                    ->placeholder('-'),
 
-                        TextEntry::make('specialization.name')
-                            ->label('التخصص')
-                            ->badge()
-                            ->color('info')
-                            ->placeholder('-'),
+                                TextEntry::make('permanent_address')
+                                    ->label('العنوان الدائم')
+                                    ->icon(Heroicon::MapPin)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('workplace')
+                                    ->label('مكان العمل')
+                                    ->icon(Heroicon::BuildingOffice)
+                                    ->inlineLabel()
+                                    ->placeholder('لا يوجد'),
+                            ]),
+
+                        Section::make('بيانات الدراسة')
+                            ->extraAttributes(['class' => 'fsv-card fsv-card-study'])
+                            ->components([
+                                TextEntry::make('specialization.name')
+                                    ->label('التخصص')
+                                    ->icon(Heroicon::AcademicCap)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('study_type')
+                                    ->label('نوع الدراسة')
+                                    ->icon(Heroicon::DocumentText)
+                                    ->inlineLabel()
+                                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                        'self_funded' => 'على حسابي الخاص',
+                                        'internally_delegated' => 'موفد بقرار إيفاد داخلي',
+                                        'faculty_assistant' => 'معيد بالكلية',
+                                        'public_delegation' => 'موفد من جهة عامة',
+                                        default => '-',
+                                    })
+                                    ->placeholder('-'),
+
+                                TextEntry::make('delegation_number')
+                                    ->label('رقم قرار الإيفاد')
+                                    ->icon(Heroicon::Document)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                TextEntry::make('delegation_entity')
+                                    ->label('جهة الإيفاد')
+                                    ->icon(Heroicon::BuildingLibrary)
+                                    ->inlineLabel()
+                                    ->placeholder('-'),
+
+                                // Transfer-student callout, only visible for transfer students.
+                                TextEntry::make('is_transfer')
+                                    ->label('')
+                                    ->hiddenLabel()
+                                    ->state('ملاحظة: منتقل من كلية أخرى')
+                                    ->icon(Heroicon::InformationCircle)
+                                    ->color('danger')
+                                    ->extraAttributes(['class' => 'fsv-transfer-callout'])
+                                    ->visible(fn (Student $record): bool => (bool) $record->is_transfer),
+                            ]),
                     ]),
 
-                Section::make('ثالثاً: نوع الدراسة')
-                    ->columnSpan(1)
-                    ->columns(1)
-                    ->components([
-                        TextEntry::make('study_type')
-                            ->label('نوع الدراسة')
-                            ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                'self_funded' => 'على حسابي الخاص',
-                                'internally_delegated' => 'موفد بقرار إيفاد داخلي',
-                                'faculty_assistant' => 'معيد بالكلية',
-                                'public_delegation' => 'موفد من جهة عامة',
-                                default => '-',
-                            })
-                            ->placeholder('-'),
+                // الوثيقة العلمية والمعدل rendered directly in the Blade view
+                // for richer layout — see view-student.blade.php.
 
-                        TextEntry::make('delegation_number')
-                            ->label('رقم قرار الإيفاد')
-                            ->placeholder('-'),
-
-                        TextEntry::make('delegation_entity')
-                            ->label('جهة الإيفاد')
-                            ->placeholder('-'),
-                    ]),
-
-                Section::make('رابعاً: الوثيقة العلمية والمعدل')
+                Section::make('مواد المعادلة')
                     ->columnSpanFull()
-                    ->columns(2)
-                    ->components([
-                        ImageEntry::make('degree_image')
-                            ->label('صورة الشهادة')
-                            ->disk('public')
-                            ->height(200)
-                            ->hintAction(
-                                Action::make('preview_degree_image')
-                                    ->label('عرض بالحجم الكامل')
-                                    ->icon(Heroicon::MagnifyingGlassPlus)
-                                    ->color('info')
-                                    ->modalHeading('الوثيقة العلمية')
-                                    ->modalWidth('5xl')
-                                    ->modalContent(fn (Student $record) => view('filament.components.image-preview', [
-                                        'url' => asset('storage/'.$record->degree_image),
-                                        'alt' => 'الوثيقة العلمية',
-                                    ]))
-                                    ->modalSubmitAction(false)
-                                    ->modalCancelActionLabel('إغلاق')
-                            )
-                            ->hidden(fn (Student $record): bool => ! $record->degree_image || str_ends_with(strtolower($record->degree_image), '.pdf')),
-
-                        TextEntry::make('degree_image')
-                            ->label('صورة الشهادة (PDF)')
-                            ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : '-')
-                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
-                            ->openUrlInNewTab()
-                            ->placeholder('لم يُرفق')
-                            ->hidden(fn (Student $record): bool => ! $record->degree_image || ! str_ends_with(strtolower($record->degree_image), '.pdf')),
-
-                        TextEntry::make('gpa')
-                            ->label('المعدل التراكمي')
-                            ->placeholder('-'),
-                    ]),
-
-                Section::make('خامساً: مواد المعادلة')
-                    ->columnSpanFull()
+                    ->extraAttributes(['class' => 'fsv-card fsv-card-transfer'])
                     ->hidden(fn (Student $record): bool => ! $record->is_transfer || $record->transferCourses()->doesntExist())
                     ->components([
                         RepeatableEntry::make('transferCourses')
                             ->label('')
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('course.name')
                                     ->label('اسم المادة'),
@@ -510,6 +500,7 @@ class StudentResource extends Resource
                 ->components([
                     FileUpload::make('degree_image')
                         ->label('صورة الشهادة (JPG / PNG / PDF)')
+                        ->disk('public')
                         ->directory('students/degrees')
                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                         ->maxSize(5120),
