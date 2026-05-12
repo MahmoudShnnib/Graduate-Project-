@@ -9,6 +9,7 @@ use App\Models\Semester;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\ThesisRegistration;
+use App\Observers\ApplicationObserver;
 use App\Observers\AuditObserver;
 use App\Observers\CourseOfferingObserver;
 use App\Observers\GradeObserver;
@@ -34,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         Student::observe(StudentObserver::class);
         CourseOffering::observe(CourseOfferingObserver::class);
         Semester::observe(SemesterObserver::class);
+        Application::observe(ApplicationObserver::class);
 
         Grade::observe(AuditObserver::class);
         Application::observe(AuditObserver::class);

@@ -22,6 +22,10 @@ class ViewSemester extends ViewRecord
 
     protected function getHeaderActions(): array
     {
+        if ($this->record->isArchived()) {
+            return [];
+        }
+
         $semesterId = $this->record->id;
         $baseQuery = fn () => Grade::whereHas('enrollment.courseOffering', fn ($q) => $q->where('semester_id', $semesterId))
             ->whereHas('enrollment', fn ($q) => $q->where('status', \App\Enums\EnrollmentStatus::Enrolled));

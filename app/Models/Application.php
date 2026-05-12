@@ -22,6 +22,7 @@ class Application extends Model
         'password',
         'phone',
         'specialization_id',
+        'semester_id',
         'tracking_code',
         'last_name',
         'mother_name',
@@ -71,6 +72,11 @@ class Application extends Model
     public function specialization(): BelongsTo
     {
         return $this->belongsTo(Specialization::class);
+    }
+
+    public function semester(): BelongsTo
+    {
+        return $this->belongsTo(Semester::class);
     }
 
     /**

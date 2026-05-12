@@ -9,7 +9,6 @@ use App\Filament\Resources\Students\StudentResource;
 use App\Models\AuditLog;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
-use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -26,11 +25,19 @@ class ViewStudent extends ViewRecord implements HasTable
 
     protected string $view = 'filament.resources.students.pages.view-student';
 
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        return '';
+    }
+
+    public function getBreadcrumb(): string
+    {
+        return $this->record->user?->name ?? (string) $this->record->enrollment_no;
+    }
+
     protected function getHeaderActions(): array
     {
-        return [
-            EditAction::make(),
-        ];
+        return [];
     }
 
     public function table(Table $table): Table
