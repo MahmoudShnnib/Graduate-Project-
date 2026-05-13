@@ -1,248 +1,307 @@
 # DESIGN_SPEC.md — بوابة الطالب (Student Portal)
 
-A mobile app for graduate students at a Libyan university faculty. The app is the student-facing companion to an existing web academic management system covering enrollment, grades, requests, and thesis tracking.
+A mobile app for graduate students at a Libyan university faculty. Companion to the existing Filament admin/student web system.
+
+This spec was rewritten on 2026-05-09 to adopt the **EduTrack** visual language (Figma Make: `Cp2Axhf5mJzPeWW2z1GLJw`) — lifted shadow cards, blue hero headers, per-feature accent tiles. Replaces the previous "institutional/banking" direction.
 
 ---
 
 ## CORE DESIGN RULES (apply to every screen)
 
-**Layout direction:** RTL (right-to-left) throughout. All content flows from right to left. All text is right-aligned. Navigation icons are mirrored appropriately.
+**Layout direction:** RTL throughout. All content flows right-to-left, all text right-aligned. Navigation icons mirrored where it carries semantic meaning.
 
-**Style:** Clean, professional, institutional. Think high-quality Arabic government or banking service app — formal and trustworthy, not playful. No glassmorphism, no clay, no gradients on cards. Flat surfaces, clear hierarchy, generous whitespace.
+**Style:** Friendly-professional, lifted, soft. Cards float over the page background with subtle shadows — no hairline borders. Each feature carries its own accent tone (blue / purple / green / orange / sky / red / amber). Every authenticated screen opens with a full-width blue hero band and the first content card overlaps into it.
 
-**Platform:** iOS and Android (use native patterns where appropriate — bottom tab bar on iOS, labeled icons).
+**Platform:** iOS and Android (use native patterns where appropriate — bottom tab bar, labeled icons).
 
 **Language:** All UI text, labels, headings, buttons, and placeholders are in Arabic. English appears only in the enrollment number field (e.g. "26CS101").
 
-**Font:** Noto Kufi Arabic — used everywhere. Weights: 700 for headings, 500 for labels and buttons, 400 for body and secondary text.
+**Font:** Noto Kufi Arabic — used everywhere. Weights: 700 for headings, 500 for labels and buttons, 400 for body.
 
-**Colors:**
+### Colors (`src/theme/tokens.ts`)
 
-| Token            | Hex       | Usage                                        |
-|------------------|-----------|----------------------------------------------|
-| Primary blue     | `#2563EB` | CTA buttons, active tab, links               |
-| Secondary blue   | `#3B82F6` | Secondary actions, icon fills                |
-| Accent orange    | `#F97316` | Pending badges, warning chips                |
-| Background       | `#F8FAFC` | All screen backgrounds                       |
-| Surface white    | `#FFFFFF` | Cards, modals, input fields                  |
-| Primary text     | `#1E293B` | Headings, labels                             |
-| Muted text       | `#64748B` | Secondary info, timestamps                   |
-| Border           | `#E2E8F0` | Card borders, dividers                       |
-| Success green    | `#16A34A` | Approved, enrolled, completed                |
-| Danger red       | `#DC2626` | Rejected, blocked, dismissed                 |
-| Warning amber    | `#D97706` | Pending, inactive, on-hold                   |
-| Info sky         | `#0EA5E9` | Informational states                         |
+| Token            | Hex       | Usage                                                  |
+|------------------|-----------|--------------------------------------------------------|
+| Primary          | `#0066FF` | Hero header, CTA buttons, active tab, links, big stat  |
+| Primary dark     | `#0052CC` | Gradient pair on login                                 |
+| Accent           | `#F97316` | Reserved for future highlights                         |
+| Background       | `#F5F7FA` | All screen backgrounds                                 |
+| Surface          | `#FFFFFF` | Cards, inputs                                          |
+| Ink              | `#1E293B` | Headings, primary text                                 |
+| Muted            | `#64748B` | Secondary text, timestamps                             |
+| Border           | `#E2E8F0` | Dividers inside cards (no card outlines)               |
+| Success          | `#16A34A` | Approved, enrolled, completed                          |
+| Danger           | `#DC2626` | Rejected, blocked, dismissed, logout                   |
+| Warning          | `#D97706` | Pending, inactive, on-hold                             |
+| Info             | `#0EA5E9` | Informational states                                   |
 
-**Touch targets:** All interactive elements minimum 48×48pt. Card rows minimum 56pt tall.
+### Per-feature tones (`tones` in `tokens.ts`)
 
-**Status banners:** When the student's account is blocked (status = OnHold / Inactive / Dismissed), show a full-width colored banner at the top of every screen below the header explaining the restriction. OnHold = amber banner, Inactive = orange banner, Dismissed = red banner. The banner has an icon on the right, 2 lines of Arabic text, and no close button.
+Each tone is a `(bg, fg)` pair used by `IconTile` and `QuickActionTile`. The `bg` goes on the icon container, the `fg` on the lucide icon's `color` prop.
+
+| Tone     | bg        | fg        | Used for                           |
+|----------|-----------|-----------|------------------------------------|
+| `blue`   | `#DBEAFE` | `#0066FF` | Surveys, primary info, enrollment  |
+| `purple` | `#F3E8FF` | `#9333EA` | Add/drop, password, secondary      |
+| `green`  | `#DCFCE7` | `#16A34A` | Grades, GPA, approvals             |
+| `orange` | `#FFEDD5` | `#EA580C` | Thesis, contact, support           |
+| `sky`    | `#E0F2FE` | `#0284C7` | Notifications, info, privacy       |
+| `red`    | `#FEE2E2` | `#DC2626` | Destructive, safety, blocked       |
+| `amber`  | `#FEF3C7` | `#D97706` | Warnings, on-hold                  |
+
+### Typography scale
+
+| Role                    | Size | Weight | Class                |
+|-------------------------|------|--------|----------------------|
+| Hero title (white)      | 22   | 700    | `font-kufi-bold`     |
+| Hero subtitle (white80) | 13   | 400    | `font-kufi`          |
+| Section header          | 14   | 500    | `font-kufi-medium`   |
+| Card title              | 16   | 700    | `font-kufi-bold`     |
+| Card body               | 13   | 400    | `font-kufi`          |
+| Stat number (primary)   | 24   | 700    | `font-kufi-bold`     |
+| Stat label (muted)      | 11   | 400    | `font-kufi`          |
+| Button label            | 14   | 500    | `font-kufi-medium`   |
+
+### Touch targets
+
+All interactive elements min 48×48pt. Card rows min 56pt tall. `Pressable` uses `active:opacity-80` or `active:opacity-70` instead of background flip so the colored tile doesn't lose its tone on press.
+
+### Cards
+
+Two variants — both via `Card` primitive:
+
+- **Flat** — default, `shadow-sm` style (`opacity 0.06`, `radius 8`, `y-offset 2`). Used for list rows, regular content cards.
+- **Elevated** (`elevated` prop) — `shadow-lg` style (`opacity 0.12`, `radius 18`, `y-offset 8`). Used for hero-overlap cards (dashboard stats, profile card).
+
+Both: `bg-surface`, `rounded-2xl` (16px), `px-4 py-4`. **No border outline** — separation comes from shadow.
+
+### Hero header pattern
+
+Every authenticated screen uses `Screen` with `headerVariant="hero"`. The header renders a flat blue band (`bg-primary`) with title + optional subtitle + optional back button, padded `pt-5 pb-12` (or `pb-20` for `heroSize="lg"`). The page content scrolls under it with negative `marginTop` set by `overlap` (typical: `56`). The first child Card uses `elevated` so it visually lifts into the band.
+
+```
+┌─ blue band ────────────────────────┐
+│ مرحباً، محمود علي                  │
+│ رقم القيد: 26CS101                 │
+│  ┌─────────────────────────────┐  │
+│  │  Elevated Card overlap      │  │ ← overlaps via -56px
+└──┤                             ├──┘
+   │  Stats / content            │
+   └─────────────────────────────┘
+```
+
+### Status banners
+
+When the student's status is `OnHold` / `Inactive` / `Dismissed`, `StatusBanner` renders above all content (still automatic via `Screen`). Shape unchanged from the prior spec. Banners stay flat-tinted (`bg-amber-50` / `bg-red-50` / etc.) — no card shadow.
 
 ---
 
 ## NAVIGATION (Bottom Tab Bar)
 
-5 tabs, labels below icons, active tab uses Primary blue:
+5 tabs, labels below icons, active tab in `colors.primary` (`#0066FF`). The center tab (الطلبات) is rendered as a **raised circular primary-blue button** that floats above the tab bar baseline (custom `tabBarButton`), drawing attention to the action hub.
 
-- **Tab 1 (rightmost):** الرئيسية — home icon
-- **Tab 2:** مقرراتي — book-open icon
-- **Tab 3:** الطلبات — document-text icon (badge showing pending count when > 0)
-- **Tab 4:** الدرجات — academic-cap icon
-- **Tab 5 (leftmost):** حسابي — user-circle icon
+- **Tab 1 (rightmost under RTL):** الرئيسية — Home icon
+- **Tab 2:** مقرراتي — BookOpen icon
+- **Tab 3 (visually centered, raised):** الطلبات — LayoutGrid icon, white on `bg-primary` 60×60 circle with 4px white border + blue shadow. Amber pending-count badge pinned to the top-right.
+- **Tab 4:** الدرجات — GraduationCap icon
+- **Tab 5 (leftmost under RTL):** حسابي — UserCircle icon
+
+The tab bar itself has `shadowColor #000`, `opacity 0.06`, `radius 10`, `y-offset -2` to lift it above the surface. Background white, top border `border` token. Layout in `app/(tabs)/_layout.tsx`; the raised button is the local `RaisedTabButton` component in the same file.
+
+### Why a center action button
+
+The 7 student actions (survey, add/drop, suspension, exceptional, thesis, course-tree, clearance) all live inside the الطلبات stack. The raised center button signals visually that this tab is **where students do their work** — the dashboard and grades tabs are read-only views, account is settings, courses is a list. Making the action hub prominent reduces the cognitive cost of "which tab does X live under?".
 
 ---
 
 ## SCREEN 1 — الرئيسية (Dashboard)
 
-**Header:** university logo top-right, greeting text "مرحباً، [اسم الطالب]" in 22px bold, enrollment number below in muted text "رقم القيد: 26CS101" in 14px.
+**Hero header** (`heroSize="lg"`, `overlap=56`): "مرحباً، {first two words of name}" + "رقم القيد: 26CS101" subtitle.
 
-**Status chip:** a pill-shaped chip below the greeting showing the student's current academic status with a colored dot. Example states to show: "مستمر" (green dot), "قيده موقوف" (amber dot).
+**Stats card** (`Card elevated`, overlapping the hero):
+- Top row: active semester name + StatusBadge with dot
+- Divider, then 3-col stat split with vertical `w-px bg-border` dividers:
+  - مقررات مسجلة (count)
+  - إشعارات جديدة (unread count)
+  - المعدل التراكمي (GPA, 2 decimals)
+- Bottom (conditional): Pills for "نافذة الاستطلاع مفتوحة" / "نافذة الإضافة/الحذف مفتوحة"
 
-**Semester info card:** White card, rounded-xl, subtle border. Shows active semester name "الفصل الدراسي الأول 2026" and a row of 3 mini-stats side by side: enrolled courses count, pending requests count, GPA. Each stat has a number in 22px bold and a label in 12px muted.
+**Warnings** (max 2): Each is a flat Card with an `amber` IconTile (circle), warning type label and course on right. Replaces the previous amber-left-border banner.
 
-**Warnings section (conditional):** If the student has active warnings, show a warning card with an amber left border, warning icon, and Arabic text describing the warning type. Two possible types: "تحذير رسوب في مقرر" or "تحذير انقطاع متكرر". Show max 2 warnings stacked.
+**Quick actions**: 2×2 grid of `QuickActionTile` — each is a flat shadowed card with a colored `lg` IconTile and label below. Tones:
+- استطلاع المقررات → `blue`
+- طلب إضافة/حذف → `purple`
+- درجاتي → `green`
+- تسجيل الرسالة → `orange`
 
-**Quick actions grid:** 2×2 grid of white cards with icon + Arabic label. Items: "استطلاع المقررات", "طلب إضافة/حذف", "درجاتي", "تسجيل الرسالة".
-
-**Recent notifications list:** Section title "آخر الإشعارات" with 2-3 list rows, each with a circle icon (blue for info, amber for warning), notification text, and relative timestamp on the left in muted text.
-
----
-
-## SCREEN 2 — مقرراتي (My Courses)
-
-**Screen title** "مقرراتي" in page header.
-
-**Semester selector:** Horizontal scrollable chip row at the top showing semester names. Active chip uses primary blue fill, others are outlined.
-
-**Enrolled courses list:** Each row is a white card with:
-- Right side: course name in 16px bold, course code below in 14px muted
-- Left side: status pill badge — "مسجل" (green), "مسقط" (red), "منسحب" (orange)
-- Below the name: instructor name in 12px muted, course type chip (إجباري / اختياري)
-
-**Empty state:** if no enrollments, centered illustration of an open book with Arabic text "لم يتم تسجيلك في أي مقرر لهذا الفصل" and a button "استعرض شجرة المقررات".
+**Notifications**: Up to 3 items. Each item is a flat Card row with circular IconTile (`sky` for info, `amber` for warning), title + relative-Arabic time, and a left ChevronLeft.
 
 ---
 
-## SCREEN 3 — شجرة المقررات (Course Tree)
+## SCREEN 2 — حسابي (Account / Profile)
 
-**Screen title** "شجرة المقررات".
+**Hero header** (`heroSize="lg"`, `overlap=56`): "الملف الشخصي".
 
-**Specialization selector:** Segmented control or dropdown showing the student's specialization.
+**Profile card** (`Card elevated`, overlapping):
+- Avatar (72px, primary fill, white initials) on right, name + specialization + StatusBadge on left
+- Border-top divider, then 3 InfoRows with small (`sm`) IconTiles:
+  - رقم القيد (`blue`)
+  - البريد الإلكتروني (`green`)
+  - رقم الهاتف (`purple`)
 
-**Grouped list by course type:** Two collapsible sections — "المقررات الإجبارية" and "المقررات الاختيارية". Section header has a chevron-down icon on the left for collapse/expand.
+**Academic info** Card (flat) with 3 InfoRows:
+- سنة القبول (`sky`)
+- نوع التسجيل (`orange`)
+- المعدل التراكمي (`green`)
 
-**Each course row:**
-- Right: course name (bold), course code below (muted)
-- Left: status icon — checkmark circle (green = passed), clock circle (amber = enrolled), dash circle (muted = not yet taken), X circle (red = failed)
-- Tapping a row expands an inline detail showing credit hours, description, prerequisites
+**Warnings** (conditional, count > 0): Single flat Card row with amber circular IconTile + "لديك N تحذير نشط" + warning Pill.
 
----
+**Settings** Card (flat) with 4 SettingsRows separated by `border-b border-border`. Each row has a circular medium IconTile + label + hint + ChevronLeft:
+- الإشعارات (`blue`)
+- تغيير كلمة المرور (`purple`)
+- تواصل مع الإدارة (`orange`) — opens `mailto:`
+- سياسة الخصوصية (`sky`)
 
-## SCREEN 4 — استطلاع المقررات (Course Survey)
+**Logout button**: full-width danger Button with LogOut icon.
 
-Show a state-aware header banner first:
-- If survey is open: green banner "الاستطلاع مفتوح — أضف المقررات التي ترغب بتسجيلها" with a calendar icon
-- If survey is closed: muted gray banner "الاستطلاع مغلق حالياً"
-- If student is not Active: amber banner "يجب أن يكون حسابك نشطاً لتقديم الاستطلاع"
-
-**Selected courses section:** Title "المقررات المختارة". Each selected course shown as a white card with course name, code, and a remove button (red trash icon) on the left. Drag handle on right for reordering.
-
-**Available courses section:** Title "المقررات المتاحة". List of available course offerings as selectable rows with a + button on the left. Tapping + moves it to Selected.
-
-**Submit button:** Full-width primary blue button at the bottom "تقديم الاستطلاع". Disabled state when survey is closed.
-
----
-
-## SCREEN 5 — الإضافة والحذف (Add/Drop Requests)
-
-**Window status banner at the top:**
-- Green = "نافذة الإضافة والحذف مفتوحة"
-- Red = "نافذة الإضافة والحذف مغلقة"
-
-**Usage counter row:** Two pills side by side showing "الإضافات: 1/3" and "الحذف: 2/3" — amber when limit approaching, red when limit reached.
-
-**Tabs:** Two tabs "طلب جديد" and "السجل" (history)
-
-**New Request tab:**
-- Request type toggle: "إضافة" (blue) / "حذف" (red)
-- Course selector: a styled dropdown showing available courses to add or enrolled courses to drop
-- Reason textarea (optional for drop, required for add)
-- Submit button
-
-**History tab:**
-- List of past requests, each row: request type chip (إضافة/حذف), course name, status badge (قيد المراجعة/مقبول/مرفوض), timestamp
+**Footer**: app version line in muted text.
 
 ---
 
-## SCREEN 6 — الدرجات (Grades)
+## SCREEN — Login
 
-**GPA card at top:** Large white card with the student's cumulative GPA shown in a circular progress gauge (0–4 scale). "المعدل التراكمي" label above, GPA number in 32px bold below. Color-coded: green ≥ 3.0, amber 2.0–2.99, red < 2.0.
+Not part of the authenticated flow — uses its own `LinearGradient` wrapper instead of `Screen`.
 
-**Semester tabs:** Horizontal scrollable tab row for semester selection.
+- Full-screen vertical `LinearGradient` from `colors.primary` (`#0066FF`) to `colors.primaryDark` (`#0052CC`)
+- **Logo block** (centered): white `rounded-3xl` 80×80 tile with shadow + `GraduationCap` icon in primary blue, app title "بوابة الطالب" in 32px white, subtitle "نظام إدارة الدراسات العليا" in 14px white80
+- **Form card**: white `rounded-3xl` p-6 with heavy shadow. Heading "تسجيل الدخول" + subtitle. Then `Input` for رقم القيد and password, error text, and full-width `Button` size lg
+- Footer line: "للمساعدة تواصل مع شؤون الطلاب" in white80, then DEV API URL in dev mode
 
-**Grades list:** For the selected semester, list each course as a card:
-- Course name (bold, right)
-- Two rows of score pills: "أعمال السنة: 45/60" and "الامتحان النهائي: 32/40" — shown only when published
-- Total score chip: large colored badge on the left — letter grade (A+, B, etc.) with numeric
-- "لم تُنشر الدرجة بعد" muted placeholder if grade not yet published
-- "نُشرت أعمال السنة فقط" amber note if only midterm is published
+Arabic-Indic and Persian digit normalization on enrollment_no input is preserved.
 
 ---
 
-## SCREEN 7 — طلب إيقاف قيد (Suspension Request)
+## SCREEN — مقرراتي (Enrollments)
 
-Show one of three top states:
+Hero header (`heroSize="md"`, `overlap=28`): "مقرراتي" + "المقررات المسجلة لهذا الفصل".
 
-- **State A — Approved block:** Red banner with no-entry icon "تمت الموافقة على طلب انقطاع سابق — لا يمكن تقديم طلب جديد". Form is hidden.
-- **State B — Pending block:** Amber banner with clock icon "لديك طلب انقطاع قيد المراجعة". Form is hidden. Show the pending request details card below the banner.
-- **State C — Available:** Form is shown.
+**Semester chip row** (`SemesterChip` primitive) — horizontal scroll of pills. Active chip uses primary blue + heavy primary-tinted shadow; inactive chips are flat surfaces with subtle shadow. Chips overlap the hero band slightly.
 
-**Form (State C only):**
-- Semester picker: styled dropdown of available semesters; semesters with prior rejected requests shown with a lock icon and are not selectable
-- Reason textarea: labeled "سبب طلب الانقطاع" with min 10 character note
-- Submit button: primary blue "تقديم الطلب"
+**Enrollment cards** — flat shadowed cards. Each: course name + code + faculty (right), إجباري/اختياري + credit pills, StatusBadge on left.
 
-**Request history section** (always shown at bottom): collapsible, shows past requests as list rows with semester name, status badge, and date.
+**Empty state** — BookOpen icon + heading + CTA to course tree.
 
 ---
 
-## SCREEN 8 — تسجيل الرسالة والمناقشة (Thesis & Discussion)
+## SCREEN — الدرجات (Grades)
 
-This screen has a vertical stepper at the top showing the 4 phases with icons and connecting lines:
+Hero header (`heroSize="lg"`, `overlap=56`): "الدرجات" + "معدلك ودرجاتك التفصيلية".
 
-- **Step 1:** تسجيل الرسالة (Thesis Registration)
-- **Step 2:** طلب المناقشة (Discussion Request)
-- **Step 3:** جلسة المناقشة (Discussion Session)
-- **Step 4:** الموافقة النهائية (Final Approval)
+**GPA gauge card** (`elevated`) overlapping the hero — circular SVG progress (12px stroke, color-coded green/amber/red), GPA value 34px bold, "من 4.00" muted.
 
-Completed steps = blue filled circle with checkmark. Current step = pulsing blue circle. Future steps = muted outlined circle.
-
-**Eligibility section** (if thesis not yet registered): White card showing eligibility criteria as a checklist:
-- "عدد المقررات المجتازة: 8/10" — green if met, red if not
-- "المعدل التراكمي: 3.2" — green ≥ 2.5, red below
-- "لا توجد درجات رسوب" — green or red
-
-If all criteria met: green "مستوفٍ لشروط التسجيل" banner + Register button.
-If not met: red "غير مستوفٍ لشروط التسجيل" banner, no button.
-
-**Active thesis card** (if registered): white card showing thesis title, supervisor name, registration date.
-
-**Discussion request section** (if in phase 2–4): status-specific card showing current phase, any admin notes, and scheduled date if applicable.
+Below: `SemesterChip` row, then per-course cards with coursework/final score rows shown only when published, midterm-only / unpublished notes, color-coded `GradePill` (letter + numeric).
 
 ---
 
-## SCREEN 9 — إخلاء الطرف (Clearance)
+## SCREEN — الطلبات (Action Hub)
 
-**Two states:**
+The الطلبات tab routes here. Hero header (`heroSize="lg"`, `overlap=56`): "الطلبات والإجراءات" + "كل ما يخص مسارك الأكاديمي".
 
-**Not eligible:** Large centered illustration (academic building or diploma), text "إخلاء الطرف غير متاح بعد" in 20px, below it "يصبح متاحاً بعد اكتمال إجراءات المناقشة والموافقة النهائية" in 14px muted. A progress indicator showing current discussion phase.
+**Status summary card** (`elevated`): active semester name + pills for "الاستطلاع مفتوح/مغلق" and "الإضافة/الحذف مفتوح/مغلق" (with dot, tone success when open).
 
-**Eligible:**
-- Green success banner "تمت الموافقة على إخلاء طرفك"
-- Clearance details card: student name, enrollment number, specialization, graduation date, supervisor name
-- Two action buttons side by side: "طباعة / تنزيل PDF" (primary blue) and "مشاركة" (outlined)
+**Action grid** — 2-column grid of 7 colored action cards (3 rows of 2 + a final solo card with empty filler for visual balance). Each card has a large IconTile in its own tone, title bold, body in 11px muted, optional warning Pill (e.g. "2 قيد المراجعة") pinned top-left:
 
----
+| # | Action            | Tone   | Icon          | Route                    |
+|---|-------------------|--------|---------------|--------------------------|
+| 1 | استطلاع المقررات  | blue   | ClipboardList | `/requests/survey`       |
+| 2 | الإضافة والحذف    | purple | FileEdit      | `/requests/add-drop`     |
+| 3 | إيقاف القيد       | orange | CalendarX     | `/requests/suspension`   |
+| 4 | الفرص الاستثنائية | red    | RotateCw      | `/requests/exceptional`  |
+| 5 | تسجيل الرسالة     | green  | ScrollText    | `/requests/thesis`       |
+| 6 | شجرة المقررات     | sky    | TreePine      | `/requests/course-tree`  |
+| 7 | إخلاء الطرف       | amber  | Award         | `/requests/clearance`    |
 
-## SCREEN 10 — الفرص الاستثنائية (Exceptional Requests)
-
-**Screen title** "الفرص الاستثنائية".
-
-**Info banner:** Blue info card explaining "الفرصة الاستثنائية تتيح لك التقدم لفرصة إضافية في مقررات رسبت فيها".
-
-**Request form:**
-- Course selector: shows only courses the student has failed
-- Opportunity type: segmented control "فرصة رسوب عادي" / "فرصة حضور"
-- Reason textarea
-- Submit button
-
-**Requests list below:** History of past exceptional requests with course name, type chip, status badge, and date.
+**Recent add/drop history** — up to 3 of the most recent items as flat cards.
 
 ---
 
-## SCREEN 11 — حسابي (My Account / Profile)
+## SCREENS — Sub-stack screens
 
-**Top section:** Avatar circle (initials-based, primary blue background), student's Arabic full name in 22px bold, specialization below in 16px muted, enrollment number in 14px muted.
+All sub-screens under `(tabs)/requests/*` use:
 
-**Info cards:** Two-column grid of labeled info chips — admission year, student status badge (colored), transfer status.
+- `headerVariant="hero"`, `heroSize="md"` typically (or `lg` if the first card is a big elevated one — thesis stepper, clearance form)
+- `onBack={() => router.back()}` so the hero shows the ChevronRight back arrow
+- `overlap=28` for `md` headers, `overlap=56` for `lg`
 
-**Settings list:** Section rows with icon + Arabic label + chevron: "الإشعارات", "تغيير كلمة المرور", "تواصل مع الإدارة", "تسجيل الخروج" (last item in danger red).
+### استطلاع المقررات (Survey)
+State-aware Banner (success/info/warning), then "Selected" list (numbered primary-blue circles + course rows + red Trash IconTile), "Available" list (course rows + blue Plus IconTile), full-width submit Button.
+
+### الإضافة والحذف (Add/Drop)
+Window-status Banner, two `UsageStat` cards side by side (number colored by usage tone, status Pill), segmented "طلب جديد / السجل" tabs, segmented "إضافة / حذف" type toggle (active toggle gets colored shadow halo). Course picker rows lift when selected (blue or red bg + elevated shadow).
+
+### طلب إيقاف قيد (Suspension)
+Three states (approved-block / pending-block / available) via `Banner`. Available state shows a card list of semesters — disabled rows show a red lock IconTile, picked row gets blue bg + elevated shadow.
+
+### الفرص الاستثنائية (Exceptional)
+Info Banner explaining the feature, failed-courses picker (red-themed selection), 2-button segmented control for opportunity type (active = primary blue + shadow halo), reason textarea, submit, history.
+
+### تسجيل الرسالة (Thesis)
+Hero header. Elevated stepper card (4 vertical steps with completed/active/future state, primary-blue connecting lines for completed). Either eligibility breakdown card (with success/danger banner) OR registration + discussion cards.
+
+### إخلاء الطرف (Clearance)
+Two states: empty state with diploma icon + "غير متاح بعد" copy, OR elevated form card with green FileCheck2 IconTile + clearance details + 2 action buttons (طباعة / مشاركة).
+
+### شجرة المقررات (Course Tree)
+Hero header. Three collapsible Card sections (إجبارية عامة / إجبارية تخصصية / اختيارية), each row: tone-colored circular IconTile (green/amber/red/sky for passed/enrolled/failed/not_taken) + course name + code + credits + status label.
 
 ---
 
-## ADDITIONAL DESIGN NOTES
+## Component primitives (`src/components/primitives/`)
 
-**Cards:** rounded-2xl (16px radius), white background, 1px `#E2E8F0` border, 4px shadow (very subtle — shadow-sm level only).
+| Primitive          | Purpose                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| `Avatar`           | Initials over primary fill                                              |
+| `Banner`           | Tinted full-width banner (kind=success/warning/danger/etc.)             |
+| `Button`           | 5 variants × 2 sizes, loading/disabled, optional icon                   |
+| `Card`             | Shadow card, `elevated` prop for hero-overlap variant                   |
+| `EmptyState`       | Centered icon + heading + subtext + optional CTA                        |
+| `ErrorState`       | CloudOff icon + retry button                                            |
+| `HeroHeader`       | Blue band with title/subtitle + optional back/right; `sm/md/lg` sizes   |
+| `IconTile`         | Square or circle colored icon background; tone + size                   |
+| `Input`            | Labeled input with error text, RTL aligned                              |
+| `Pill`             | Status pill, 6 tones, optional dot                                      |
+| `QuickActionTile`  | Flat shadowed action card with IconTile + label                         |
+| `SectionHeader`    | Section title above card groups                                         |
+| `SemesterChip`     | Pill-style chip for semester selectors; active uses primary-blue shadow |
+| `Skeleton`/Card    | Pulse loading placeholder                                               |
+| `StatusBadge`      | Wraps StatusEnum → Pill with localized label and tone                   |
 
-**Buttons:** rounded-xl, 14px Noto Kufi Arabic medium weight, 48pt minimum height, full-width in forms.
+`Screen` (composed) — hero/flat/none header variants, automatic status banner, scroll, overlap support.
 
-**Status badges / pills:** rounded-full, 12px font, 4px vertical padding, 10px horizontal padding. Color-coded by status.
+---
 
-**Empty states:** centered illustration + Arabic heading + muted subtext + optional action button.
+## Anti-patterns (do not do these)
 
-**Loading skeletons:** pulse animation on placeholder rectangles matching the shape of cards/list items — never a full-screen spinner.
+- **Hairline 1px card borders** — the new design relies on shadow + bg contrast. `border-border` only inside cards as dividers.
+- **Single-color quick actions** — every action card carries its tone. Don't fall back to all-blue.
+- **Gradient cards (other than login)** — gradients are reserved for the login backdrop. Cards are flat surfaces.
+- **Floating toasts / snackbars** — keep using inline `Banner kind="danger"` for mutation errors.
+- **Emojis in UI** — lucide icons only.
 
-**Inputs:** white background, 1px border (muted), 48pt height, 16px Arabic placeholder text, error state shows red border + error text directly below the field in 12px red.
+---
 
-**Modals / bottom sheets:** slide up from bottom, rounded top corners (24px), dark scrim behind, drag handle at top center, close button (X) at top left.
+## Migration status
 
-**Do not use emoji anywhere in the UI.**
+All 12 screens have been migrated to the new design language as of 2026-05-09. Patterns established for future screens:
+
+- Use `Screen headerVariant="hero"`. Default to `heroSize="md"` + `overlap=28`. Use `lg` + `56` only when the first child is a "showpiece" elevated card (GPA gauge, profile card, stats card, thesis stepper, clearance form).
+- Sub-stack screens **must** pass `onBack={() => router.back()}` so the hero shows the back arrow.
+- Add `elevated` to the first card if it should overlap the hero.
+- Use `<IconTile tone="...">` for every colored icon container — never inline `bg-{color}-50` / `text-{color}-600`.
+- Use `<QuickActionTile tone="...">` for 2-col action grids (dashboard).
+- Drop hairline `border border-border` from all Cards (the primitive no longer adds them).
+- Selection states on picker rows: lift via colored shadow halo (primary blue or red, etc.) + tinted bg, instead of `border-primary`.
+
+---
+
+End of spec.

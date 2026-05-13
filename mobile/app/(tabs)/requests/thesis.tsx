@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Check, Circle } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
@@ -31,15 +32,16 @@ function Stepper({ current }: { current: number }) {
                 {done ? (
                   <Check size={18} color="#fff" />
                 ) : (
-                  <Text
-                    className={`font-kufi-bold text-[13px] ${active ? 'text-primary' : 'text-muted'}`}
-                  >
+                  <Text className={`font-kufi-bold text-[13px] ${active ? 'text-primary' : 'text-muted'}`}>
                     {p.idx}
                   </Text>
                 )}
               </View>
               {i < PHASES.length - 1 && (
-                <View className={`w-0.5 my-1`} style={{ height: 28, backgroundColor: done ? colors.primary : colors.border }} />
+                <View
+                  className="w-0.5 my-1"
+                  style={{ height: 28, backgroundColor: done ? colors.primary : colors.border }}
+                />
               )}
             </View>
             <View className="flex-1 ms-3 pt-2">
@@ -60,7 +62,7 @@ function Stepper({ current }: { current: number }) {
 
 function EligibilityRow({ label, met, value }: { label: string; met: boolean; value: string }) {
   return (
-    <View className="flex-row-reverse items-center justify-between py-2">
+    <View className="flex-row-reverse items-center justify-between py-2.5 border-b border-border">
       <Text className={`font-kufi-medium text-[13px] ${met ? 'text-success' : 'text-danger'}`}>{label}</Text>
       <View className="flex-row-reverse items-center gap-2">
         <Text className={`font-kufi-bold text-[13px] ${met ? 'text-success' : 'text-danger'}`}>{value}</Text>
@@ -74,7 +76,7 @@ function EligibilityCard({ data }: { data: ThesisShow['eligibility'] }) {
   return (
     <Card>
       <Text className="font-kufi-bold text-ink text-[15px] text-right">شروط تسجيل الرسالة</Text>
-      <View className="mt-2 divide-y divide-border">
+      <View className="mt-2">
         <EligibilityRow
           label="المعدل التراكمي"
           met={data.gpa.met}
@@ -106,19 +108,31 @@ function EligibilityCard({ data }: { data: ThesisShow['eligibility'] }) {
 }
 
 export default function ThesisScreen() {
+  const router = useRouter();
   const { data, isLoading } = useThesis();
 
   if (isLoading || !data) {
     return (
-      <Screen title="تسجيل الرسالة">
+      <Screen
+        title="تسجيل الرسالة"
+        headerVariant="hero"
+        onBack={() => router.back()}
+      >
         <SkeletonCard />
       </Screen>
     );
   }
 
   return (
-    <Screen title="تسجيل الرسالة والمناقشة">
-      <Card>
+    <Screen
+      title="تسجيل الرسالة"
+      subtitle="مراحل الرسالة والمناقشة"
+      headerVariant="hero"
+      heroSize="lg"
+      overlap={56}
+      onBack={() => router.back()}
+    >
+      <Card elevated>
         <Stepper current={Math.max(1, data.phase)} />
       </Card>
 
@@ -151,13 +165,24 @@ export default function ThesisScreen() {
               </View>
               <View className="flex-row-reverse items-center justify-between">
                 <Text className="font-kufi text-muted text-[12px]">الحالة</Text>
-                <Pill label={data.registration.status.label} tone={data.registration.status.color === 'success' ? 'success' : data.registration.status.color === 'danger' ? 'danger' : 'warning'} />
+                <Pill
+                  label={data.registration.status.label}
+                  tone={
+                    data.registration.status.color === 'success'
+                      ? 'success'
+                      : data.registration.status.color === 'danger'
+                        ? 'danger'
+                        : 'warning'
+                  }
+                />
               </View>
             </View>
             {!!data.registration.rejection_reason && (
-              <View className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+              <View className="mt-3 bg-red-50 rounded-xl p-3">
                 <Text className="font-kufi-bold text-danger text-[13px] text-right">سبب الرفض</Text>
-                <Text className="font-kufi text-danger text-[12px] mt-1 text-right">{data.registration.rejection_reason}</Text>
+                <Text className="font-kufi text-danger text-[12px] mt-1 text-right">
+                  {data.registration.rejection_reason}
+                </Text>
               </View>
             )}
           </Card>
@@ -191,9 +216,11 @@ export default function ThesisScreen() {
               </View>
             )}
             {!!data.discussion.rejection_reason && (
-              <View className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+              <View className="mt-3 bg-red-50 rounded-xl p-3">
                 <Text className="font-kufi-bold text-danger text-[13px] text-right">ملاحظات</Text>
-                <Text className="font-kufi text-danger text-[12px] mt-1 text-right">{data.discussion.rejection_reason}</Text>
+                <Text className="font-kufi text-danger text-[12px] mt-1 text-right">
+                  {data.discussion.rejection_reason}
+                </Text>
               </View>
             )}
           </Card>

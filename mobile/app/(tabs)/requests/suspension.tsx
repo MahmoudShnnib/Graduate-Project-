@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Clock, Lock } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -7,11 +8,22 @@ import {
   useSuspensionHistory,
   useSuspensionOptions,
 } from '@/api/queries';
-import { Banner, Button, Card, Input, Pill, SectionHeader, SkeletonCard } from '@/components/primitives';
+import {
+  Banner,
+  Button,
+  Card,
+  IconTile,
+  Input,
+  Pill,
+  SectionHeader,
+  SkeletonCard,
+} from '@/components/primitives';
 import { Screen } from '@/components/Screen';
-import { colors } from '@/theme/tokens';
+import { haptic } from '@/lib/haptics';
+import { colors, tones } from '@/theme/tokens';
 
 export default function SuspensionScreen() {
+  const router = useRouter();
   const { data: opts, isLoading } = useSuspensionOptions();
   const { data: history } = useSuspensionHistory();
   const create = useCreateSuspension();
@@ -25,16 +37,25 @@ export default function SuspensionScreen() {
     setFeedback(null);
     try {
       await create.mutateAsync({ semester_id: semesterId, reason });
+      haptic.success();
       setFeedback({ tone: 'success', msg: 'تم تقديم طلب الإيقاف' });
       setSemesterId(null);
       setReason('');
     } catch (err: any) {
+      haptic.error();
       setFeedback({ tone: 'danger', msg: err?.response?.data?.message ?? 'تعذر تقديم الطلب' });
     }
   }
 
   return (
-    <Screen title="طلب إيقاف قيد">
+    <Screen
+      title="طلب إيقاف قيد"
+      subtitle="إيقاف فصل دراسي مؤقتاً"
+      headerVariant="hero"
+      heroSize="md"
+      overlap={28}
+      onBack={() => router.back()}
+    >
       {isLoading ? (
         <SkeletonCard />
       ) : (
@@ -78,28 +99,48 @@ export default function SuspensionScreen() {
                   <Text className="font-kufi text-muted text-[13px] text-center py-2">لا توجد فصول متاحة</Text>
                 </Card>
               ) : (
-                opts.semesters.map((s) => (
-                  <Pressable
-                    key={s.id}
-                    disabled={s.disabled}
-                    onPress={() => setSemesterId(s.id)}
-                    className={`bg-surface border rounded-xl p-3.5 mb-2 ${
-                      s.disabled
-                        ? 'opacity-50 border-border'
-                        : semesterId === s.id
-                          ? 'border-primary bg-blue-50'
-                          : 'border-border'
-                    }`}
-                  >
-                    <View className="flex-row-reverse items-center justify-between">
-                      <Text className="font-kufi-bold text-ink text-[14px] text-right">{s.name}</Text>
-                      {s.disabled && <Lock size={18} color={colors.muted} />}
-                    </View>
-                    {!!s.reason && (
-                      <Text className="font-kufi text-muted text-[11px] mt-1 text-right">{s.reason}</Text>
-                    )}
-                  </Pressable>
-                ))
+                opts.semesters.map((s) => {
+                  const isPicked = semesterId === s.id;
+                  return (
+                    <Pressable
+                      key={s.id}
+                      disabled={s.disabled}
+                      onPress={() => setSemesterId(s.id)}
+                      className={`bg-surface rounded-2xl p-3.5 mb-2 ${
+                        s.disabled ? 'opacity-50' : isPicked ? 'bg-blue-50' : ''
+                      }`}
+                      style={
+                        isPicked
+                          ? {
+                              shadowColor: '#0066FF',
+                              shadowOpacity: 0.15,
+                              shadowRadius: 8,
+                              shadowOffset: { width: 0, height: 2 },
+                              elevation: 2,
+                            }
+                          : {
+                              shadowColor: '#0F172A',
+                              shadowOpacity: 0.05,
+                              shadowRadius: 6,
+                              shadowOffset: { width: 0, height: 1 },
+                              elevation: 1,
+                            }
+                      }
+                    >
+                      <View className="flex-row-reverse items-center justify-between">
+                        <Text className="font-kufi-bold text-ink text-[14px] text-right flex-1">{s.name}</Text>
+                        {s.disabled && (
+                          <IconTile tone="red" size="sm" rounded="circle">
+                            <Lock size={14} color={tones.red.fg} />
+                          </IconTile>
+                        )}
+                      </View>
+                      {!!s.reason && (
+                        <Text className="font-kufi text-muted text-[11px] mt-1 text-right">{s.reason}</Text>
+                      )}
+                    </Pressable>
+                  );
+                })
               )}
 
               <View className="h-3" />

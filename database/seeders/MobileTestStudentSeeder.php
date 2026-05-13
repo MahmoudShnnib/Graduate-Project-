@@ -35,7 +35,11 @@ class MobileTestStudentSeeder extends Seeder
         }
 
         $semesters = $this->ensureSemesters();
-        [$activeSemester, $previousSemester] = [$semesters['active'], $semesters['previous']];
+        [$activeSemester, $previousSemester, $oldestSemester] = [
+            $semesters['active'],
+            $semesters['previous'],
+            $semesters['oldest'],
+        ];
 
         $student = $this->createOrUpdateStudent(
             cs: $cs,
@@ -137,12 +141,126 @@ class MobileTestStudentSeeder extends Seeder
                 'created_at' => now()->subDay(),
             ]
         );
+
+        // ─────────────────────────────────────────────────────────────────
+        // 26CS103 — rich showcase student. High GPA, full 3-semester
+        // transcript, currently studying, one historical F → active warning.
+        // Use this account to verify every screen end-to-end.
+        // ─────────────────────────────────────────────────────────────────
+        $top = $this->createOrUpdateStudent(
+            cs: $cs,
+            enrollmentNo: '26CS103',
+            email: 'top.student@example.ly',
+            name: 'نور الدين البكوش',
+            nameEn: 'Noureddin Albakkoush',
+            phone: '0910000003',
+            status: StudentStatus::Active,
+        );
+
+        $topCourseCodes = ['EE601', 'EE602', 'EE603', 'EE604', 'CP611', 'CP612', 'CP614', 'CP619', 'CP615', 'CP616', 'CP617', 'CM614'];
+        $topCourses = Course::whereIn('code', $topCourseCodes)->get()->keyBy('code');
+
+        // Oldest semester — solid start, but one F (the warning trigger).
+        $this->seedSemesterEnrollments(
+            student: $top,
+            semester: $oldestSemester,
+            faculty: $facultyUser,
+            data: [
+                ['code' => 'EE601', 'coursework' => 58, 'final' => 38, 'fully_published' => true], // 96 → A+
+                ['code' => 'EE602', 'coursework' => 56, 'final' => 36, 'fully_published' => true], // 92 → A
+                ['code' => 'EE603', 'coursework' => 52, 'final' => 34, 'fully_published' => true], // 86 → A-
+                ['code' => 'EE604', 'coursework' => 28, 'final' => 14, 'fully_published' => true], // 42 → F
+            ],
+            coursesByCode: $topCourses,
+        );
+
+        // Previous semester — strong recovery, all passed.
+        $this->seedSemesterEnrollments(
+            student: $top,
+            semester: $previousSemester,
+            faculty: $facultyUser,
+            data: [
+                ['code' => 'CP611', 'coursework' => 55, 'final' => 35, 'fully_published' => true], // 90 → A
+                ['code' => 'CP612', 'coursework' => 52, 'final' => 33, 'fully_published' => true], // 85 → A-
+                ['code' => 'CP614', 'coursework' => 50, 'final' => 32, 'fully_published' => true], // 82 → B+
+                ['code' => 'CP619', 'coursework' => 57, 'final' => 38, 'fully_published' => true], // 95 → A+
+            ],
+            coursesByCode: $topCourses,
+        );
+
+        // Active semester — currently studying. Mix of midterm-only and unpublished.
+        $this->seedSemesterEnrollments(
+            student: $top,
+            semester: $activeSemester,
+            faculty: $facultyUser,
+            data: [
+                ['code' => 'CP615', 'coursework' => 48, 'final' => null, 'midterm_only' => true],
+                ['code' => 'CP616', 'coursework' => 52, 'final' => null, 'midterm_only' => true],
+                ['code' => 'CP617', 'coursework' => null, 'final' => null, 'unpublished' => true],
+                ['code' => 'CM614', 'coursework' => null, 'final' => null, 'unpublished' => true],
+            ],
+            coursesByCode: $topCourses,
+        );
+
+        $top->refresh();
+        $top->update([
+            'gpa' => $this->recomputeGpa($top),
+            'warnings_count' => 1,
+        ]);
+
+        // Active warning from the historical F.
+        $ee604 = $topCourses->get('EE604');
+        StudentWarning::firstOrCreate(
+            [
+                'student_id' => $top->id,
+                'type' => WarningType::CourseFailure,
+                'course_id' => $ee604?->id,
+                'semester_id' => $oldestSemester->id,
+            ],
+            [
+                'is_active' => true,
+                'has_exceptional_chance' => true,
+            ]
+        );
+
+        AppNotification::firstOrCreate(
+            ['student_id' => $top->id, 'title' => 'تهنئة على معدلك المرتفع'],
+            [
+                'type' => 'info',
+                'body' => 'حافظ على هذا المستوى — استعراض درجاتك متاح من شاشة "الدرجات".',
+                'created_at' => now()->subDays(2),
+            ]
+        );
+
+        AppNotification::firstOrCreate(
+            ['student_id' => $top->id, 'title' => 'تذكير: استطلاع المقررات للفصل القادم'],
+            [
+                'type' => 'warning',
+                'body' => 'لا تنسَ تقديم استطلاع المقررات قبل إغلاق النافذة.',
+                'created_at' => now()->subHours(8),
+            ]
+        );
     }
 
-    /** @return array{active: Semester, previous: Semester} */
+    /** @return array{active: Semester, previous: Semester, oldest: Semester} */
     private function ensureSemesters(): array
     {
         Semester::query()->update(['is_active' => false, 'survey_open' => false]);
+
+        $oldest = Semester::firstOrCreate(
+            ['name' => 'الفصل الدراسي الأول 2025'],
+            [
+                'year' => 2025,
+                'season' => 'autumn',
+                'start_date' => '2024-09-01',
+                'end_date' => '2025-01-15',
+                'add_drop_start' => '2024-09-01',
+                'add_drop_end' => '2024-09-15',
+                'is_active' => false,
+                'survey_open' => false,
+            ]
+        );
+        $oldest->update(['is_active' => false, 'survey_open' => false]);
 
         $previous = Semester::firstOrCreate(
             ['name' => 'الفصل الدراسي الثاني 2025'],
@@ -179,7 +297,11 @@ class MobileTestStudentSeeder extends Seeder
             'add_drop_end' => now()->addWeek()->toDateString(),
         ]);
 
-        return ['active' => $active->refresh(), 'previous' => $previous->refresh()];
+        return [
+            'active' => $active->refresh(),
+            'previous' => $previous->refresh(),
+            'oldest' => $oldest->refresh(),
+        ];
     }
 
     private function createOrUpdateStudent(

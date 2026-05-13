@@ -8,7 +8,8 @@ import {
   GraduationCap,
   ScrollText,
 } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Text, View } from 'react-native';
 
 import {
   useActiveSemester,
@@ -19,13 +20,15 @@ import {
 import {
   Card,
   ErrorState,
+  IconTile,
   Pill,
+  QuickActionTile,
   SectionHeader,
   SkeletonCard,
   StatusBadge,
 } from '@/components/primitives';
 import { Screen } from '@/components/Screen';
-import { colors } from '@/theme/tokens';
+import { colors, tones } from '@/theme/tokens';
 
 function relativeArabic(iso?: string | null): string {
   if (!iso) return '';
@@ -42,47 +45,56 @@ function relativeArabic(iso?: string | null): string {
 function MiniStat({ value, label }: { value: string | number; label: string }) {
   return (
     <View className="flex-1 items-center">
-      <Text className="font-kufi-bold text-ink text-[22px]">{value}</Text>
-      <Text className="font-kufi text-muted text-[12px] mt-0.5">{label}</Text>
+      <Text
+        className="font-kufi-bold text-primary text-[24px]"
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
+        {value}
+      </Text>
+      <Text className="font-kufi text-muted text-[11px] mt-0.5">{label}</Text>
     </View>
-  );
-}
-
-function QuickAction({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-1 bg-surface border border-border rounded-2xl items-center justify-center py-5 active:bg-bg"
-      style={{ minHeight: 96 }}
-    >
-      <View className="w-11 h-11 rounded-full bg-blue-50 items-center justify-center mb-2">{icon}</View>
-      <Text className="font-kufi-medium text-ink text-[13px] text-center">{label}</Text>
-    </Pressable>
   );
 }
 
 export default function HomeScreen() {
   const router = useRouter();
   const { data: student, isLoading: meLoading, isError: meError, refetch: refetchMe } = useMe();
-  const { data: semester } = useActiveSemester();
-  const { data: enrollments } = useEnrollments();
-  const { data: notifications } = useNotifications();
+  const { data: semester, refetch: refetchSemester } = useActiveSemester();
+  const { data: enrollments, refetch: refetchEnrollments } = useEnrollments();
+  const { data: notifications, refetch: refetchNotifications } = useNotifications();
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchMe(),
+        refetchSemester(),
+        refetchEnrollments(),
+        refetchNotifications(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const enrolledCount = (enrollments ?? []).filter((e) => e.status.value === 'enrolled').length;
   const unreadCount = (notifications ?? []).filter((n) => !n.is_read).length;
 
+  const greeting = student
+    ? `مرحباً، ${student.name?.split(' ').slice(0, 2).join(' ')}`
+    : 'الرئيسية';
+  const subtitle = student ? `رقم القيد: ${student.enrollment_no}` : undefined;
+
   return (
     <Screen
-      title={student ? `مرحباً، ${student.name?.split(' ').slice(0, 2).join(' ')}` : 'الرئيسية'}
-      subtitle={student ? `رقم القيد: ${student.enrollment_no}` : undefined}
+      title={greeting}
+      subtitle={subtitle}
+      headerVariant="hero"
+      heroSize="lg"
+      overlap={56}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
     >
       {meError ? (
         <ErrorState onRetry={() => refetchMe()} />
@@ -90,76 +102,85 @@ export default function HomeScreen() {
         <SkeletonCard />
       ) : (
         <>
-          <View className="mb-3">
-            <StatusBadge status={student.status} withDot />
-          </View>
-
+          {/* Overlapping stats card */}
           {!!semester && (
-            <Card>
-              <Text className="font-kufi-bold text-ink text-[15px] text-right">{semester.name}</Text>
-              <View className="h-3" />
-              <View className="flex-row">
+            <Card elevated>
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="font-kufi-bold text-ink text-[15px] text-right flex-1">{semester.name}</Text>
+                <StatusBadge status={student.status} withDot />
+              </View>
+              <View className="flex-row border-t border-border pt-3">
                 <MiniStat value={enrolledCount} label="مقررات مسجلة" />
-                <View className="w-px bg-border mx-2" />
+                <View className="w-px bg-border" />
                 <MiniStat value={unreadCount} label="إشعارات جديدة" />
-                <View className="w-px bg-border mx-2" />
+                <View className="w-px bg-border" />
                 <MiniStat value={Number(student.gpa).toFixed(2)} label="المعدل التراكمي" />
               </View>
-              <View className="h-3" />
-              <View className="flex-row gap-2 flex-wrap">
-                {semester.survey_open && <Pill label="نافذة الاستطلاع مفتوحة" tone="success" />}
-                {semester.add_drop_open && <Pill label="نافذة الإضافة/الحذف مفتوحة" tone="info" />}
-              </View>
+              {(semester.survey_open || semester.add_drop_open) && (
+                <View className="flex-row gap-2 flex-wrap mt-3">
+                  {semester.survey_open && <Pill label="نافذة الاستطلاع مفتوحة" tone="success" />}
+                  {semester.add_drop_open && <Pill label="نافذة الإضافة/الحذف مفتوحة" tone="info" />}
+                </View>
+              )}
             </Card>
           )}
 
+          {/* Warnings */}
           {!!student.active_warnings && student.active_warnings.length > 0 && (
             <>
               <View className="h-5" />
               <SectionHeader title="التحذيرات النشطة" />
               {student.active_warnings.slice(0, 2).map((w) => (
-                <View key={w.id} className="bg-amber-50 border-r-4 border-warning rounded-xl p-3.5 mb-2 flex-row">
-                  <AlertTriangle size={20} color={colors.warning} />
+                <Card key={w.id} className="mb-2 flex-row items-start" >
+                  <IconTile tone="amber" size="md" rounded="circle">
+                    <AlertTriangle size={20} color={tones.amber.fg} />
+                  </IconTile>
                   <View className="flex-1 ms-3">
-                    <Text className="font-kufi-bold text-warning text-[13px] text-right">{w.type.label}</Text>
+                    <Text className="font-kufi-bold text-ink text-[13px] text-right">{w.type.label}</Text>
                     {!!w.course && (
-                      <Text className="font-kufi text-warning text-[12px] mt-0.5 text-right opacity-90">
+                      <Text className="font-kufi text-muted text-[12px] mt-0.5 text-right">
                         {w.course.name} · {w.course.code}
                       </Text>
                     )}
                   </View>
-                </View>
+                </Card>
               ))}
             </>
           )}
 
+          {/* Quick actions */}
           <View className="h-5" />
           <SectionHeader title="إجراءات سريعة" />
           <View className="flex-row gap-3 mb-3">
-            <QuickAction
-              icon={<ClipboardList size={22} color={colors.primary} />}
+            <QuickActionTile
+              tone="blue"
               label="استطلاع المقررات"
+              icon={<ClipboardList size={24} color={tones.blue.fg} />}
               onPress={() => router.push('/(tabs)/requests/survey')}
             />
-            <QuickAction
-              icon={<FileEdit size={22} color={colors.primary} />}
+            <QuickActionTile
+              tone="purple"
               label="طلب إضافة/حذف"
+              icon={<FileEdit size={24} color={tones.purple.fg} />}
               onPress={() => router.push('/(tabs)/requests/add-drop')}
             />
           </View>
           <View className="flex-row gap-3">
-            <QuickAction
-              icon={<GraduationCap size={22} color={colors.primary} />}
+            <QuickActionTile
+              tone="green"
               label="درجاتي"
+              icon={<GraduationCap size={24} color={tones.green.fg} />}
               onPress={() => router.push('/(tabs)/grades')}
             />
-            <QuickAction
-              icon={<ScrollText size={22} color={colors.primary} />}
+            <QuickActionTile
+              tone="orange"
               label="تسجيل الرسالة"
+              icon={<ScrollText size={24} color={tones.orange.fg} />}
               onPress={() => router.push('/(tabs)/requests/thesis')}
             />
           </View>
 
+          {/* Notifications */}
           <View className="h-5" />
           <SectionHeader title="آخر الإشعارات" />
           {(notifications ?? []).length === 0 ? (
@@ -168,24 +189,20 @@ export default function HomeScreen() {
             </Card>
           ) : (
             (notifications ?? []).slice(0, 3).map((n) => (
-              <View key={n.id} className="bg-surface border border-border rounded-2xl p-3.5 mb-2 flex-row items-center">
-                <View
-                  className={`w-9 h-9 rounded-full items-center justify-center ${
-                    n.type === 'warning' ? 'bg-amber-50' : 'bg-blue-50'
-                  }`}
-                >
+              <Card key={n.id} className="mb-2 flex-row items-center">
+                <IconTile tone={n.type === 'warning' ? 'amber' : 'sky'} size="md" rounded="circle">
                   {n.type === 'warning' ? (
-                    <AlertTriangle size={18} color={colors.warning} />
+                    <AlertTriangle size={18} color={tones.amber.fg} />
                   ) : (
-                    <BookOpen size={18} color={colors.primary} />
+                    <BookOpen size={18} color={tones.sky.fg} />
                   )}
-                </View>
+                </IconTile>
                 <View className="flex-1 ms-3">
                   <Text className="font-kufi-bold text-ink text-[13px] text-right">{n.title}</Text>
                   <Text className="font-kufi text-muted text-[11px] mt-0.5 text-right">{relativeArabic(n.created_at)}</Text>
                 </View>
                 <ChevronLeft size={18} color={colors.muted} />
-              </View>
+              </Card>
             ))
           )}
         </>

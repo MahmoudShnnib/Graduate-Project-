@@ -5,10 +5,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#2563EB',
-        'primary-2': '#3B82F6',
+        primary: '#0066FF',
+        'primary-dark': '#0052CC',
         accent: '#F97316',
-        bg: '#F8FAFC',
+        bg: '#F5F7FA',
         surface: '#FFFFFF',
         ink: '#1E293B',
         muted: '#64748B',
@@ -24,6 +24,7 @@ module.exports = {
         'kufi-bold': ['NotoKufiArabic-Bold'],
       },
       borderRadius: {
+        '3xl': '24px',
         '2xl': '16px',
         xl: '12px',
         full: '9999px',

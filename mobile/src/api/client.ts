@@ -20,6 +20,10 @@ function resolveBaseUrl(): string {
 
 export const apiBaseUrl = resolveBaseUrl();
 
+if (__DEV__) {
+  console.log('[API] base URL =', apiBaseUrl);
+}
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,
   headers: {
@@ -34,6 +38,9 @@ apiClient.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (__DEV__) {
+    console.log('[API] →', config.method?.toUpperCase(), (config.baseURL ?? '') + (config.url ?? ''), config.data ?? '');
+  }
   return config;
 });
 
@@ -43,8 +50,16 @@ export function registerUnauthorizedHandler(fn: () => void) {
 }
 
 apiClient.interceptors.response.use(
-  (r) => r,
+  (r) => {
+    if (__DEV__) {
+      console.log('[API] ←', r.status, r.config.url);
+    }
+    return r;
+  },
   async (error: AxiosError) => {
+    if (__DEV__) {
+      console.log('[API] ✗', error.response?.status, error.config?.url, error.response?.data ?? error.message);
+    }
     if (error.response?.status === 401) {
       await clearToken();
       onUnauthorized?.();
