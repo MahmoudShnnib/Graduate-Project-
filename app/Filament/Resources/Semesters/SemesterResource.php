@@ -50,48 +50,85 @@ class SemesterResource extends Resource
 
     public static function infolist(Schema $schema): Schema
     {
-        return $schema->components([
-            Section::make('بيانات الفصل الدراسي')
-                ->columnSpanFull()
-                ->columns(3)
-                ->components([
-                    TextEntry::make('name')
-                        ->label('اسم الفصل'),
+        return $schema
+            ->columns(2)
+            ->components([
+                // Right column (RTL): semester identity
+                \Filament\Schemas\Components\Grid::make(1)
+                    ->columnSpan(1)
+                    ->components([
+                        Section::make('معلومات الفصل')
+                            ->extraAttributes(['class' => 'fsv-card fsv-card-info'])
+                            ->components([
+                                TextEntry::make('name')
+                                    ->label('اسم الفصل')
+                                    ->icon(Heroicon::Calendar)
+                                    ->inlineLabel()
+                                    ->placeholder('—'),
 
-                    TextEntry::make('year')
-                        ->label('السنة'),
+                                TextEntry::make('year')
+                                    ->label('السنة')
+                                    ->icon(Heroicon::Hashtag)
+                                    ->inlineLabel()
+                                    ->placeholder('—'),
 
-                    TextEntry::make('season')
-                        ->label('الموسم')
-                        ->formatStateUsing(fn (Season $state): string => $state->label()),
+                                TextEntry::make('season')
+                                    ->label('الموسم')
+                                    ->icon(Heroicon::Sun)
+                                    ->inlineLabel()
+                                    ->formatStateUsing(fn (Season $state): string => $state->label()),
 
-                    TextEntry::make('start_date')
-                        ->label('تاريخ البداية')
-                        ->date(),
+                                TextEntry::make('archived_at')
+                                    ->label('الحالة')
+                                    ->icon(Heroicon::ShieldCheck)
+                                    ->inlineLabel()
+                                    ->state(fn (Semester $record): string => $record->isArchived()
+                                        ? 'مؤرشف منذ '.$record->archived_at->format('Y-m-d')
+                                        : 'نشط'),
+                            ]),
+                    ]),
 
-                    TextEntry::make('end_date')
-                        ->label('تاريخ النهاية')
-                        ->date(),
+                // Left column (RTL): dates
+                \Filament\Schemas\Components\Grid::make(1)
+                    ->columnSpan(1)
+                    ->components([
+                        Section::make('فترة الفصل الدراسي')
+                            ->extraAttributes(['class' => 'fsv-card fsv-card-dates'])
+                            ->components([
+                                TextEntry::make('start_date')
+                                    ->label('تاريخ البداية')
+                                    ->icon(Heroicon::CalendarDays)
+                                    ->inlineLabel()
+                                    ->date()
+                                    ->placeholder('—'),
 
-                    TextEntry::make('archived_at')
-                        ->label('الحالة')
-                        ->badge()
-                        ->state(fn (Semester $record): string => $record->isArchived()
-                            ? 'مؤرشف منذ '.$record->archived_at->format('Y-m-d')
-                            : 'نشط')
-                        ->color(fn (Semester $record): string => $record->isArchived() ? 'gray' : 'success'),
+                                TextEntry::make('end_date')
+                                    ->label('تاريخ النهاية')
+                                    ->icon(Heroicon::CalendarDays)
+                                    ->inlineLabel()
+                                    ->date()
+                                    ->placeholder('—'),
+                            ]),
 
-                    TextEntry::make('add_drop_start')
-                        ->label('بداية الإضافة والحذف')
-                        ->date()
-                        ->placeholder('—'),
+                        Section::make('فترة الإضافة والحذف')
+                            ->extraAttributes(['class' => 'fsv-card fsv-card-add-drop'])
+                            ->components([
+                                TextEntry::make('add_drop_start')
+                                    ->label('البداية')
+                                    ->icon(Heroicon::Clock)
+                                    ->inlineLabel()
+                                    ->date()
+                                    ->placeholder('—'),
 
-                    TextEntry::make('add_drop_end')
-                        ->label('نهاية الإضافة والحذف')
-                        ->date()
-                        ->placeholder('—'),
-                ]),
-        ]);
+                                TextEntry::make('add_drop_end')
+                                    ->label('النهاية')
+                                    ->icon(Heroicon::Clock)
+                                    ->inlineLabel()
+                                    ->date()
+                                    ->placeholder('—'),
+                            ]),
+                    ]),
+            ]);
     }
 
     public static function form(Schema $schema): Schema

@@ -76,9 +76,9 @@ class CoursesRelationManager extends RelationManager
                     ->label('النوع')
                     ->getKeyFromRecordUsing(fn ($record): string => $record->pivot->type ?? '')
                     ->getTitleFromRecordUsing(fn ($record): string => match ($record->pivot->type ?? '') {
-                        'general' => '📘 عام (مشترك)',
-                        'specialized' => '📗 تخصصي (إجباري)',
-                        'elective' => '📙 اختياري (اختر اثنين)',
+                        'general' => 'عام (مشترك)',
+                        'specialized' => 'تخصصي (إجباري)',
+                        'elective' => 'اختياري (اختر اثنين)',
                         default => $record->pivot->type ?? '',
                     })
                     ->collapsible()

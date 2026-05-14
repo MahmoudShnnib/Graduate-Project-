@@ -211,15 +211,21 @@ it('bans reapply when student fails course again after exceptional acceptance', 
 });
 
 it('accepts inactive dismissal and gives fresh start with zero warnings', function () {
+    // Drive the student to ConsecutiveInactive dismissal via the real
+    // production path: sem1 → Inactive (warning #1), sem2 activates with survey
+    // open (student reset to Active), sem2 survey closes (warning #2 → dismiss).
+    // Matches the canonical path documented in
+    // _brain/decisions/2026-05-08-auto-inactive-survey-close.md.
     $this->student->update(['status' => StudentStatus::Inactive]);
 
     $semester2 = Semester::factory()->create([
         'is_active' => false,
+        'survey_open' => true,
         'season' => Season::Spring,
         'year' => 2026,
     ]);
     $semester2->update(['is_active' => true]);
-    $this->semester->update(['is_active' => false]);
+    $semester2->update(['survey_open' => false]);
 
     expect($this->student->fresh()->status)->toBe(StudentStatus::Dismissed);
 

@@ -19,15 +19,7 @@ class CourseOfferingPolicy
 
     public function view(AuthUser $authUser, CourseOffering $courseOffering): bool
     {
-        if (! $authUser->can('View:CourseOffering')) {
-            return false;
-        }
-
-        if ($authUser->role === 'faculty') {
-            return $courseOffering->faculty_id === $authUser->id;
-        }
-
-        return true;
+        return $authUser->can('View:CourseOffering');
     }
 
     public function create(AuthUser $authUser): bool
@@ -37,15 +29,7 @@ class CourseOfferingPolicy
 
     public function update(AuthUser $authUser, CourseOffering $courseOffering): bool
     {
-        if (! $authUser->can('Update:CourseOffering')) {
-            return false;
-        }
-
-        if ($authUser->role === 'faculty') {
-            return $courseOffering->faculty_id === $authUser->id;
-        }
-
-        return true;
+        return $authUser->can('Update:CourseOffering');
     }
 
     public function delete(AuthUser $authUser, CourseOffering $courseOffering): bool

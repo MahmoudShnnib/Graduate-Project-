@@ -57,11 +57,11 @@ Use this on any admin **view** page (`ViewRecord` subclass) where the entity has
 | Body text | `#09090b` (light) / `#fafafa` (dark) | |
 | Primary action bg | `#1F4E79` → hover `#16395a` | The panel brand color |
 | Dark-mode primary | `#2f6aa8` → hover `#1F4E79` | |
-| Success pill | bg `#dcfce7`, border `#b9f8cf`, text `#008236` | |
-| Danger pill / callout | bg `#fef2f2`, border `#ffe2e2`, text `#c10007` | |
-| Warning pill | bg `#fef9c2`, border `#fff085`, text `#a65f00` | |
-| Info pill | bg `#dbeafe`, border `#bedbff`, text `#1447e6` | |
-| Gray pill | bg `#f4f4f5`, border `#e4e4e7`, text `#52525b` | |
+| Success pill (muted) | bg `#f0fdf4`, border `#dcfce7`, text `#166534` | Adopted 2026-05-13 — replaces the original `#dcfce7 / #008236` saturated set |
+| Danger pill (muted) | bg `#fef2f2`, border `#fee2e2`, text `#991b1b` | Callout block still uses brighter `#fef2f2 / #c10007` for warning emphasis |
+| Warning pill (muted) | bg `#fffbeb`, border `#fef3c7`, text `#92400e` | |
+| Info pill (muted) | bg `#eff6ff`, border `#dbeafe`, text `#1e40af` | |
+| Gray pill | bg `#fafafa`, border `#e4e4e7`, text `#52525b` | |
 | Card radius | 12px | rounded-xl |
 | Section header padding | `12px 20px 13px` | |
 | Section body padding | `20px` | |
@@ -291,14 +291,28 @@ Key blocks the CSS provides:
 - **Hero card** layout (flex with order swapping for RTL)
 - **`fsv-btn`** variants — primary (`#1F4E79`), secondary (outlined), and a `--full` modifier
 - **`fsv-hero__name-row`** with right-anchored layout, `align-items: flex-start` so RTL pushes content to the right edge
-- **`fsv-status-pill`** with 5 color variants
-- **`fsv-gpa-chip`** as a reference for compound stat chips (tier + divider + value + label)
+- **`fsv-status-pill`** with 5 muted color variants (palette refreshed 2026-05-13 — see [[../daily-notes/2026-05-13-figma-view-pages-batch]])
+- **`fsv-role-pill`** for secondary tags (role, study-type, etc.) — same palette family
+- **`fsv-gpa-chip`** as a reference for compound stat chips (tier + divider + value + label), now with toned-down tier label
 - **`fsv-hero__enrollment`** big subtitle pattern
 - **`fsv-hero__meta`** icon-prefixed items
 - **`.fi-section`** overrides for cards (header bar, body padding, row separators)
 - **`.fsv-transfer-callout`** red callout inside a Section
 - **Print stylesheet** that hides Filament chrome
 - **Alpine modal** (`.fsv-preview-modal*`) for full-screen previews
+
+## Rendering recipes (which slot renders what)
+
+### A. Standard view page — infolist only
+Use `{{ $this->infolist }}` in the Blade. Best for resources without relation managers (Student before adding any, User).
+
+### B. Relation-manager page — render BOTH infolist + relation managers
+Use `{{ $this->content }}` — Filament's `ViewRecord::content()` Schema wraps infolist + every relation manager. **If you use only `{{ $this->infolist }}` on a resource with relation managers, the tables silently disappear.** Confirmed bite on Semester (offerings + decided applications) and Specialization (courses).
+
+### C. Workflow-action-heavy view page
+Pages whose page-header actions trigger complex Filament Action modals (publish grades, archive semester, toggle offering, enroll survey, retake requests) MUST keep `getHeaderActions()` populated. Don't try to render those buttons inline in the hero — they need Filament's Action runtime. The hero in these pages carries only identity (and an optional Print button). Confirmed pages: Semester, Grades, EnrollStudents.
+
+For simpler resources (Student / User / Application / Specialization) `getHeaderActions()` returns `[]` and an Edit button lives inside the hero.
 
 ## Filament-specific recipes
 
@@ -401,6 +415,27 @@ Once the pattern is applied to the second resource view page, refactor these to 
 - `<x-admin.preview-modal :url="$url" alt="..." />`
 
 Promote the page-scoped CSS to global `resources/css/filament/admin/theme.css` at the same time.
+
+## Implementations (2026-05-14)
+
+Eight pages currently use the pattern — see [[../daily-notes/2026-05-13-figma-view-pages-batch]] for the batch session log + [[../daily-notes/2026-05-14-suspension-request-view-page]] for the 8th.
+
+| Page | Wrapper class | Rendering recipe | Notes |
+|---|---|---|---|
+| `/admin/students/{id}` | `.figma-student-view` | A (infolist) + manual `$this->table` + activity timeline | Original reference |
+| `/admin/users/{id}` | `.figma-user-view` | A (infolist) | Faculty subjects hide `name_en` + show academic-rank section ([[../decisions/2026-05-14-user-resource-scope]]) |
+| `/admin/applications/{id}` | `.figma-application-view` | A (infolist) | 2-col + full-width docs + admin/exam |
+| `/admin/specializations/{id}` | `.figma-specialization-view` | B (content) | Single-card variant (hero + KPI footer band) — diverges, see note in [[../daily-notes/2026-05-13-figma-view-pages-batch]] |
+| `/admin/semesters/{id}` | `.figma-semester-view` | B (content) + C (header actions kept) | Has 2 relation managers |
+| `/admin/course-offerings/{id}/enroll` | `.figma-enroll-view` | manual `$this->table` + C | Workflow actions in header |
+| `/admin/grades/{offering}/grades` | `.figma-grades-view` | manual `$this->table` + C | Workflow actions in header |
+| `/admin/suspension-requests/{id}` | `.figma-suspension-view` | A (infolist) | First implementation without a Print button (per [[feedback]]) — set the new default |
+
+> [!note] Print button is no longer the default
+> Earlier 2026-05-13 implementations shipped with a Print button in the hero's `.fsv-hero__actions`. User preference (logged 2026-05-14) is to **omit the Print button by default**. New view pages should skip the `<button onclick="window.print()...">` block and the `@media print` CSS. Add the button only if the user explicitly asks for it on a specific page.
+
+> [!note] `/admin/student-enrollments` was deleted on 2026-05-14
+> The earlier 8th implementation was removed (the resource is gone). See [[../daily-notes/2026-05-14-user-resource-overhaul]].
 
 ## Files
 

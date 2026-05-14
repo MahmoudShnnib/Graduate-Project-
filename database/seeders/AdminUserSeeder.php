@@ -40,7 +40,6 @@ class AdminUserSeeder extends Seeder
             'password' => bcrypt('ppsan@69'),
             'phone' => '0912345680',
             'role' => 'student',
-            'specialization_id' => $specialization?->id,
             'is_active' => true,
             'email_verified_at' => now(),
         ]);

@@ -327,11 +327,15 @@
             line-height: 16px;
             font-weight: 700;
         }
-        .figma-student-view .fsv-status-pill--success { background: #dcfce7; border: 1px solid #b9f8cf; color: #008236; }
-        .figma-student-view .fsv-status-pill--danger  { background: #fef2f2; border: 1px solid #ffe2e2; color: #c10007; }
-        .figma-student-view .fsv-status-pill--warning { background: #fef9c2; border: 1px solid #fff085; color: #a65f00; }
-        .figma-student-view .fsv-status-pill--info    { background: #dbeafe; border: 1px solid #bedbff; color: #1447e6; }
-        .figma-student-view .fsv-status-pill--gray    { background: #f4f4f5; border: 1px solid #e4e4e7; color: #52525b; }
+        .figma-student-view .fsv-status-pill--success { background: #f0fdf4; border: 1px solid #dcfce7; color: #166534; }
+        .figma-student-view .fsv-status-pill--danger  { background: #fef2f2; border: 1px solid #fee2e2; color: #991b1b; }
+        .figma-student-view .fsv-status-pill--warning { background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; }
+        .figma-student-view .fsv-status-pill--info    { background: #eff6ff; border: 1px solid #dbeafe; color: #1e40af; }
+        .figma-student-view .fsv-status-pill--gray    { background: #fafafa; border: 1px solid #e4e4e7; color: #52525b; }
+        .dark .figma-student-view .fsv-status-pill--success { background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.18); color: #86efac; }
+        .dark .figma-student-view .fsv-status-pill--danger  { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+        .dark .figma-student-view .fsv-status-pill--warning { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+        .dark .figma-student-view .fsv-status-pill--info    { background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.18); color: #93c5fd; }
 
         /* GPA chip next to the status pill in the hero name-row */
         .figma-student-view .fsv-gpa-chip {
@@ -372,16 +376,21 @@
         .figma-student-view .fsv-gpa-chip__tier {
             display: inline-flex;
             align-items: center;
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 13px;
-            line-height: 18px;
+            padding: 2px 9px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+            line-height: 16px;
+            border: 1px solid transparent;
         }
-        .figma-student-view .fsv-gpa-chip--success .fsv-gpa-chip__tier { background: #dcfce7; color: #008236; }
-        .figma-student-view .fsv-gpa-chip--info    .fsv-gpa-chip__tier { background: #dbeafe; color: #1447e6; }
-        .figma-student-view .fsv-gpa-chip--warning .fsv-gpa-chip__tier { background: #fef9c2; color: #a65f00; }
-        .figma-student-view .fsv-gpa-chip--danger  .fsv-gpa-chip__tier { background: #fef2f2; color: #c10007; }
+        .figma-student-view .fsv-gpa-chip--success .fsv-gpa-chip__tier { background: #f0fdf4; border-color: #dcfce7; color: #166534; }
+        .figma-student-view .fsv-gpa-chip--info    .fsv-gpa-chip__tier { background: #eff6ff; border-color: #dbeafe; color: #1e40af; }
+        .figma-student-view .fsv-gpa-chip--warning .fsv-gpa-chip__tier { background: #fffbeb; border-color: #fef3c7; color: #92400e; }
+        .figma-student-view .fsv-gpa-chip--danger  .fsv-gpa-chip__tier { background: #fef2f2; border-color: #fee2e2; color: #991b1b; }
+        .dark .figma-student-view .fsv-gpa-chip--success .fsv-gpa-chip__tier { background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.18); color: #86efac; }
+        .dark .figma-student-view .fsv-gpa-chip--info    .fsv-gpa-chip__tier { background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.18); color: #93c5fd; }
+        .dark .figma-student-view .fsv-gpa-chip--warning .fsv-gpa-chip__tier { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+        .dark .figma-student-view .fsv-gpa-chip--danger  .fsv-gpa-chip__tier { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.18); color: #fca5a5; }
 
         .figma-student-view .fsv-hero__meta {
             display: flex;

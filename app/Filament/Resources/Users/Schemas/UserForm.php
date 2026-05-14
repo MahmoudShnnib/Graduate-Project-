@@ -5,7 +5,9 @@ namespace App\Filament\Resources\Users\Schemas;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class UserForm
 {
@@ -39,18 +41,41 @@ class UserForm
                         'super_admin' => 'رئيس مكتب الدراسات العليا',
                         'secretary' => 'السكرتير',
                         'faculty' => 'عضو هيئة التدريس',
-                        'student' => 'الطالب',
-                    ]),
-
-                Select::make('specialization_id')
-                    ->relationship('specialization', 'name')
-                    ->label('التخصص')
-                    ->searchable()
-                    ->preload(),
+                    ])
+                    ->live(),
 
                 Toggle::make('is_active')
                     ->label('نشط')
                     ->default(true),
+
+                // Faculty-only academic fields — mirrors the external-supervisor modal
+                // on /admin/thesis-registrations so internal + external supervisors
+                // share the same schema.
+                Section::make('البيانات الأكاديمية')
+                    ->icon(Heroicon::AcademicCap)
+                    ->description('تظهر هذه الحقول لأعضاء هيئة التدريس فقط، وتطابق نموذج المشرفين الخارجيين.')
+                    ->columns(2)
+                    ->visible(fn (callable $get): bool => $get('role') === 'faculty')
+                    ->schema([
+                        TextInput::make('academic_rank')
+                            ->label('الدرجة العلمية')
+                            ->placeholder('مثال: أستاذ، أستاذ مشارك')
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->maxLength(255),
+
+                        TextInput::make('qualification')
+                            ->label('المؤهل العلمي')
+                            ->placeholder('مثال: دكتوراه')
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->maxLength(255),
+
+                        TextInput::make('institution')
+                            ->label('الجامعة / الكلية / المعهد')
+                            ->default('كلية التقنية الإلكترونية – طرابلس')
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 }

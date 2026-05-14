@@ -20,6 +20,18 @@ class ViewSemester extends ViewRecord
 {
     protected static string $resource = SemesterResource::class;
 
+    protected string $view = 'filament.resources.semesters.pages.view-semester';
+
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        return '';
+    }
+
+    public function getBreadcrumb(): string
+    {
+        return $this->record->name ?? (string) $this->record->getKey();
+    }
+
     protected function getHeaderActions(): array
     {
         if ($this->record->isArchived()) {
