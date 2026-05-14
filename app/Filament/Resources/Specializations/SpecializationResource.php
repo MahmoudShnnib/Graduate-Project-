@@ -12,9 +12,7 @@ use App\Models\Specialization;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -36,25 +34,7 @@ class SpecializationResource extends Resource
 
     public static function infolist(Schema $schema): Schema
     {
-        return $schema->components([
-            Section::make()
-                ->columns(2)
-                ->components([
-                    TextEntry::make('name')
-                        ->label('اسم التخصص'),
-
-                    TextEntry::make('code')
-                        ->label('رمز التخصص (P)'),
-
-                    TextEntry::make('courses_count')
-                        ->label('عدد المقررات')
-                        ->getStateUsing(fn (Specialization $record): int => $record->courses()->count()),
-
-                    TextEntry::make('students_count')
-                        ->label('عدد الطلاب')
-                        ->getStateUsing(fn (Specialization $record): int => $record->students()->count()),
-                ]),
-        ]);
+        return $schema->components([]);
     }
 
     public static function form(Schema $schema): Schema

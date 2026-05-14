@@ -29,7 +29,9 @@ it('blocks new suspension request when already approved for the same semester', 
         ->toBe(1);
 });
 
-it('allows new suspension request for a different semester when another is approved', function () {
+it('blocks any new suspension request once one has been approved (different semester too)', function () {
+    // Per 2026-05-08 blocking rules: any approved suspension permanently
+    // blocks future requests regardless of semester.
     $otherSemester = Semester::factory()->create(['is_active' => false]);
 
     SuspensionRequest::create([
@@ -44,11 +46,14 @@ it('allows new suspension request for a different semester when another is appro
         ->set('reason', 'reason for the new request in a different semester')
         ->call('submit');
 
-    expect(SuspensionRequest::where('student_id', $this->student->id)->where('semester_id', $otherSemester->id)->count())
-        ->toBeOne();
+    expect(SuspensionRequest::where('student_id', $this->student->id)->count())
+        ->toBe(1);
 });
 
-it('allows re-submission after a prior rejection for the same semester', function () {
+it('blocks re-submission for the same semester after a rejection, but allows for a different semester', function () {
+    // Per 2026-05-08 blocking rules: rejection blocks that ONE semester only.
+    $otherSemester = Semester::factory()->create(['is_active' => false]);
+
     SuspensionRequest::create([
         'student_id' => $this->student->id,
         'semester_id' => $this->semester->id,
@@ -56,17 +61,33 @@ it('allows re-submission after a prior rejection for the same semester', functio
         'status' => SuspensionStatus::Rejected,
     ]);
 
+    // Same-semester re-submission is blocked.
     Livewire::test(SuspensionRequestPage::class)
         ->set('semesterId', $this->semester->id)
         ->set('reason', 'reason for the second attempt after rejection')
         ->call('submit');
 
     expect(SuspensionRequest::where('student_id', $this->student->id)
+        ->where('semester_id', $this->semester->id)
+        ->where('status', SuspensionStatus::Pending)
+        ->exists())->toBeFalse();
+
+    // Different-semester submission is allowed.
+    Livewire::test(SuspensionRequestPage::class)
+        ->set('semesterId', $otherSemester->id)
+        ->set('reason', 'reason for a new attempt in a different semester')
+        ->call('submit');
+
+    expect(SuspensionRequest::where('student_id', $this->student->id)
+        ->where('semester_id', $otherSemester->id)
         ->where('status', SuspensionStatus::Pending)
         ->exists())->toBeTrue();
 });
 
-it('isSelectedSemesterAlreadyApproved returns true for approved semester', function () {
+it('hasAnyApprovedRequest and isSelectedSemesterBlocked report correctly', function () {
+    // The old isSelectedSemesterAlreadyApproved() method was retired during the
+    // 2026-05-08 redesign. The replacement API is hasAnyApprovedRequest() +
+    // getBlockedSemesterIds() + isSelectedSemesterBlocked().
     SuspensionRequest::create([
         'student_id' => $this->student->id,
         'semester_id' => $this->semester->id,
@@ -76,5 +97,10 @@ it('isSelectedSemesterAlreadyApproved returns true for approved semester', funct
 
     Livewire::test(SuspensionRequestPage::class)
         ->set('semesterId', $this->semester->id)
-        ->tap(fn ($page) => expect($page->instance()->isSelectedSemesterAlreadyApproved())->toBeTrue());
+        ->tap(function ($page): void {
+            $instance = $page->instance();
+            expect($instance->hasAnyApprovedRequest())->toBeTrue()
+                ->and($instance->isSelectedSemesterBlocked())->toBeTrue()
+                ->and($instance->getBlockedSemesterIds())->toContain($this->semester->id);
+        });
 });

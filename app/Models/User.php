@@ -7,7 +7,6 @@ use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -26,8 +25,10 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'phone',
+        'academic_rank',
+        'qualification',
+        'institution',
         'role',
-        'specialization_id',
         'is_active',
     ];
 
@@ -43,11 +44,6 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
-    }
-
-    public function specialization(): BelongsTo
-    {
-        return $this->belongsTo(Specialization::class);
     }
 
     public function student(): HasOne

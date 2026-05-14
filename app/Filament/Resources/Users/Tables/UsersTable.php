@@ -33,13 +33,9 @@ class UsersTable
                         'super_admin' => 'رئيس المكتب',
                         'secretary' => 'السكرتير',
                         'faculty' => 'عضو هيئة تدريس',
-                        'student' => 'طالب',
                         default => $state ?? '-',
                     })
                     ->badge(),
-
-                TextColumn::make('specialization.name')
-                    ->label('التخصص'),
 
                 IconColumn::make('is_active')
                     ->label('نشط')

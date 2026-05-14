@@ -185,19 +185,31 @@ it('clears inactive warnings when student becomes active again', function () {
 });
 
 it('dismisses student inactive for 2 consecutive semesters', function () {
+    // Step 1: sem1 active, student becomes Inactive → warning #1 for sem1.
     $this->student->update(['status' => StudentStatus::Inactive]);
-    expect($this->student->fresh()->status)->toBe(StudentStatus::Inactive);
+    expect($this->student->fresh()->status)->toBe(StudentStatus::Inactive)
+        ->and($this->student->fresh()->warnings_count)->toBe(1);
 
+    // Step 2: sem2 activates with the survey open.
+    //   SemesterObserver::resetInactiveStudentsToActive() will silently flip
+    //   the student back to Active via updateQuietly — warning #1 persists
+    //   per the documented design.
     $semester2 = Semester::factory()->create([
         'is_active' => false,
+        'survey_open' => true,
         'season' => Season::Spring,
         'year' => 2026,
     ]);
-
-    $this->student->refresh();
-
     $semester2->update(['is_active' => true]);
-    $this->semester->update(['is_active' => false]);
+
+    expect($this->student->fresh()->status)->toBe(StudentStatus::Active)
+        ->and($this->student->fresh()->warnings_count)->toBe(1);
+
+    // Step 3: sem2's survey closes — student never submitted any survey →
+    //   processNonSubmittingStudents marks them Inactive again → fires
+    //   StudentObserver → WarningService creates warning #2 (sem2) → count
+    //   reaches 2 → dismissStudent.
+    $semester2->update(['survey_open' => false]);
 
     $student = $this->student->fresh();
     expect($student->status)->toBe(StudentStatus::Dismissed)

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -20,6 +21,17 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     public function run(): void
     {
+        // Self-heal: if the permissions table is empty (post `migrate:fresh` or
+        // accidental wipe), regenerate Shield's permissions before mapping roles.
+        // Without this, every role would sync to an empty permission set.
+        if (Permission::count() === 0) {
+            Artisan::call('shield:generate', [
+                '--all' => true,
+                '--panel' => 'admin',
+                '--no-interaction' => true,
+            ]);
+        }
+
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
