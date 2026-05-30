@@ -67,7 +67,18 @@
                     </div>
                     <div class="p-3 rounded-lg bg-gray-50 dark:bg-white/5">
                         <dt class="text-xs text-gray-500 dark:text-gray-400 mb-1">معرّف السجل</dt>
-                        <dd class="font-medium text-gray-900 dark:text-white font-mono">{{ $record->model_id ?? '—' }}</dd>
+                        <dd class="font-medium text-gray-900 dark:text-white font-mono">
+                            @php($recordUrl = $this->getRecordUrl())
+                            @if($recordUrl)
+                                <a href="{{ $recordUrl }}"
+                                   class="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400 dark:hover:text-primary-300">
+                                    {{ $record->model_id }}
+                                    <x-heroicon-o-arrow-top-right-on-square style="width:.875rem;height:.875rem" />
+                                </a>
+                            @else
+                                {{ $record->model_id ?? '—' }}
+                            @endif
+                        </dd>
                     </div>
                     <div class="p-3 rounded-lg bg-gray-50 dark:bg-white/5">
                         <dt class="text-xs text-gray-500 dark:text-gray-400 mb-1">عنوان IP</dt>

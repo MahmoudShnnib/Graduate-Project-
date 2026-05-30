@@ -14,6 +14,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class StatsOverviewWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        return auth()->user()?->role !== 'faculty';
+    }
+
     protected function getStats(): array
     {
         $activeSemester = Semester::where('is_active', true)->first();

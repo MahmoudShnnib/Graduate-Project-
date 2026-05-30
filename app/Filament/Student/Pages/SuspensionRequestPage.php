@@ -26,19 +26,9 @@ class SuspensionRequestPage extends Page
 
     public string $reason = '';
 
-    public ?int $semesterId = null;
-
-    public function mount(): void
+    public function getActiveSemester(): ?Semester
     {
-        $activeSemester = Semester::where('is_active', true)->first();
-        if ($activeSemester) {
-            $this->semesterId = $activeSemester->id;
-        }
-    }
-
-    public function getSemesters(): Collection
-    {
-        return Semester::orderByDesc('year')->get();
+        return Semester::where('is_active', true)->first();
     }
 
     public function getHistory(): Collection
@@ -81,30 +71,19 @@ class SuspensionRequestPage extends Page
             ->exists();
     }
 
-    /**
-     * @return array<int>
-     */
-    public function getBlockedSemesterIds(): array
+    public function isCurrentSemesterBlocked(): bool
     {
         $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
 
-        if (! $student) {
-            return [];
-        }
-
-        return SuspensionRequest::where('student_id', $student->id)
-            ->whereIn('status', [SuspensionStatus::Approved, SuspensionStatus::Rejected])
-            ->pluck('semester_id')
-            ->all();
-    }
-
-    public function isSelectedSemesterBlocked(): bool
-    {
-        if (! $this->semesterId) {
+        if (! $student || ! $activeSemester) {
             return false;
         }
 
-        return in_array((int) $this->semesterId, $this->getBlockedSemesterIds(), true);
+        return SuspensionRequest::where('student_id', $student->id)
+            ->where('semester_id', $activeSemester->id)
+            ->whereIn('status', [SuspensionStatus::Approved, SuspensionStatus::Rejected])
+            ->exists();
     }
 
     public function submit(): void
@@ -127,6 +106,18 @@ class SuspensionRequestPage extends Page
             return;
         }
 
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $activeSemester) {
+            Notification::make()
+                ->title('لا يوجد فصل دراسي نشط')
+                ->body('لا يمكن تقديم طلب انقطاع حالياً. يرجى المحاولة لاحقاً.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         if ($this->hasAnyApprovedRequest()) {
             Notification::make()
                 ->title('لا يمكنك تقديم طلب انقطاع جديد')
@@ -143,16 +134,7 @@ class SuspensionRequestPage extends Page
             return;
         }
 
-        $this->validate([
-            'reason' => 'required|min:10',
-            'semesterId' => 'required|exists:semesters,id',
-        ], [
-            'reason.required' => 'يرجى كتابة سبب الانقطاع',
-            'reason.min' => 'يجب أن يكون السبب 10 أحرف على الأقل',
-            'semesterId.required' => 'يرجى اختيار الفصل الدراسي',
-        ]);
-
-        if ($this->isSelectedSemesterBlocked()) {
+        if ($this->isCurrentSemesterBlocked()) {
             Notification::make()
                 ->title('لا يمكن تقديم طلب لهذا الفصل')
                 ->body('يوجد طلب سابق مقبول أو مرفوض لهذا الفصل الدراسي.')
@@ -162,9 +144,16 @@ class SuspensionRequestPage extends Page
             return;
         }
 
+        $this->validate([
+            'reason' => 'required|min:10',
+        ], [
+            'reason.required' => 'يرجى كتابة سبب الانقطاع',
+            'reason.min' => 'يجب أن يكون السبب 10 أحرف على الأقل',
+        ]);
+
         $request = SuspensionRequest::create([
             'student_id' => $student->id,
-            'semester_id' => $this->semesterId,
+            'semester_id' => $activeSemester->id,
             'reason' => $this->reason,
             'status' => SuspensionStatus::Pending,
         ]);

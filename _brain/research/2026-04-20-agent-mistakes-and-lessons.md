@@ -136,6 +136,57 @@ public function table(Table $table): Table
 }
 ```
 
+## Mistake 11 — Inventing a `Heroicon` enum case from memory (2026-05-17)
+
+**What happened:** While adding new infolist + form sections, I typed `Heroicon::IdentificationBadge` in two files. The constant doesn't exist — only `Heroicon::Identification` does. Hot path crashed for the user on `/admin/users/create` with `Undefined constant Filament\Support\Icons\Heroicon::IdentificationBadge`.
+
+**Why wrong:** I picked a plausible-sounding name (Heroicons.com has icons literally called "identification badge", so there's a real-world hook for the wrong name). I didn't grep the vendor enum before using it. Test suite passed because no test renders the UserForm/UserInfolist — Filament's icon resolution is request-time, not boot-time.
+
+**Pattern:** this is the same root cause as Mistake 9 — propagating a plausible-but-unverified API symbol. The repo's `figma-view-page-design.md` even calls this out under "File-attribute icons revised for accuracy: replaced `HeartFilled` / `IdentificationSolid` (don't exist in v5) with `Heart` / `Identification`." I had read that note this session and still made the same class of mistake.
+
+**Rule going forward:**
+- **Before typing any `Heroicon::*` reference, grep `vendor/filament/support/src/Icons/Heroicon.php` for the exact case name.** One bash call. Cheaper than the round trip with the user. Example: `grep -i "^    case Iden" vendor/filament/support/src/Icons/Heroicon.php`.
+- Generalize: **before using ANY vendor enum case, constant, or method that I'm typing from memory, grep first.** Memory recall of vendor API names is unreliable; the source is 50ms away.
+- **A passing test suite is not proof a UI works.** Filament templates resolve icons at request time. If a code path isn't covered by a Livewire/HTTP test, the icon could be invalid forever and CI stays green. Loading the affected page in the browser before claiming a feature done is the only true verification.
+
+**Mental gate before declaring "done" — add to the checklist below:**
+> Did I `grep vendor/.../{enum-file}` for every vendor enum case I typed (Heroicon, Color, Size, Width, etc.)?
+
+## Mistake 12 — Filament `modifyQueryUsing` lambda using `$q` instead of `$query` (2026-05-17)
+
+**What happened:** M-6 (2026-05-16) added status-filter tabs to `ListThesisRegistrations`, `ListDiscussionRequests`, and `ListSuspensionRequests`. Each `Tab::modifyQueryUsing` lambda used `$q` as the parameter name:
+
+```php
+->modifyQueryUsing(fn (Builder $q) => $q->whereIn('status', $pendingStates))
+```
+
+On 2026-05-17 the user hit `/admin/thesis-registrations?tab=pending` and got a 500: *"Call to a member function newQueryWithoutRelationships() on null"* at `Eloquent\Builder.php:355` (the closure-where path).
+
+**Why wrong:** Filament v5's `evaluate()` resolves closure parameters **by name** against the named-data array passed by the caller. The Tab's `modifyQuery()` passes `['query' => $query]`. When the lambda parameter is `$q`, the name doesn't match. Filament's fallback for an unbound `Builder`-typed parameter is to resolve a **fresh empty `Builder` from the container with `$model = null`**. So `$q` is a junk Builder, the lambda mutates THAT (adding `whereIn('status', ...)` to a query with no FROM clause and no model), and returns it. `applyQueryScopes` replaces the real cloned query with this garbage. Later, the SelectFilter triggers `$query->where(Closure)` in `HasFilters.php:188`; Laravel's closure-where calls `$this->model->newQueryWithoutRelationships()` → crash on null.
+
+**Why no test caught it:** the diagnostic I needed was rendering the full table (the summary footer at `vendor/filament/tables/resources/views/index.blade.php:48` calls `getAllTableSummaryQuery()`, which is the trigger). `Livewire::test(...)->mount()` doesn't always render — depends on whether you call `->call('$refresh')` or just `->assertSee()`. The Wave 2 commit ran `php artisan test --compact` (163 passed) without an HTTP-render assertion, so the bug shipped invisibly.
+
+**Diagnostic trail (≈30 min):** the breakthrough was instrumenting the table pipeline by hand in tinker:
+
+```php
+$q = $ev->invoke($table, $queryVal);          // evaluate(): model=ThesisRegistration ✓
+$clone = $q->clone();                         // clone(): model=ThesisRegistration ✓
+$scoped = $table->applyQueryScopes($clone);   // scoped: model=NULL ✗  ← here
+```
+
+`applyQueryScopes` runs the tab's `modifyQueryUsing` callback, which **returned a different Builder** than the one passed in — confirmed by SQL: `select * where "status" in (?, ?)` (no FROM clause). Once I saw that the lambda's `$q` was not the same object as the scope's `$query`, the parameter-name mismatch fell out.
+
+**Rule going forward:**
+
+- **Match parameter names to Filament's standard data keys.** `$query` for queries, `$record` for the current record, `$state` for column state, `$get` for `Get` helper, etc. Filament v5 docs use these names consistently for a reason.
+- **`fn (Type $x)` is dangerous in Filament closures** unless `$x` matches a known data key. Type-based fallback can resolve to a fresh container instance instead of the value you want.
+- **Browser-verify after adding tabs/filters/scopes.** Tests that don't render the table footer can pass while the page is 500-broken.
+- **Adding a new mental check before closing a Filament tab/filter task:** open the resource page in the browser and click each tab — if any tab 500s, the lambda parameter name is the first suspect.
+
+**Updates from this incident:**
+- Added a dedicated section in `_brain/project-context/gotchas.md` titled "Filament `modifyQueryUsing` lambda parameter MUST be named `$query`".
+- Added checklist item 11 below.
+
 ## Default checklist before declaring a Filament task "done"
 
 1. Did I run `vendor/bin/pint --dirty --format agent`? → formatting
@@ -146,6 +197,9 @@ public function table(Table $table): Table
 6. If I touched a create-side lifecycle — did I check the edit-side mirror?
 7. If I cleared caches during debugging — did I `npm run build` to restore the Vite manifest?
 8. Did I write a vault note (daily + bugs/decisions where warranted) before marking complete?
+9. **Did I grep `vendor/.../Heroicon.php` (and any other vendor enum I referenced) for every case I typed?** Memory-recall of vendor symbol names is unreliable; the source is one bash call away.
+10. **Did the user load the affected page in the browser?** Filament resolves many things at request time (icons, render hooks, panel discovery). A green test suite proves invariants, not UI correctness.
+11. **Did every `modifyQueryUsing` / `Tab::modifyQueryUsing` / similar Filament evaluate-driven lambda use `$query` (and other standard data-key names like `$record`, `$state`, `$get`)?** Name mismatches silently bind to fresh container instances with null models — see Mistake 12.
 
 ## When in doubt
 

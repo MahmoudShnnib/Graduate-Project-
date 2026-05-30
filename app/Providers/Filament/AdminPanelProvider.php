@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Resources\Roles\RoleResource;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
@@ -42,6 +43,13 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
+            ])
+            // Register our RoleResource explicitly BEFORE the Shield plugin so
+            // Shield's `isResourcePublished()` check sees a `\RoleResource`
+            // class already in the panel and skips registering its own
+            // (vendor) RoleResource. Audit fix M-4.
+            ->resources([
+                RoleResource::class,
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),

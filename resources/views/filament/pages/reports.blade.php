@@ -2,8 +2,9 @@
     <div class="space-y-6">
         <x-filament::section heading="اختيار الطالب">
             <div class="max-w-md">
-                <label class="block text-sm font-medium text-gray-700 mb-1">الطالب</label>
+                <label for="reports-student-picker" class="block text-sm font-medium text-gray-700 mb-1">الطالب</label>
                 <select
+                    id="reports-student-picker"
                     wire:model="selectedStudentId"
                     class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500"
                 >

@@ -102,24 +102,23 @@ class ThesisRegistrationResource extends Resource
                     ->label('طباعة للوزارة')
                     ->icon(Heroicon::OutlinedPrinter)
                     ->color('warning')
-                    ->visible(fn (ThesisRegistration $record) => $record->status === ThesisStatus::Pending)
                     ->requiresConfirmation()
                     ->modalHeading('طباعة للوزارة')
-                    ->modalDescription('سيتم تغيير حالة الطلب إلى "في انتظار الوزارة". هل تريد المتابعة؟')
+                    ->modalDescription(fn (ThesisRegistration $record) => $record->status === ThesisStatus::Pending
+                        ? 'سيتم تغيير حالة الطلب إلى "في انتظار الوزارة". هل تريد المتابعة؟'
+                        : 'تم طباعة هذا الطلب من قبل. هل تريد إعادة الطباعة؟')
                     ->modalSubmitActionLabel('تأكيد الطباعة')
                     ->action(function (ThesisRegistration $record, AuditService $audit) {
-                        $record->update([
-                            'status' => ThesisStatus::Printed,
-                            'printed_at' => now(),
-                        ]);
+                        if ($record->status === ThesisStatus::Pending) {
+                            $record->update([
+                                'status' => ThesisStatus::Printed,
+                                'printed_at' => now(),
+                            ]);
 
-                        $audit->log('thesis_printed', $record);
+                            $audit->log('thesis_printed', $record);
+                        }
 
-                        Notification::make()
-                            ->title('تم تسجيل الطباعة')
-                            ->body('حالة الطلب الآن: في انتظار الوزارة')
-                            ->success()
-                            ->send();
+                        return redirect()->route('print.thesis-ministry-form', $record);
                     }),
 
                 Action::make('approve')

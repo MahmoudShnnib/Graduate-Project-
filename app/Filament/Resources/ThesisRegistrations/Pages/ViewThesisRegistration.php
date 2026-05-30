@@ -50,22 +50,22 @@ class ViewThesisRegistration extends ViewRecord
             ->label('طباعة للوزارة')
             ->icon(Heroicon::OutlinedPrinter)
             ->color('warning')
-            ->visible(fn () => $this->record->status === ThesisStatus::Pending)
             ->requiresConfirmation()
             ->modalHeading('طباعة للوزارة')
-            ->modalDescription('سيتم تغيير حالة الطلب إلى "في انتظار الوزارة". هل تريد المتابعة؟')
+            ->modalDescription(fn () => $this->record->status === ThesisStatus::Pending
+                ? 'سيتم تغيير حالة الطلب إلى "في انتظار الوزارة". هل تريد المتابعة؟'
+                : 'تم طباعة هذا الطلب من قبل. هل تريد إعادة الطباعة؟'
+            )
             ->modalSubmitActionLabel('تأكيد الطباعة')
             ->action(function () {
-                $this->record->update([
-                    'status' => ThesisStatus::Printed,
-                    'printed_at' => now(),
-                ]);
+                if ($this->record->status === ThesisStatus::Pending) {
+                    $this->record->update([
+                        'status' => ThesisStatus::Printed,
+                        'printed_at' => now(),
+                    ]);
+                }
 
-                Notification::make()
-                    ->title('تم تسجيل الطباعة')
-                    ->body('حالة الطلب الآن: في انتظار الوزارة')
-                    ->success()
-                    ->send();
+                $this->redirect(route('print.thesis-ministry-form', $this->record), navigate: false);
             });
     }
 

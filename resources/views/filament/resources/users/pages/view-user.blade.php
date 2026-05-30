@@ -241,9 +241,11 @@
             gap: 4px;
             font-size: 14px;
             line-height: 20px;
-            color: #71717a;
+            color: #52525b; /* H-1: bumped from #71717a for WCAG AA (light mode) */
         }
-        .figma-user-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #71717a; }
+        .figma-user-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #52525b; }
+        .dark .figma-user-view .fsv-hero__meta-item,
+        .dark .figma-user-view .fsv-hero__meta-icon { color: #71717a; }
 
         /* ---------- Filament Section cards ---------- */
         .figma-user-view .fi-section {

@@ -75,12 +75,16 @@ class ApplicationInfolist
                                     ->label('الحالة الاجتماعية')
                                     ->icon(Heroicon::Heart)
                                     ->inlineLabel()
-                                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                        'single' => 'أعزب / عزباء',
-                                        'married' => 'متزوج / متزوجة',
-                                        'divorced' => 'مطلق / مطلقة',
-                                        'widowed' => 'أرمل / أرملة',
-                                        default => '—',
+                                    ->formatStateUsing(function (?string $state, $record): string {
+                                        $female = ($record->gender ?? null) === 'female';
+
+                                        return match ($state) {
+                                            'single' => $female ? 'عزباء' : 'أعزب',
+                                            'married' => $female ? 'متزوجة' : 'متزوج',
+                                            'divorced' => $female ? 'مطلقة' : 'مطلق',
+                                            'widowed' => $female ? 'أرملة' : 'أرمل',
+                                            default => '—',
+                                        };
                                     }),
 
                                 TextEntry::make('nationality')

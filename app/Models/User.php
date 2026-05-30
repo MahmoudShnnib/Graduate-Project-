@@ -25,6 +25,11 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'phone',
+        'national_id',
+        'birth_date',
+        'birth_place',
+        'nationality',
+        'gender',
         'academic_rank',
         'qualification',
         'institution',
@@ -43,6 +48,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'birth_date' => 'date',
         ];
     }
 

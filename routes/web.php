@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApplicationTrackingController;
+use App\Http\Controllers\PrintController;
 use App\Http\Controllers\PrintCourseStudentsController;
 use App\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
@@ -21,3 +22,31 @@ Route::post('/apply/track', [ApplicationTrackingController::class, 'track'])
 Route::get('/admin/course-offerings/{courseOffering}/print-students', PrintCourseStudentsController::class)
     ->middleware(['auth'])
     ->name('course-offering.print-students');
+
+Route::get('/admin/students/{student}/print-student-letter', [PrintController::class, 'studentLetter'])
+    ->middleware(['auth'])
+    ->name('print.student-letter');
+
+Route::get('/admin/students/{student}/print-provisional-grades', [PrintController::class, 'provisionalGrades'])
+    ->middleware(['auth'])
+    ->name('print.provisional-grades');
+
+Route::get('/admin/course-offerings/{courseOffering}/print-exam-attendance', [PrintController::class, 'examAttendance'])
+    ->middleware(['auth'])
+    ->name('print.exam-attendance');
+
+Route::get('/admin/course-offerings/{courseOffering}/print-course-results', [PrintController::class, 'courseResults'])
+    ->middleware(['auth'])
+    ->name('print.course-results');
+
+Route::get('/admin/graduates/{discussionRequest}/print-graduation-certificate', [PrintController::class, 'graduationCertificate'])
+    ->middleware(['auth'])
+    ->name('print.graduation-certificate');
+
+Route::get('/admin/thesis-registrations/{thesisRegistration}/print-ministry-form', [PrintController::class, 'thesisMinistryForm'])
+    ->middleware(['auth'])
+    ->name('print.thesis-ministry-form');
+
+Route::get('/admin/exam-list/{specialization}/print', [PrintController::class, 'examList'])
+    ->middleware(['auth'])
+    ->name('print.exam-list');

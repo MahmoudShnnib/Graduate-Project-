@@ -97,6 +97,22 @@ class Student extends Model
             ->wherePivot('status', EnrollmentStatus::Enrolled->value);
     }
 
+    public function getRegistrationSemesterAttribute(): ?Semester
+    {
+        $semester = $this->user?->application?->semester;
+
+        if ($semester) {
+            return $semester;
+        }
+
+        return $this->enrollments()
+            ->with('courseOffering.semester')
+            ->oldest('id')
+            ->first()
+            ?->courseOffering
+            ?->semester;
+    }
+
     public function courseSurveys(): HasMany
     {
         return $this->hasMany(CourseSurvey::class);

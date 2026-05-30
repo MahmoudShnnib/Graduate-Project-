@@ -85,7 +85,13 @@ class GraduateResource extends Resource
                     ->date('Y/m/d')
                     ->sortable(),
             ])
-            ->defaultSort('completed_at', 'desc');
+            ->defaultSort(fn (Builder $query): Builder => $query
+                ->orderByRaw(
+                    '(select case when students.status = ? then 1 else 0 end '
+                    .'from students where students.id = discussion_requests.student_id) asc',
+                    [StudentStatus::Graduated->value]
+                )
+                ->orderByDesc('completed_at'));
     }
 
     public static function getPages(): array

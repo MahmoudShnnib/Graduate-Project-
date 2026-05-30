@@ -21,7 +21,7 @@
         <x-admin.filter-tabs :tabs="$tabs" :active="$activeSpec" wire-method="filterBySpecialization" />
 
         @if($activeSpec && $applications->isNotEmpty())
-            <x-admin.print-button onclick="printExamList()" />
+            <x-admin.print-button onclick="window.open('{{ route('print.exam-list', $activeSpec) }}', '_blank')" />
         @endif
     </div>
 
@@ -101,61 +101,4 @@
         </div>
     @endif
 
-    {{-- Print --}}
-    @script
-    <script>
-        window.printExamList = function() {
-            const tableEl = document.getElementById('exam-list-table');
-            const nameEls = tableEl.querySelectorAll('[data-print-name]');
-            const spec  = tableEl.getAttribute('data-spec') || '';
-            const exam  = tableEl.getAttribute('data-exam') || '';
-            const now   = new Date();
-            const day   = now.toLocaleDateString('ar-LY', { weekday: 'long' });
-            const date  = now.toLocaleDateString('en-CA') + ' (' + day + ')';
-            const count = nameEls.length;
-
-            let rows = '';
-            nameEls.forEach(function(el, i) {
-                const bg = i % 2 === 1 ? ' style="background:#fafafa"' : '';
-                rows += '<tr' + bg + '><td style="width:40px;text-align:center">' + (i + 1) + '</td><td>' + el.textContent.trim() + '</td></tr>';
-            });
-
-            const html = '<!DOCTYPE html>'
-                + '<html dir="rtl" lang="ar"><head><meta charset="UTF-8">'
-                + '<title>قائمة الامتحان التفاضلي</title>'
-                + '<style>'
-                + '*{margin:0;padding:0;box-sizing:border-box}'
-                + 'body{font-family:Arial,Tahoma,sans-serif;padding:40px;direction:rtl;color:#111}'
-                + '.hdr{text-align:center;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:24px}'
-                + '.hdr h1{font-size:15px;color:#444;margin-bottom:2px}'
-                + '.hdr h2{font-size:20px;margin-bottom:8px}'
-                + '.meta{display:flex;justify-content:center;gap:32px;font-size:13px;color:#333}'
-                + '.meta span{font-weight:bold}'
-                + 'table{width:100%;border-collapse:collapse;font-size:14px;margin-top:4px}'
-                + 'th,td{border:1px solid #ccc;padding:10px 14px;text-align:right}'
-                + 'th{background:#f3f4f6;font-size:12px}'
-                + '.ft{margin-top:40px;display:flex;justify-content:space-between;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:12px}'
-                + '</style></head><body>'
-                + '<div class="hdr">'
-                + '<h1>كلية التقنية الإلكترونية — طرابلس</h1>'
-                + '<h2>قائمة الامتحان التفاضلي</h2>'
-                + '<div class="meta">'
-                + '<div>التخصص: <span>' + spec + '</span></div>'
-                + (exam ? '<div>موعد الامتحان: <span>' + exam + ' (' + new Date(exam.split(' ')[0]).toLocaleDateString('ar-LY', {weekday:'long'}) + ')</span></div>' : '')
-                + '<div>عدد الطلاب: <span>' + count + '</span></div>'
-                + '<div>التاريخ: <span>' + date + '</span></div>'
-                + '</div>'
-                + '</div>'
-                + '<table><thead><tr><th style="width:40px;text-align:center">م</th><th>الاسم الرباعي</th></tr></thead>'
-                + '<tbody>' + rows + '</tbody></table>'
-                + '<div class="ft"><span>مكتب الدراسات العليا</span><span>التوقيع: ___________________</span></div>'
-                + '</body></html>';
-
-            const w = window.open('', '_blank');
-            w.document.write(html);
-            w.document.close();
-            w.onload = function() { w.print(); };
-        };
-    </script>
-    @endscript
 </x-filament-panels::page>

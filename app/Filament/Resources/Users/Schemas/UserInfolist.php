@@ -52,6 +52,47 @@ class UserInfolist
                                     ->label('الحالة')
                                     ->inlineLabel()
                                     ->boolean(),
+
+                                TextEntry::make('national_id')
+                                    ->label('الرقم الوطني')
+                                    ->icon(Heroicon::Identification)
+                                    ->inlineLabel()
+                                    ->placeholder('-')
+                                    ->visible(fn ($record): bool => $record?->role === 'faculty' || filled($record?->national_id)),
+
+                                TextEntry::make('birth_date')
+                                    ->label('تاريخ الميلاد')
+                                    ->icon(Heroicon::Calendar)
+                                    ->inlineLabel()
+                                    ->date('Y/m/d')
+                                    ->placeholder('-')
+                                    ->visible(fn ($record): bool => $record?->role === 'faculty' || filled($record?->birth_date)),
+
+                                TextEntry::make('birth_place')
+                                    ->label('مكان الميلاد')
+                                    ->icon(Heroicon::MapPin)
+                                    ->inlineLabel()
+                                    ->placeholder('-')
+                                    ->visible(fn ($record): bool => $record?->role === 'faculty' || filled($record?->birth_place)),
+
+                                TextEntry::make('nationality')
+                                    ->label('الجنسية')
+                                    ->icon(Heroicon::Flag)
+                                    ->inlineLabel()
+                                    ->placeholder('-')
+                                    ->visible(fn ($record): bool => $record?->role === 'faculty' || filled($record?->nationality)),
+
+                                TextEntry::make('gender')
+                                    ->label('الجنس')
+                                    ->icon(Heroicon::User)
+                                    ->inlineLabel()
+                                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                        'male' => 'ذكر',
+                                        'female' => 'أنثى',
+                                        default => $state ?? '-',
+                                    })
+                                    ->placeholder('-')
+                                    ->visible(fn ($record): bool => $record?->role === 'faculty' || filled($record?->gender)),
                             ]),
 
                         Section::make('البيانات الأكاديمية')
@@ -62,7 +103,7 @@ class UserInfolist
                                 || filled($record?->institution))
                             ->components([
                                 TextEntry::make('academic_rank')
-                                    ->label('الدرجة العلمية')
+                                    ->label('الدرجة الأكاديمية')
                                     ->icon(Heroicon::Star)
                                     ->inlineLabel()
                                     ->placeholder('-'),
@@ -74,7 +115,7 @@ class UserInfolist
                                     ->placeholder('-'),
 
                                 TextEntry::make('institution')
-                                    ->label('الجامعة / الكلية / المعهد')
+                                    ->label('جهة العمل / المؤسسة التعليمية')
                                     ->icon(Heroicon::BuildingLibrary)
                                     ->inlineLabel()
                                     ->placeholder('-'),

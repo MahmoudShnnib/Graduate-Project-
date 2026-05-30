@@ -10,9 +10,11 @@ use App\Models\StudentEnrollment;
 use App\Services\AuditService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -58,8 +60,8 @@ class ViewMyCourse extends Page implements HasTable
                 ->modalDescription('حدد كيفية توزيع الدرجة من 100 بين أعمال الفصل والاختبار النهائي.')
                 ->modalSubmitActionLabel('حفظ التوزيع')
                 ->fillForm(fn (): array => [
-                    'coursework_max' => $this->record->coursework_max,
-                    'final_max' => $this->record->final_max,
+                    'coursework_max' => $this->record->coursework_max ?? 40,
+                    'final_max' => $this->record->final_max ?? 60,
                 ])
                 ->form([
                     TextInput::make('coursework_max')
@@ -67,25 +69,47 @@ class ViewMyCourse extends Page implements HasTable
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(99)
-                        ->required(),
+                        ->required()
+                        ->live(debounce: 250)
+                        ->default(40)
+                        ->rule(fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get): void {
+                            $sum = (int) $value + (int) $get('final_max');
+                            if ($sum !== 100) {
+                                $fail("مجموع التوزيع يجب أن يساوي 100 (المجموع الحالي: {$sum})");
+                            }
+                        }),
 
                     TextInput::make('final_max')
                         ->label('الاختبار النهائي')
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(99)
-                        ->required(),
+                        ->required()
+                        ->live(debounce: 250)
+                        ->default(60),
+
+                    Placeholder::make('distribution_total')
+                        ->hiddenLabel()
+                        ->content(function (Get $get): \Illuminate\Support\HtmlString {
+                            $sum = (int) $get('coursework_max') + (int) $get('final_max');
+                            $isValid = $sum === 100;
+                            $color = $isValid ? '#166534' : '#991b1b';
+                            $bg = $isValid ? '#f0fdf4' : '#fef2f2';
+                            $border = $isValid ? '#dcfce7' : '#fee2e2';
+                            $icon = $isValid ? '✓' : '⚠';
+                            $label = $isValid ? 'المجموع = 100' : "المجموع = {$sum} (يجب أن يساوي 100)";
+
+                            return new \Illuminate\Support\HtmlString(
+                                "<div style=\"display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;background:{$bg};border:1px solid {$border};color:{$color};font-weight:600;font-size:13px;\">"
+                                ."<span>{$icon}</span><span>{$label}</span>"
+                                .'</div>'
+                            );
+                        }),
                 ])
                 ->action(function (array $data): void {
-                    if ((int) $data['coursework_max'] + (int) $data['final_max'] !== 100) {
-                        Notification::make()
-                            ->title('مجموع التوزيع يجب أن يساوي 100')
-                            ->danger()
-                            ->send();
-
-                        return;
-                    }
-
+                    // Inline rule on coursework_max already blocks the form
+                    // submit when sum ≠ 100. By the time we reach here the
+                    // distribution is guaranteed valid.
                     $this->record->update([
                         'coursework_max' => (int) $data['coursework_max'],
                         'final_max' => (int) $data['final_max'],
@@ -252,6 +276,8 @@ class ViewMyCourse extends Page implements HasTable
                             ->success()
                             ->send();
                     }),
-            ]);
+            ])
+            ->emptyStateHeading('لا يوجد طلاب مسجلون في هذه المادة')
+            ->emptyStateDescription('سيظهر الطلاب هنا بعد تسجيلهم من قبل الإدارة.');
     }
 }

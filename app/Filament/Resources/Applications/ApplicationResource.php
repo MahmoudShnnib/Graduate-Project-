@@ -331,52 +331,11 @@ class ApplicationResource extends Resource
                     ]),
             ])
             ->recordActions([
-                Action::make('initialApprove')
-                    ->label('قبول مبدئي')
-                    ->icon(Heroicon::ClipboardDocumentCheck)
-                    ->color('info')
-                    ->requiresConfirmation()
-                    ->modalHeading('قبول مبدئي')
-                    ->modalDescription('سيتم إضافة الطالب إلى قائمة الامتحان التفاضلي.')
-                    ->action(function (Application $application, NotificationService $notifier, AuditService $audit, \Livewire\Component $livewire) {
-                        $examDate = $livewire->scheduledExamDate ?? null;
-
-                        if (! $examDate) {
-                            Notification::make()->title('يجب تحديد موعد الامتحان أولاً')->danger()->send();
-
-                            return;
-                        }
-
-                        $application->update([
-                            'status' => ApplicationStatus::InitiallyApproved,
-                            'exam_date' => $examDate,
-                        ]);
-
-                        $audit->log('application_initial_approval', $application);
-                        $notifier->notifyApplicationStatusChanged($application);
-
-                        Notification::make()->title('تم القبول المبدئي بنجاح')->success()->send();
-                    })
-                    ->visible(fn (Application $record) => $record->status === ApplicationStatus::Pending),
-                Action::make('approve')
-                    ->label('قبول مباشر')
-                    ->icon(Heroicon::Check)
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('قبول مباشر')
-                    ->modalDescription('سيتم قبول الطالب نهائياً وإنشاء سجل طالب بدون امتحان.')
-                    ->action(function (Application $application, ApproveApplication $approve, AuditService $audit) {
-                        try {
-                            $approve->handle($application);
-                            $audit->log('application_approved', $application);
-                            Notification::make()->title('تم القبول بنجاح')->success()->send();
-                        } catch (\Exception $e) {
-                            Notification::make()->title('خطأ')->body($e->getMessage())->danger()->send();
-                        }
-                    })
-                    ->visible(fn (Application $record) => $record->status === ApplicationStatus::Pending),
+                static::initialApproveAction(),
+                static::directApproveAction(),
                 ViewAction::make(),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->modalDescription(fn (Application $record): string => "هل أنت متأكد من حذف طلب التقديم الخاص بـ {$record->name}؟ لا يمكن التراجع عن هذا الإجراء."),
             ])
             ->toolbarActions([
                 \Filament\Actions\BulkAction::make('bulkInitialApprove')
@@ -386,6 +345,10 @@ class ApplicationResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('قبول مبدئي للطلاب المحددين')
                     ->modalDescription('سيتم إضافة الطلاب المحددين إلى قائمة الامتحان التفاضلي.')
+                    ->disabled(fn (\Livewire\Component $livewire): bool => ($livewire->scheduledExamDate ?? null) === null)
+                    ->tooltip(fn (\Livewire\Component $livewire): ?string => ($livewire->scheduledExamDate ?? null)
+                        ? null
+                        : 'حدد موعد الامتحان أولاً')
                     ->action(function (\Illuminate\Database\Eloquent\Collection $records, \Livewire\Component $livewire) {
                         $examDate = $livewire->scheduledExamDate ?? null;
 
@@ -434,5 +397,113 @@ class ApplicationResource extends Resource
             'view' => ViewApplication::route('/{record}'),
             'edit' => EditApplication::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Shared exam-date setter. Host page must declare a
+     * `#[Session(key: 'applications.scheduled_exam_date')] public ?string $scheduledExamDate`
+     * so list and view see the same value.
+     */
+    public static function scheduleExamAction(): Action
+    {
+        return Action::make('scheduleExam')
+            ->label(fn (\Livewire\Component $livewire): string => ($livewire->scheduledExamDate ?? null)
+                ? 'تعديل موعد الامتحان'
+                : 'تحديد موعد الامتحان')
+            ->icon('heroicon-o-calendar')
+            ->color('info')
+            ->modalHeading(fn (\Livewire\Component $livewire): string => ($livewire->scheduledExamDate ?? null)
+                ? 'تعديل موعد الامتحان التفاضلي'
+                : 'تحديد موعد الامتحان التفاضلي')
+            ->modalDescription('سيتم عرض الموعد على الشاشة لاستخدامه عند القبول المبدئي.')
+            ->modalSubmitActionLabel(fn (\Livewire\Component $livewire): string => ($livewire->scheduledExamDate ?? null)
+                ? 'حفظ'
+                : 'تحديد')
+            ->fillForm(fn (\Livewire\Component $livewire): array => [
+                'exam_date' => $livewire->scheduledExamDate ?? null,
+            ])
+            ->form([
+                DateTimePicker::make('exam_date')
+                    ->label('تاريخ الامتحان')
+                    ->required(),
+            ])
+            ->action(function (array $data, \Livewire\Component $livewire): void {
+                $wasSet = ($livewire->scheduledExamDate ?? null) !== null;
+                $livewire->scheduledExamDate = $data['exam_date'];
+
+                Notification::make()
+                    ->title($wasSet ? 'تم تحديث موعد الامتحان' : 'تم تحديد موعد الامتحان')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public static function clearExamDateAction(): Action
+    {
+        return Action::make('clearExamDate')
+            ->label('إلغاء الموعد')
+            ->icon('heroicon-o-x-mark')
+            ->color('gray')
+            ->requiresConfirmation()
+            ->visible(fn (\Livewire\Component $livewire): bool => ($livewire->scheduledExamDate ?? null) !== null)
+            ->action(function (\Livewire\Component $livewire): void {
+                $livewire->scheduledExamDate = null;
+            });
+    }
+
+    public static function initialApproveAction(): Action
+    {
+        return Action::make('initialApprove')
+            ->label('قبول مبدئي')
+            ->icon(Heroicon::ClipboardDocumentCheck)
+            ->color('info')
+            ->requiresConfirmation()
+            ->modalHeading(fn (Application $record): string => "قبول مبدئي — {$record->name}")
+            ->modalDescription(fn (Application $record): string => "سيتم إضافة {$record->name} إلى قائمة الامتحان التفاضلي.")
+            ->disabled(fn (\Livewire\Component $livewire): bool => ($livewire->scheduledExamDate ?? null) === null)
+            ->tooltip(fn (\Livewire\Component $livewire): ?string => ($livewire->scheduledExamDate ?? null)
+                ? null
+                : 'حدد موعد الامتحان أولاً')
+            ->action(function (Application $application, NotificationService $notifier, AuditService $audit, \Livewire\Component $livewire): void {
+                $examDate = $livewire->scheduledExamDate ?? null;
+
+                if (! $examDate) {
+                    Notification::make()->title('يجب تحديد موعد الامتحان أولاً')->danger()->send();
+
+                    return;
+                }
+
+                $application->update([
+                    'status' => ApplicationStatus::InitiallyApproved,
+                    'exam_date' => $examDate,
+                ]);
+
+                $audit->log('application_initial_approval', $application);
+                $notifier->notifyApplicationStatusChanged($application);
+
+                Notification::make()->title('تم القبول المبدئي بنجاح')->success()->send();
+            })
+            ->visible(fn (Application $record): bool => $record->status === ApplicationStatus::Pending);
+    }
+
+    public static function directApproveAction(): Action
+    {
+        return Action::make('approve')
+            ->label('قبول مباشر')
+            ->icon(Heroicon::Check)
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading(fn (Application $record): string => "قبول مباشر — {$record->name}")
+            ->modalDescription(fn (Application $record): string => "سيتم قبول {$record->name} نهائياً وإنشاء سجل طالب بدون امتحان.")
+            ->action(function (Application $application, ApproveApplication $approve, AuditService $audit): void {
+                try {
+                    $approve->handle($application);
+                    $audit->log('application_approved', $application);
+                    Notification::make()->title('تم القبول بنجاح')->success()->send();
+                } catch (\Exception $e) {
+                    Notification::make()->title('خطأ')->body($e->getMessage())->danger()->send();
+                }
+            })
+            ->visible(fn (Application $record): bool => $record->status === ApplicationStatus::Pending);
     }
 }

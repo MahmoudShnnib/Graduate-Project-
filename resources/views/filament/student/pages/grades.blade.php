@@ -85,7 +85,7 @@
                 <div class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 mx-auto mb-3">
                     <x-heroicon-o-inbox style="width: 1.25rem; height: 1.25rem;" class="text-gray-400 dark:text-gray-500" />
                 </div>
-                <p class="text-gray-400 dark:text-gray-500 text-sm">لا توجد درجات مسجلة.</p>
+                <p class="text-gray-600 dark:text-gray-500 text-sm">لا توجد درجات مسجلة.</p>
             </div>
         @else
             <div class="overflow-x-auto -mx-6 -mb-6">

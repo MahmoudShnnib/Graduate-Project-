@@ -50,6 +50,20 @@ class AuditLogResource extends Resource
         'App\\Models\\CourseSurvey' => 'استطلاع مقررات',
     ];
 
+    /**
+     * Map `model_type` → admin URL pattern. `{id}` is replaced with `$record->model_id`.
+     * Only listed types render the audit-log "Record ID" as a clickable drill-through.
+     */
+    public const MODEL_RESOURCE_MAP = [
+        'App\\Models\\Application' => '/admin/applications/{id}',
+        'App\\Models\\Student' => '/admin/students/{id}',
+        'App\\Models\\ThesisRegistration' => '/admin/thesis-registrations/{id}',
+        'App\\Models\\CourseOffering' => '/admin/course-offerings/{id}',
+        'App\\Models\\SuspensionRequest' => '/admin/suspension-requests/{id}',
+        'App\\Models\\DiscussionRequest' => '/admin/discussion-requests/{id}',
+        'App\\Models\\Semester' => '/admin/semesters/{id}',
+    ];
+
     public const ROLE_LABELS = [
         'super_admin' => 'مدير النظام',
         'secretary' => 'أمين السجل',

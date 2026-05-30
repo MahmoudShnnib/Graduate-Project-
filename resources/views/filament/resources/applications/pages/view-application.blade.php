@@ -39,11 +39,6 @@
                     <span>تعديل</span>
                     <x-heroicon-o-pencil-square class="fsv-btn__icon" />
                 </a>
-
-                <button type="button" onclick="window.print(); return false;" class="fsv-btn fsv-btn--secondary">
-                    <span>طباعة</span>
-                    <x-heroicon-o-printer class="fsv-btn__icon" />
-                </button>
             </div>
 
             <div class="fsv-hero__identity">
@@ -159,19 +154,6 @@
         .dark .figma-application-view .fsv-btn--primary { background: #2f6aa8; border-color: #2f6aa8; color: #ffffff; }
         .dark .figma-application-view .fsv-btn--primary:hover { background: #1F4E79; border-color: #1F4E79; }
 
-        .figma-application-view .fsv-btn--secondary {
-            background: #ffffff;
-            color: #09090b;
-            border: 1px solid #e4e4e7;
-        }
-        .figma-application-view .fsv-btn--secondary:hover { background: #f4f4f5; }
-        .dark .figma-application-view .fsv-btn--secondary {
-            background: rgb(39 39 42);
-            color: #fafafa;
-            border-color: rgb(63 63 70);
-        }
-        .dark .figma-application-view .fsv-btn--secondary:hover { background: rgb(63 63 70); }
-
         .figma-application-view .fsv-hero__identity {
             display: flex;
             flex-direction: column;
@@ -280,9 +262,11 @@
             gap: 4px;
             font-size: 14px;
             line-height: 20px;
-            color: #71717a;
+            color: #52525b; /* H-1: bumped from #71717a for WCAG AA (light mode) */
         }
-        .figma-application-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #71717a; }
+        .figma-application-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #52525b; }
+        .dark .figma-application-view .fsv-hero__meta-item,
+        .dark .figma-application-view .fsv-hero__meta-icon { color: #71717a; }
 
         /* ---------- Filament Section cards ---------- */
         .figma-application-view .fi-section {
@@ -367,20 +351,6 @@
         .dark .figma-application-view .fsv-transfer-callout .fi-in-text *,
         .dark .figma-application-view .fsv-transfer-callout .fi-icon { color: #fca5a5 !important; }
 
-        /* ---------- Print styles ---------- */
-        @media print {
-            .fi-sidebar,
-            .fi-topbar,
-            .fi-header,
-            .fi-breadcrumbs,
-            .figma-application-view .fsv-hero__actions { display: none !important; }
-            .figma-application-view { padding: 0 !important; }
-            .figma-application-view .fi-section,
-            .figma-application-view .fsv-hero {
-                box-shadow: none !important;
-                page-break-inside: avoid;
-            }
-        }
     </style>
     @endpush
 </x-filament-panels::page>

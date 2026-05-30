@@ -9,8 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('course_offerings', function (Blueprint $table) {
-            $table->unsignedSmallInteger('coursework_max')->default(60)->after('is_open');
-            $table->unsignedSmallInteger('final_max')->default(40)->after('coursework_max');
+            // Defaults sum to 100. Final exam weighted heavier than coursework
+            // per faculty norm (Note 2026-05-16: flipped from 60/40 to 40/60).
+            $table->unsignedSmallInteger('coursework_max')->default(40)->after('is_open');
+            $table->unsignedSmallInteger('final_max')->default(60)->after('coursework_max');
         });
     }
 

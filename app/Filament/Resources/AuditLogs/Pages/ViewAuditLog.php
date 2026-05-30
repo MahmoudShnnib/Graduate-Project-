@@ -64,4 +64,26 @@ class ViewAuditLog extends ViewRecord
     {
         return AuditLogResource::FIELD_LABELS[$key] ?? $key;
     }
+
+    /**
+     * URL to the underlying record (e.g. /admin/applications/9), or null
+     * when the model type isn't mapped or the record was deleted.
+     */
+    public function getRecordUrl(): ?string
+    {
+        $type = $this->record->model_type;
+        $id = $this->record->model_id;
+
+        if (! $type || ! $id) {
+            return null;
+        }
+
+        $pattern = AuditLogResource::MODEL_RESOURCE_MAP[$type] ?? null;
+
+        if (! $pattern) {
+            return null;
+        }
+
+        return url(str_replace('{id}', (string) $id, $pattern));
+    }
 }
