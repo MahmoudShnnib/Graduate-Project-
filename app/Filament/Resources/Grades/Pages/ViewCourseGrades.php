@@ -91,6 +91,8 @@ class ViewCourseGrades extends Page implements HasTable
                 ->label('نشر درجات أعمال الفصل')
                 ->icon(Heroicon::OutlinedMegaphone)
                 ->color('warning')
+                ->disabled($readyMidterm === 0)
+                ->tooltip($readyMidterm === 0 ? 'لا توجد درجات أعمال فصل جاهزة للنشر' : null)
                 ->requiresConfirmation()
                 ->modalHeading('نشر درجات أعمال الفصل')
                 ->modalDescription(
@@ -115,6 +117,8 @@ class ViewCourseGrades extends Page implements HasTable
                 ->label('نشر الدرجات النهائية')
                 ->icon(Heroicon::OutlinedCheckBadge)
                 ->color('success')
+                ->disabled($readyFinal === 0)
+                ->tooltip($readyFinal === 0 ? 'لا توجد درجات نهائية جاهزة للنشر' : null)
                 ->requiresConfirmation()
                 ->modalHeading('نشر الدرجات النهائية')
                 ->modalDescription(

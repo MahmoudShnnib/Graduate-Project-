@@ -81,6 +81,13 @@ class StudentResource extends Resource
                                     ->date()
                                     ->placeholder('-'),
 
+                                TextEntry::make('registration_semester')
+                                    ->label('الفصل الدراسي للالتحاق')
+                                    ->icon(Heroicon::AcademicCap)
+                                    ->inlineLabel()
+                                    ->state(fn ($record): ?string => $record->registration_semester?->name)
+                                    ->placeholder('-'),
+
                                 TextEntry::make('birth_place')
                                     ->label('مكان الميلاد')
                                     ->icon(Heroicon::MapPin)
@@ -102,12 +109,16 @@ class StudentResource extends Resource
                                     ->label('الحالة الاجتماعية')
                                     ->icon(Heroicon::Heart)
                                     ->inlineLabel()
-                                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                        'single' => 'أعزب / عزباء',
-                                        'married' => 'متزوج / متزوجة',
-                                        'divorced' => 'مطلق / مطلقة',
-                                        'widowed' => 'أرمل / أرملة',
-                                        default => '-',
+                                    ->formatStateUsing(function (?string $state, $record): string {
+                                        $female = ($record->gender ?? null) === 'female';
+
+                                        return match ($state) {
+                                            'single' => $female ? 'عزباء' : 'أعزب',
+                                            'married' => $female ? 'متزوجة' : 'متزوج',
+                                            'divorced' => $female ? 'مطلقة' : 'مطلق',
+                                            'widowed' => $female ? 'أرملة' : 'أرمل',
+                                            default => '-',
+                                        };
                                     })
                                     ->placeholder('-'),
 

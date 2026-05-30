@@ -19,6 +19,7 @@ class CourseOffering extends Model
         'is_open',
         'coursework_max',
         'final_max',
+        'time_slot',
     ];
 
     protected function casts(): array

@@ -13,12 +13,24 @@ class Supervisor extends Model
 
     protected $fillable = [
         'name',
+        'national_id',
+        'birth_date',
+        'birth_place',
+        'nationality',
+        'gender',
         'academic_rank',
         'qualification',
         'institution',
         'email',
         'phone',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'birth_date' => 'date',
+        ];
+    }
 
     public function thesisRegistrations(): HasMany
     {

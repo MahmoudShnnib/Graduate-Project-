@@ -63,8 +63,9 @@
 
                     {{-- Search --}}
                     <div class="lg:col-span-2">
-                        <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">بحث باسم المستخدم</label>
+                        <label for="al-search" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">بحث باسم المستخدم</label>
                         <input
+                            id="al-search"
                             type="text"
                             wire:model.live.debounce.300ms="search"
                             placeholder="اسم المستخدم..."
@@ -76,8 +77,9 @@
 
                     {{-- Role --}}
                     <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">الدور</label>
+                        <label for="al-role" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">الدور</label>
                         <select
+                            id="al-role"
                             wire:model.live="filterRole"
                             class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
                                    focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500
@@ -92,8 +94,9 @@
 
                     {{-- User --}}
                     <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">المستخدم</label>
+                        <label for="al-user" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">المستخدم</label>
                         <select
+                            id="al-user"
                             wire:model.live="filterUserId"
                             class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
                                    focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500
@@ -108,8 +111,9 @@
 
                     {{-- Model type --}}
                     <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">النموذج</label>
+                        <label for="al-model" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">النموذج</label>
                         <select
+                            id="al-model"
                             wire:model.live="filterModelType"
                             class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
                                    focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500
@@ -124,8 +128,9 @@
 
                     {{-- Date from --}}
                     <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">من تاريخ</label>
+                        <label for="al-from" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">من تاريخ</label>
                         <input
+                            id="al-from"
                             type="date"
                             wire:model.live="filterFrom"
                             class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
@@ -136,8 +141,9 @@
 
                     {{-- Date to --}}
                     <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">إلى تاريخ</label>
+                        <label for="al-to" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">إلى تاريخ</label>
                         <input
+                            id="al-to"
                             type="date"
                             wire:model.live="filterTo"
                             class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
@@ -148,8 +154,9 @@
 
                     {{-- Show system + Reset --}}
                     <div class="flex items-end justify-between gap-4 sm:col-span-2 lg:col-span-2">
-                        <label class="flex cursor-pointer items-center gap-2 pt-5">
+                        <label for="al-show-system" class="flex cursor-pointer items-center gap-2 pt-5">
                             <input
+                                id="al-show-system"
                                 type="checkbox"
                                 wire:model.live="filterShowSystem"
                                 class="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
@@ -244,7 +251,7 @@
 
                             {{-- Date --}}
                             <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                {{ $log->created_at->diffForHumans() }}
+                                <span title="{{ $log->created_at->format('Y-m-d H:i:s') }}">{{ $log->created_at->diffForHumans() }}</span>
                             </td>
 
                             {{-- Old values --}}
@@ -322,9 +329,10 @@
                             type="button"
                             wire:click="goToNextPage({{ $lastPage }})"
                             @disabled($this->page >= $lastPage)
+                            aria-label="الصفحة التالية"
                             class="rounded p-1 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-400 dark:hover:text-gray-200"
                         >
-                            <x-heroicon-o-chevron-right class="h-4 w-4" />
+                            <x-heroicon-o-chevron-left class="h-4 w-4" />
                         </button>
                         <span class="min-w-[3rem] text-center text-sm text-gray-600 dark:text-gray-400">
                             {{ $this->page }} / {{ $lastPage }}
@@ -333,17 +341,19 @@
                             type="button"
                             wire:click="goToPreviousPage"
                             @disabled($this->page <= 1)
+                            aria-label="الصفحة السابقة"
                             class="rounded p-1 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-400 dark:hover:text-gray-200"
                         >
-                            <x-heroicon-o-chevron-left class="h-4 w-4" />
+                            <x-heroicon-o-chevron-right class="h-4 w-4" />
                         </button>
                     </div>
                 @endif
 
                 {{-- Per page --}}
                 <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-600 dark:text-gray-400">في الصفحة</span>
+                    <label for="audit-log-per-page" class="text-sm text-gray-600 dark:text-gray-400">في الصفحة</label>
                     <select
+                        id="audit-log-per-page"
                         wire:model.live="perPage"
                         class="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900
                                focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500

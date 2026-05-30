@@ -3,13 +3,11 @@
 /* Scan student portal blade views so Tailwind generates utility classes used in them */
 @source "../../../views/filament/student/**/*.blade.php";
 
-@font-face {
-    font-family: 'Noto Kufi Arabic';
-    src: url('/fonts/Noto_Kufi_Arabic/NotoKufiArabic-VariableFont_wght.ttf') format('truetype');
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-}
+/*
+ * Noto Kufi Arabic is loaded once via LocalFontProvider in
+ * StudentPanelProvider. See _brain/daily-notes/2026-05-16-wave1-audit-cleanup.md
+ * (matches the admin/theme.css fix — duplicate @font-face caused a dev-server 404).
+ */
 
 @theme {
     --font-sans: 'Noto Kufi Arabic', ui-sans-serif, system-ui, sans-serif;

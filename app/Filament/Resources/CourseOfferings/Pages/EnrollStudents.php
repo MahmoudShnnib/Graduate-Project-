@@ -168,13 +168,6 @@ class EnrollStudents extends Page implements HasTable
                     }
                 }),
 
-            Action::make('print_students')
-                ->label('طباعة كشف الطلاب')
-                ->icon('heroicon-o-printer')
-                ->color('gray')
-                ->url(fn (): string => route('course-offering.print-students', $this->record))
-                ->openUrlInNewTab(),
-
             Action::make('survey_students')
                 ->label(fn (): string => 'طلبوا المادة ('.$this->getSurveyCount().')')
                 ->icon('heroicon-o-clipboard-document-list')
@@ -527,6 +520,8 @@ class EnrollStudents extends Page implements HasTable
                             ->send();
                     })
                     ->deselectRecordsAfterCompletion(),
-            ]);
+            ])
+            ->emptyStateHeading('لا يوجد طلاب مسجلون في هذه المادة')
+            ->emptyStateDescription('أضف طلاباً باستخدام زر "إضافة طالب" أعلاه.');
     }
 }

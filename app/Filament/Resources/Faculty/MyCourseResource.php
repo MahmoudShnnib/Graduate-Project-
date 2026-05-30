@@ -29,6 +29,8 @@ class MyCourseResource extends Resource
 
     protected static ?string $slug = 'my-courses';
 
+    protected static ?string $recordTitleAttribute = 'course.name';
+
     protected static string|\UnitEnum|null $navigationGroup = 'هيئة التدريس';
 
     public static function shouldRegisterNavigation(): bool
@@ -125,7 +127,10 @@ class MyCourseResource extends Resource
 
                 IconColumn::make('is_open')
                     ->label('مفتوح للتسجيل')
-                    ->boolean(),
+                    ->boolean()
+                    ->extraAttributes(fn (CourseOffering $record): array => [
+                        'aria-label' => $record->is_open ? 'مفتوح للتسجيل' : 'مغلق للتسجيل',
+                    ]),
             ])
             ->paginated(false);
     }

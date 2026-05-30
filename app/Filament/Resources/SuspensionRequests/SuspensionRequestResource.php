@@ -188,7 +188,18 @@ class SuspensionRequestResource extends Resource
 
                 TextColumn::make('reason')
                     ->label('السبب')
-                    ->limit(50),
+                    ->limit(60)
+                    ->tooltip('انقر لعرض السبب كاملاً')
+                    ->action(
+                        Action::make('viewFullReason')
+                            ->modalHeading('سبب الإيقاف الكامل')
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel('إغلاق')
+                            ->modalContent(fn (SuspensionRequest $record) => view(
+                                'filament.modals.full-reason',
+                                ['reason' => $record->reason]
+                            ))
+                    ),
 
                 TextColumn::make('status')
                     ->label('الحالة')
@@ -223,7 +234,8 @@ class SuspensionRequestResource extends Resource
                     ->color('success')
                     ->visible(fn (SuspensionRequest $record) => $record->status === SuspensionStatus::Pending)
                     ->requiresConfirmation()
-                    ->modalDescription('سيتم سحب تسجيلات الطالب في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
+                    ->modalHeading(fn (SuspensionRequest $record): string => 'قبول إيقاف قيد '.($record->student?->user?->name ?? ''))
+                    ->modalDescription(fn (SuspensionRequest $record): string => 'سيتم سحب تسجيلات '.($record->student?->user?->name ?? 'الطالب').' في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
                     ->action(function (SuspensionRequest $record, AuditService $audit, NotificationService $notifier) {
                         $student = $record->student;
 

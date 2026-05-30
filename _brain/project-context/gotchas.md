@@ -156,6 +156,20 @@ Tests that hit Filament-rendered pages (like `$this->get('/admin/grades')->asser
 
 Symptoms can appear after `php artisan optimize:clear` or clearing the Vite build dir. If a test suddenly starts failing on a Vite manifest error after a cache clear, rebuild with `npm run build` and retry.
 
+## `Heroicon::*` enum case names must be verified against the vendor source
+
+Filament v5's `Filament\Support\Icons\Heroicon` enum names diverge from heroicons.com's display names in ways that are easy to misremember. Real cases that DON'T exist: `IdentificationBadge`, `HeartFilled`, `IdentificationSolid`. Real cases that DO exist: `Identification`, `Heart`, `Star`, `Sparkles`, `MapPin`, `Flag`, `Calendar`, `BuildingLibrary`. The outlined variants are prefixed `Outlined*` (e.g. `OutlinedIdentification`).
+
+A wrong case name **does not fail the test suite** — Filament resolves icons at request render time, not boot time. Pages that aren't covered by a Livewire/HTTP test will crash for the user with `Undefined constant Filament\Support\Icons\Heroicon::*` and CI stays green.
+
+**Convention:** before typing any `Heroicon::*` (or `Filament\Support\Enums\*`, or any vendor enum case) from memory, grep the vendor source:
+
+```bash
+grep -i "case .*identif" vendor/filament/support/src/Icons/Heroicon.php
+```
+
+One bash call. Catches the mistake before the user does. See [[../research/2026-04-20-agent-mistakes-and-lessons#Mistake 11]] for the 2026-05-17 incident that surfaced this rule.
+
 ## Filament has three "Actions" concepts that look similar but aren't interchangeable
 
 1. **`Filament\Schemas\Components\Actions`** — field-like component that groups Action buttons inside a **form**. Does NOT render in infolists.
@@ -169,6 +183,22 @@ Mixing them is a silent no-op — the button is simply absent from the rendered 
 If you need a sort that must survive user column clicks (e.g. "completed applications always at the bottom"), `->defaultSort(...)` is insufficient — Filament replaces it when the user clicks a sortable column header.
 
 Use `->modifyQueryUsing(function (Builder $query) { $query->reorder()->orderByRaw(...)->orderByDesc(...); })` instead. `->reorder()` drops any previously attached orderBy clauses so yours is the only one. For multi-tier status priority use `CASE WHEN status = 'a' THEN 0 WHEN status = 'b' THEN 1 ELSE 2 END ASC` (ANSI SQL, portable across MySQL/PG/SQLite).
+
+## Filament `modifyQueryUsing` lambda parameter MUST be named `$query`
+
+Filament v5's `evaluate()` resolves closure parameters by **name** first (then by type as fallback). For `modifyQueryUsing(fn (Builder $q) => $q->...)` — using `$q` (or `$builder`, or any other name) — name matching to the data key `'query'` fails. Filament then falls back to building a parameter via the container, which produces a **fresh empty `Builder` with `$model = null`**. The lambda's modifications run on that empty query, the original query is discarded, and downstream `$query->where(Closure)` calls crash with `Call to a member function newQueryWithoutRelationships() on null` at `Eloquent\Builder.php:355` (the closure-where path needs the model to build the sub-query).
+
+**Always use `$query` as the parameter name:**
+
+```php
+// BROKEN — $q produces empty Builder with null model
+->modifyQueryUsing(fn (Builder $q) => $q->whereIn('status', $states))
+
+// CORRECT
+->modifyQueryUsing(fn (Builder $query) => $query->whereIn('status', $states))
+```
+
+Tests don't catch this — the page only crashes when Filament renders `getAllTableSummaryQuery()` (the summary footer), which happens in browser rendering, not in `Livewire::test(...)->mount()` unless you assert on the rendered view. The bug surfaced 2026-05-17 on `/admin/thesis-registrations?tab=pending` after M-6's tab additions used `$q`. Same trap applies to any other Filament evaluate-driven callback (`->relationship(fn (Builder $q) ...)`, `->using(fn (Model $r) ...)` where `$r` should be `$record`, etc.). **Match the parameter name to the standard Filament data key.**
 
 ## Filament Action `->disabled()` / `->visible()` needs `wire:model.live`
 
@@ -242,9 +272,44 @@ try {
 
 **Idempotency trap:** an invariant check that counts *all* writes can false-block legitimate re-runs on unchanged data. Always scope the check: "would this call add a NEW row?" not "is the count already at cap?". See `EnrollStudentInOffering::__invoke` — it checks `isAlreadyActive` before counting.
 
+## Filament widget action modals need their own `<x-filament-actions::modals />` slot
+
+When a Filament Widget implements `HasActions` + `InteractsWithActions` and you want a button on the widget to open an action's modal, **the widget Blade must render `<x-filament-actions::modals />`**, otherwise clicking the button silently mounts the action but no modal appears.
+
+The page-level modal slot (rendered by `<x-filament-panels::page>`) only sees actions on the page itself, NOT actions defined on its widgets. Each Livewire component (widgets are Livewire components) renders its own action modals.
+
+Also: prefer **explicit** `wire:click="mountAction('actionName')"` over the magic `{{ $this->actionName }}` render — the magic property render is brittle on widgets and can silently produce a button that doesn't wire properly. Pattern:
+
+```blade
+<x-filament-widgets::widget>
+    <x-filament::button wire:click="mountAction('editSettings')" icon="heroicon-o-cog-6-tooth" color="gray" size="sm">
+        إعدادات النظام
+    </x-filament::button>
+
+    <x-filament-actions::modals />
+</x-filament-widgets::widget>
+```
+
+Surfaces using this pattern in the repo: `app/Filament/Widgets/SettingsWidget.php` + its Blade. See [[../decisions/2026-05-17-settings-dashboard-widget]] for the full settings widget rationale.
+
 ## Testing gotchas
 
 - `tests/Pest.php` provides `studentWithRecord()` and `adminUser()` — **always** use these instead of manually creating User+Student+Role
 - `adminUser()` creates both the Spatie role AND the `role` column — mirror this if you hand-build admins
 - `RefreshDatabase` is applied to both Feature and Unit dirs — Unit tests have DB access (unusual but intentional here because `GradeCalculationServiceTest` needs it)
 - `StudentEnrollmentFactory` exists but observers fire during factory `create()` — creating an enrollment whose student is suspended will immediately get it withdrawn. Use `StudentStatus::Active` explicitly if you don't want the cascade.
+
+## mPDF / Arabic print quirks
+
+The ministry print templates have their own constellation of traps. Full reference: [[print-system-guide]] and [[../bugs-and-fixes/2026-05-19-mpdf-arabic-font-incompatibilities]].
+
+- **Noto Naskh has no Latin glyphs.** `/`, `-`, digits all render as boxes unless `useSubstitutions => true` + `backupSubsFont => ['dejavusans']` are set in `makeMpdf()`. Both flags must be present on every Mpdf instance.
+- **`autoLangToFont` must stay false.** With `lang="ar"` on the HTML element, leaving it true makes mPDF override `default_font` and pick its own fallback.
+- **CSS dashed borders look like spaced underscores.** Use literal `--------------------` in DejaVu Sans for any horizontal rule in a print template.
+- **Variable fonts only load the static default instance.** Markazi Text VF has weight axes, but mPDF ignores them. Registering the same VF under `R` and `B` makes both render identical. To get a real bold, either ship a separate static bold TTF or use the natural weight at a larger size.
+- **`font-weight: bold` on a font with no `B` registered = synthetic ink-smear.** mPDF doubles-strokes. Don't do it.
+- **RTL positioned blocks drift to center.** A left-anchored box (`left: 18mm`) with `text-align: right` puts the right edge of text near page-center on Letter (~108mm). Narrow the width or use `float: left` + `width: ≤ 60mm` so the block doesn't visually appear centered.
+- **mPDF Arabic-font compatibility is not free.** Aref Ruqaa, Noto Kufi Arabic, and all Scheherazade versions throw OTL/GPOS errors in mPDF. **Always lab-test a new font in an isolated route before adding it to `fontdata`** — a bad font crashes the whole render. See [[print-system-guide#testing-a-new-font]].
+- **Never embed multi-megapixel / alpha PNGs.** A 1577×1475 RGBA logo (~9 MB decoded in GD) rendered fine under `php artisan tinker` but degraded to mPDF's **red-X "image failed" box** on the running `php artisan serve` — a baked-in mPDF marker, *not* a browser glitch (poppler/pdf.js never draw it). The oversized alpha image fails decoding under the HTTP request's tighter resource envelope. **Fix: pre-size the image to roughly its print dimensions and flatten alpha onto white before embedding.** A 320×299 RGB PNG (29 KB) is visually identical at 22mm. Embed as base64 in the blade `@php` block (`$logoData` is read at render time → updating the file needs no `view:clear`). See [[../bugs-and-fixes/2026-05-30-mpdf-logo-red-x]].
+- **Logo placeholder was a literal `&#9632;` (■).** The "black box" reports on `thesis_ministry.blade.php` were the U+25A0 placeholder char at 28pt, not a broken image. The only template that had it.
+- **Centering an image in a 3-column header table needs equal side columns.** A header of `ar 50% / logo 15% / en 35%` puts the logo cell center at 57.5%, visibly off-center. Equalize the side columns (`42% / 16% / 42%`) so the middle cell lands on the page center.

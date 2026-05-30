@@ -12,6 +12,11 @@ class ApplicationStatusWidget extends ChartWidget
 
     protected static ?int $sort = 3;
 
+    public static function canView(): bool
+    {
+        return auth()->user()?->role !== 'faculty';
+    }
+
     protected function getData(): array
     {
         $accepted = Application::where('status', ApplicationStatus::Accepted)->count();

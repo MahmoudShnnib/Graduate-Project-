@@ -11,6 +11,11 @@ class StudentsPerSpecializationWidget extends ChartWidget
 
     protected static ?int $sort = 4;
 
+    public static function canView(): bool
+    {
+        return auth()->user()?->role !== 'faculty';
+    }
+
     protected function getData(): array
     {
         $data = Student::query()

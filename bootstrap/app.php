@@ -14,10 +14,22 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // When an unauthenticated user visits /portal, redirect to portal login
+        // When an unauthenticated user visits /portal, redirect to portal login.
+        // Handles the case where Filament/policy throws 403 mid-request after the
+        // user is already on a portal page (e.g. session expiry).
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
             if ($e->getStatusCode() === 403 && str_starts_with($request->path(), 'portal') && ! $request->user()) {
                 return redirect('/portal/login');
+            }
+        });
+
+        // Handles the bare unauthenticated case — typing /portal directly while
+        // logged out throws AuthenticationException (not HttpException), so the
+        // 403 handler above never sees it and Laravel's default just returns a
+        // framework 403 page. Send them to the portal login form instead.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if (str_starts_with($request->path(), 'portal') && ! $request->expectsJson()) {
+                return redirect()->guest('/portal/login');
             }
         });
     })->create();

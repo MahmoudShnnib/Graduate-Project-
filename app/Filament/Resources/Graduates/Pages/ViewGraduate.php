@@ -69,10 +69,8 @@ class ViewGraduate extends ViewRecord
             ->icon(Heroicon::OutlinedPrinter)
             ->color('info')
             ->visible(fn () => $this->record->student->status === StudentStatus::Graduated)
-            ->action(function () {
-                // JS handles the print — this just dispatches the browser event
-                $this->dispatch('print-degree');
-            });
+            ->url(fn () => route('print.graduation-certificate', $this->record))
+            ->openUrlInNewTab();
     }
 
     public function getCoursesCompletionDate(): ?string

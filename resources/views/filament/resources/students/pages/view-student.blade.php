@@ -24,10 +24,27 @@
                     <x-heroicon-o-pencil-square class="fsv-btn__icon" />
                 </a>
 
-                <button type="button" onclick="window.print(); return false;" class="fsv-btn fsv-btn--secondary">
-                    <span>طباعة</span>
-                    <x-heroicon-o-printer class="fsv-btn__icon" />
-                </button>
+                @if(in_array(auth()->user()?->role, ['super_admin', 'secretary'], true))
+                    <div class="fsv-print-menu" x-data="{ open: false }" @click.outside="open = false" style="position: relative;">
+                        <button type="button" @click="open = ! open" class="fsv-btn fsv-btn--secondary">
+                            <span>طباعة</span>
+                            <x-heroicon-o-printer class="fsv-btn__icon" />
+                        </button>
+
+                        <div x-show="open" x-cloak x-transition class="fsv-print-menu__panel">
+                            <a href="{{ route('print.student-letter', ['student' => $student]) }}" target="_blank" rel="noopener" class="fsv-print-menu__item"
+                                    @click="open = false">
+                                <x-heroicon-o-document-text class="fsv-print-menu__icon" />
+                                <span>تعريف الطالب</span>
+                            </a>
+                            <a href="{{ route('print.provisional-grades', ['student' => $student]) }}" target="_blank" rel="noopener" class="fsv-print-menu__item"
+                                    @click="open = false">
+                                <x-heroicon-o-academic-cap class="fsv-print-menu__icon" />
+                                <span>كشف درجات مؤقت</span>
+                            </a>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             @php
@@ -264,6 +281,53 @@
         }
         .dark .figma-student-view .fsv-btn--secondary:hover { background: rgb(63 63 70); }
 
+        .figma-student-view .fsv-print-menu__panel {
+            position: absolute;
+            top: calc(100% + 6px);
+            inset-inline-end: 0;
+            min-width: 200px;
+            background: #fff;
+            border: 1px solid #e4e4e7;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            padding: 6px;
+            z-index: 50;
+        }
+        .dark .figma-student-view .fsv-print-menu__panel {
+            background: rgb(39 39 42);
+            border-color: rgb(63 63 70);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        .figma-student-view .fsv-print-menu__item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: right;
+            color: #18181b;
+            background: transparent;
+            border: 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 120ms;
+        }
+        .figma-student-view .fsv-print-menu__item:hover { background: #f4f4f5; }
+        .dark .figma-student-view .fsv-print-menu__item {
+            color: #fafafa;
+        }
+        .dark .figma-student-view .fsv-print-menu__item:hover { background: rgb(63 63 70); }
+        .figma-student-view .fsv-print-menu__icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            color: #71717a;
+        }
+        .dark .figma-student-view .fsv-print-menu__icon { color: #a1a1aa; }
+        [x-cloak] { display: none !important; }
+
         .figma-student-view .fsv-hero__identity {
             display: flex;
             flex-direction: column;
@@ -355,10 +419,11 @@
             border-color: rgb(63 63 70);
         }
         .figma-student-view .fsv-gpa-chip__label {
-            color: #71717a;
+            color: #52525b; /* H-2: bumped from #71717a for WCAG AA (light mode) */
             font-weight: 500;
             font-size: 13px;
         }
+        .dark .figma-student-view .fsv-gpa-chip__label { color: #71717a; }
         .figma-student-view .fsv-gpa-chip__value {
             color: #09090b;
             font-weight: 700;
@@ -405,11 +470,15 @@
             gap: 4px;
             font-size: 14px;
             line-height: 20px;
-            color: #71717a;
+            color: #52525b; /* H-1: bumped from #71717a for WCAG AA (light mode) */
         }
-        .figma-student-view .fsv-hero__meta-value { color: #71717a; }
-        .figma-student-view .fsv-hero__meta-label { color: #71717a; }
-        .figma-student-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #71717a; }
+        .figma-student-view .fsv-hero__meta-value { color: #52525b; }
+        .figma-student-view .fsv-hero__meta-label { color: #52525b; }
+        .figma-student-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #52525b; }
+        .dark .figma-student-view .fsv-hero__meta-item,
+        .dark .figma-student-view .fsv-hero__meta-value,
+        .dark .figma-student-view .fsv-hero__meta-label,
+        .dark .figma-student-view .fsv-hero__meta-icon { color: #71717a; }
 
         /* ---------- Filament Section cards within this page ---------- */
         .figma-student-view .fi-section {

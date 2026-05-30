@@ -1,0 +1,88 @@
+graph ChenERD {
+  layout=neato;
+  splines=true;
+  pad=0.3;
+  bgcolor="white";
+  node [fontname="Helvetica"];
+  edge [color="#475569", penwidth=1];
+
+  node [shape=box, style="rounded,filled", fillcolor="#0284c7", color="#0284c7", fontcolor="white", fontsize=13, penwidth=0, margin="0.22,0.13"];
+  USERS [pos="477.7,622.8!"];
+  STUDENTS [pos="728.4,432.4!"];
+  APPLICATIONS [pos="7.1,581.4!"];
+  SPECIALIZATIONS [pos="525.4,154.3!"];
+  SEMESTERS [pos="937.0,1120.5!"];
+  COURSES [pos="468.9,1123.6!"];
+  COURSE_OFFERINGS [pos="704.4,870.7!", label="COURSE_\nOFFERINGS"];
+  STUDENT_ENROLLMENTS [pos="943.7,660.9!", label="STUDENT_\nENROLLMENTS"];
+  GRADES [pos="1376.0,663.5!"];
+  THESIS_REGISTRATIONS [pos="933.2,153.6!", label="THESIS_\nREGISTRATIONS"];
+
+  node [shape=diamond, style="filled", fillcolor="#cffafe", color="#0e7490", fontcolor="#0f172a", fontsize=11, penwidth=1, margin="0.05,0.0"];
+  r_has [label="has", pos="590.9,515.3!"];
+  r_submits [label="submits", pos="191.0,589.3!"];
+  r_classifies [label="classifies", pos="565.4,251.5!"];
+  r_offered [label="offered as", pos="557.4,1005.8!"];
+  r_schedules [label="schedules", pos="852.5,1000.1!"];
+  r_teaches [label="teaches", pos="620.9,784.3!"];
+  r_enrolls [label="enrolls", pos="874.0,537.1!"];
+  r_contains [label="contains", pos="870.7,784.3!"];
+  r_earns [label="earns", pos="1203.8,661.2!"];
+  r_registers [label="registers", pos="848.1,264.6!"];
+
+  node [shape=ellipse, style="filled", fillcolor="#e0f2fe", color="#0284c7", fontcolor="#0f172a", fontsize=10, penwidth=1, margin="0.03,0.0"];
+  U_id [label=<<u>id</u>>, pos="386.0,485.5!"];
+  U_name [label="name", pos="330.1,565.5!"];
+  U_email [label="email", pos="361.0,749.4!"];
+  U_role [label="role", pos="488.5,704.2!"];
+  U_active [label="is_active", pos="269.7,669.4!"];
+  S_id [label=<<u>id</u>>, pos="837.9,346.1!"];
+  S_enr [label="enrollment_no", pos="909.9,426.1!"];
+  S_gpa [label="gpa", pos="568.1,373.2!"];
+  S_status [label="status", pos="707.4,308.4!"];
+  A_id [label=<<u>id</u>>, pos="-96.2,464.2!"];
+  A_status [label="status", pos="-124.7,679.9!"];
+  A_exam [label="exam_score", pos="-172.8,568.1!"];
+  SP_id [label=<<u>id</u>>, pos="534.7,18.0!"];
+  SP_name [label="name", pos="370.8,74.2!"];
+  SE_id [label=<<u>id</u>>, pos="1017.7,1235.2!"];
+  SE_name [label="name", pos="1105.0,1154.8!"];
+  SE_active [label="is_active", pos="882.4,1251.7!"];
+  C_id [label=<<u>id</u>>, pos="580.6,1244.7!"];
+  C_code [label="code", pos="325.3,1204.3!"];
+  C_name [label="name", pos="280.1,1124.4!"];
+  C_credits [label="credits", pos="452.8,1258.6!"];
+  CO_id [label=<<u>id</u>>, pos="705.4,957.1!"];
+  EN_id [label=<<u>id</u>>, pos="1059.9,747.2!"];
+  EN_status [label="status", pos="1094.5,574.5!"];
+  G_id [label=<<u>id</u>>, pos="1445.2,794.2!"];
+  G_total [label="total", pos="1465.0,540.1!"];
+  G_letter [label="letter", pos="1531.6,713.9!"];
+  G_gstatus [label="status", pos="1535.5,620.3!"];
+  T_id [label=<<u>id</u>>, pos="1115.9,122.2!"];
+  T_title [label="title", pos="1014.8,40.3!"];
+  T_status [label="status", pos="870.7,22.3!"];
+
+  USERS -- U_id; USERS -- U_name; USERS -- U_email; USERS -- U_role; USERS -- U_active;
+  STUDENTS -- S_id; STUDENTS -- S_enr; STUDENTS -- S_gpa; STUDENTS -- S_status;
+  APPLICATIONS -- A_id; APPLICATIONS -- A_status; APPLICATIONS -- A_exam;
+  SPECIALIZATIONS -- SP_id; SPECIALIZATIONS -- SP_name;
+  SEMESTERS -- SE_id; SEMESTERS -- SE_name; SEMESTERS -- SE_active;
+  COURSES -- C_id; COURSES -- C_code; COURSES -- C_name; COURSES -- C_credits;
+  COURSE_OFFERINGS -- CO_id;
+  STUDENT_ENROLLMENTS -- EN_id; STUDENT_ENROLLMENTS -- EN_status;
+  GRADES -- G_id; GRADES -- G_total; GRADES -- G_letter; GRADES -- G_gstatus;
+  THESIS_REGISTRATIONS -- T_id; THESIS_REGISTRATIONS -- T_title; THESIS_REGISTRATIONS -- T_status;
+
+  edge [fontname="Helvetica", fontsize=12, fontcolor="#0f172a", color="#475569", penwidth=1.2];
+  USERS -- r_has [label="1"]; r_has -- STUDENTS [label="1"];
+  USERS -- r_submits [label="1"]; r_submits -- APPLICATIONS [label="M"];
+  SPECIALIZATIONS -- r_classifies [label="1"]; r_classifies -- STUDENTS [label="M"];
+  COURSES -- r_offered [label="1"]; r_offered -- COURSE_OFFERINGS [label="M"];
+  SEMESTERS -- r_schedules [label="1"]; r_schedules -- COURSE_OFFERINGS [label="M"];
+  USERS -- r_teaches [label="1"]; r_teaches -- COURSE_OFFERINGS [label="M"];
+  STUDENTS -- r_enrolls [label="1"]; r_enrolls -- STUDENT_ENROLLMENTS [label="M"];
+  COURSE_OFFERINGS -- r_contains [label="1"]; r_contains -- STUDENT_ENROLLMENTS [label="M"];
+  STUDENT_ENROLLMENTS -- r_earns [label="1"]; r_earns -- GRADES [label="1"];
+  STUDENTS -- r_registers [label="1"]; r_registers -- THESIS_REGISTRATIONS [label="1"];
+}

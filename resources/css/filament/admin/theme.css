@@ -4,13 +4,16 @@
 @source "../../../views/filament/resources/**/*.blade.php";
 @source "../../../views/components/admin/**/*.blade.php";
 
-@font-face {
-    font-family: 'Noto Kufi Arabic';
-    src: url('/fonts/Noto_Kufi_Arabic/NotoKufiArabic-VariableFont_wght.ttf') format('truetype');
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-}
+/*
+ * Noto Kufi Arabic is loaded once via Filament's LocalFontProvider in
+ * AdminPanelProvider — that injects a <link> to /css/noto-kufi-arabic.css
+ * which declares its own @font-face from /fonts/Noto_Kufi_Arabic/...
+ *
+ * Defining @font-face here too caused a 404 in dev: Vite serves this CSS
+ * from its own origin, so url('/fonts/...') resolves to localhost:5173/fonts/...
+ * which doesn't exist. The LocalFontProvider <link> hits the app origin
+ * correctly in both dev and prod. See _brain/daily-notes/2026-05-16-wave1-audit-cleanup.md.
+ */
 
 @theme {
     --font-sans: 'Noto Kufi Arabic', ui-sans-serif, system-ui, sans-serif;

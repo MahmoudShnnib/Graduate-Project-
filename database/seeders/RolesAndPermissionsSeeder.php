@@ -46,14 +46,22 @@ class RolesAndPermissionsSeeder extends Seeder
 
     /**
      * Assigns the appropriate subset of Shield permissions to each role.
+     *
+     * Admin-only models (Role, User, AuditLog) are never granted to roles
+     * below super_admin — per the 2026-05-15 RBAC posture decision (C-3
+     * audit fix). See _brain/decisions/2026-05-15-rbac-posture.md.
      */
     private function syncRolePermissions(Role $superAdmin, Role $secretary, Role $faculty, Role $student): void
     {
+        // Models off-limits to every non-super-admin role.
+        $adminOnlyModels = ['Role', 'User', 'AuditLog'];
+
         // Super admin: every permission. Redundant with Gate::before bypass,
         // but keeps Shield UI accurate.
         $superAdmin->syncPermissions(Permission::all());
 
-        // Secretary: read everything, manage admissions/students/enrollments/grades/requests.
+        // Secretary: read everything (except admin-only models), manage
+        // admissions/students/enrollments/grades/requests.
         $secretaryPermissions = Permission::query()
             ->where(function ($q) {
                 $q->where('name', 'like', 'ViewAny:%')
@@ -72,7 +80,13 @@ class RolesAndPermissionsSeeder extends Seeder
                 'Create:Course', 'Update:Course',
                 'Create:Specialization', 'Update:Specialization',
             ])
-            ->get();
+            ->get()
+            // Strip every permission ending in `:Role`, `:User`, or `:AuditLog`.
+            // Covers all CRUD verbs at once so future Shield regenerations
+            // can't silently leak admin-only access into the secretary role.
+            ->reject(fn (Permission $p): bool => collect($adminOnlyModels)
+                ->contains(fn (string $model): bool => str_ends_with($p->name, ":{$model}")));
+
         $secretary->syncPermissions($secretaryPermissions);
 
         // Faculty: read students + course offerings, grade entry on own courses

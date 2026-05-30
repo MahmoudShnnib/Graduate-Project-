@@ -22,10 +22,44 @@
         $statusColor = $isArchived ? 'gray' : ($isOpen ? 'success' : 'danger');
     @endphp
 
+    @php
+        $isAdmin = in_array(auth()->user()?->role, ['super_admin', 'secretary'], true);
+        $isCourseFaculty = auth()->user()?->role === 'faculty' && $offering->faculty_id === auth()->id();
+        $canPrint = $isAdmin || $isCourseFaculty;
+    @endphp
+
     <div class="figma-enroll-view space-y-6" dir="rtl">
 
         {{-- HERO CARD --}}
         <section class="fsv-hero">
+
+            @if ($canPrint)
+                <div class="fsv-hero__actions">
+                    <div class="fsv-print-menu" x-data="{ open: false }" @click.outside="open = false" style="position: relative;">
+                        <button type="button" @click="open = ! open" class="fsv-btn fsv-btn--secondary">
+                            <span>طباعة</span>
+                            <x-heroicon-o-printer class="fsv-btn__icon" />
+                        </button>
+                        <div x-show="open" x-cloak x-transition class="fsv-print-menu__panel">
+                            <a href="{{ route('print.exam-attendance', $offering) }}" target="_blank" rel="noopener" class="fsv-print-menu__item" @click="open = false">
+                                <x-heroicon-o-clipboard-document-list class="fsv-print-menu__icon" />
+                                <span>كشف حضور الإمتحان النهائي</span>
+                            </a>
+                            <a href="{{ route('print.course-results', $offering) }}" target="_blank" rel="noopener" class="fsv-print-menu__item" @click="open = false">
+                                <x-heroicon-o-chart-bar class="fsv-print-menu__icon" />
+                                <span>نتيجة مقرر دراسي</span>
+                            </a>
+                            @if ($isAdmin)
+                                <a href="{{ route('course-offering.print-students', $offering) }}" target="_blank" rel="noopener" class="fsv-print-menu__item" @click="open = false">
+                                    <x-heroicon-o-users class="fsv-print-menu__icon" />
+                                    <span>نموذج مقرر دراسي</span>
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="fsv-hero__identity">
                 <div class="fsv-hero__name-row">
                     <h1 class="fsv-hero__name">{{ $courseName }}</h1>
@@ -79,12 +113,86 @@
         .figma-enroll-view .fsv-hero {
             display: flex;
             align-items: flex-start;
+            justify-content: space-between;
             gap: 24px;
             padding: 25px;
             background: #ffffff;
             border: 1px solid #e4e4e7;
             border-radius: 12px;
         }
+
+        /* --- Actions / print menu --- */
+        .figma-enroll-view .fsv-hero__actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            order: 2;
+        }
+        .figma-enroll-view .fsv-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 17px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity .15s ease, background .15s ease, border-color .15s ease;
+            white-space: nowrap;
+        }
+        .figma-enroll-view .fsv-btn__icon { width: 16px; height: 16px; }
+        .figma-enroll-view .fsv-btn--secondary {
+            background: #ffffff;
+            color: #09090b;
+            border: 1px solid #e4e4e7;
+        }
+        .figma-enroll-view .fsv-btn--secondary:hover { background: #f4f4f5; }
+        .dark .figma-enroll-view .fsv-btn--secondary {
+            background: rgb(39 39 42);
+            color: #fafafa;
+            border-color: rgb(63 63 70);
+        }
+        .dark .figma-enroll-view .fsv-btn--secondary:hover { background: rgb(63 63 70); }
+        .figma-enroll-view .fsv-print-menu__panel {
+            position: absolute;
+            top: calc(100% + 6px);
+            inset-inline-end: 0;
+            min-width: 210px;
+            background: #fff;
+            border: 1px solid #e4e4e7;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.08);
+            padding: 6px;
+            z-index: 50;
+        }
+        .dark .figma-enroll-view .fsv-print-menu__panel {
+            background: rgb(39 39 42);
+            border-color: rgb(63 63 70);
+            box-shadow: 0 8px 24px rgba(0,0,0,.4);
+        }
+        .figma-enroll-view .fsv-print-menu__item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: right;
+            color: #18181b;
+            background: transparent;
+            border: 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 120ms;
+        }
+        .figma-enroll-view .fsv-print-menu__item:hover { background: #f4f4f5; }
+        .dark .figma-enroll-view .fsv-print-menu__item { color: #fafafa; }
+        .dark .figma-enroll-view .fsv-print-menu__item:hover { background: rgb(63 63 70); }
+        .figma-enroll-view .fsv-print-menu__icon { width: 16px; height: 16px; flex-shrink: 0; color: #71717a; }
+        .dark .figma-enroll-view .fsv-print-menu__icon { color: #a1a1aa; }
+        [x-cloak] { display: none !important; }
         .dark .figma-enroll-view .fsv-hero {
             background: rgb(24 24 27);
             border-color: rgb(63 63 70);
@@ -96,6 +204,7 @@
             gap: 7.5px;
             flex: 1;
             min-width: 0;
+            order: 1;
             align-items: flex-start;
             text-align: right;
         }
@@ -188,9 +297,11 @@
             gap: 4px;
             font-size: 14px;
             line-height: 20px;
-            color: #71717a;
+            color: #52525b; /* H-1: bumped from #71717a for WCAG AA (light mode) */
         }
-        .figma-enroll-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #71717a; }
+        .figma-enroll-view .fsv-hero__meta-icon { width: 14px; height: 14px; color: #52525b; }
+        .dark .figma-enroll-view .fsv-hero__meta-item,
+        .dark .figma-enroll-view .fsv-hero__meta-icon { color: #71717a; }
 
         /* Table wrapped as a card */
         .figma-enroll-view .fi-ta-ctn {

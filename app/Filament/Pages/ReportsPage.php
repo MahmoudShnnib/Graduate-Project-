@@ -11,6 +11,8 @@ class ReportsPage extends Page
 
     protected static ?string $navigationLabel = 'التقارير والنماذج';
 
+    protected static ?string $title = 'التقارير والنماذج';
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-printer';
 
     protected static string|\UnitEnum|null $navigationGroup = 'النظام';

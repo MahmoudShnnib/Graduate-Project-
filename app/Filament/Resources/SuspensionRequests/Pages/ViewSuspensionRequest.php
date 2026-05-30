@@ -39,7 +39,8 @@ class ViewSuspensionRequest extends ViewRecord
                 ->color('success')
                 ->visible(fn (): bool => $this->record->status === SuspensionStatus::Pending)
                 ->requiresConfirmation()
-                ->modalDescription('سيتم سحب تسجيلات الطالب في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
+                ->modalHeading(fn (): string => 'قبول إيقاف قيد '.($this->record->student?->user?->name ?? ''))
+                ->modalDescription(fn (): string => 'سيتم سحب تسجيلات '.($this->record->student?->user?->name ?? 'الطالب').' في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
                 ->action(function (AuditService $audit, NotificationService $notifier): void {
                     /** @var SuspensionRequest $record */
                     $record = $this->record;

@@ -424,7 +424,7 @@ Eight pages currently use the pattern — see [[../daily-notes/2026-05-13-figma-
 |---|---|---|---|
 | `/admin/students/{id}` | `.figma-student-view` | A (infolist) + manual `$this->table` + activity timeline | Original reference |
 | `/admin/users/{id}` | `.figma-user-view` | A (infolist) | Faculty subjects hide `name_en` + show academic-rank section ([[../decisions/2026-05-14-user-resource-scope]]) |
-| `/admin/applications/{id}` | `.figma-application-view` | A (infolist) | 2-col + full-width docs + admin/exam |
+| `/admin/applications/{id}` | `.figma-application-view` | A (infolist) + C (header actions added 2026-05-15) | 2-col + full-width docs + admin/exam. Header now carries `تحديد موعد الامتحان`, `إلغاء الموعد`, `قبول مبدئي`, `قبول مباشر` actions (shared with the list page via `ApplicationResource::*Action()` statics). Exam-date state is shared list↔view through `#[Session(key: 'applications.scheduled_exam_date')]`. |
 | `/admin/specializations/{id}` | `.figma-specialization-view` | B (content) | Single-card variant (hero + KPI footer band) — diverges, see note in [[../daily-notes/2026-05-13-figma-view-pages-batch]] |
 | `/admin/semesters/{id}` | `.figma-semester-view` | B (content) + C (header actions kept) | Has 2 relation managers |
 | `/admin/course-offerings/{id}/enroll` | `.figma-enroll-view` | manual `$this->table` + C | Workflow actions in header |

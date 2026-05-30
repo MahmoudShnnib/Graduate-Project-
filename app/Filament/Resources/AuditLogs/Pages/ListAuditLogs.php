@@ -94,6 +94,7 @@ class ListAuditLogs extends ListRecords
     public function activeFilterCount(): int
     {
         return (int) (! empty($this->filterActions))
+            + (int) ($this->search !== '')
             + (int) ($this->filterUserId !== '')
             + (int) ($this->filterRole !== '')
             + (int) ($this->filterModelType !== '')

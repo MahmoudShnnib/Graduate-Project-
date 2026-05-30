@@ -23,6 +23,8 @@ class CoursesSurveyResults extends Page
 
     protected static ?string $navigationLabel = 'نتائج استطلاع المقررات';
 
+    protected static ?string $title = 'نتائج استطلاع المقررات';
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static string|\UnitEnum|null $navigationGroup = 'الإعدادات الأكاديمية';

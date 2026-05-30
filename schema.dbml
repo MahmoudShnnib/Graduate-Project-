@@ -1,0 +1,544 @@
+// =====================================================================
+//  Graduate Studies Management System — Database Schema (DBML)
+//  Paste into https://dbdiagram.io to render the ERD.
+//  Generated from the live SQLite schema. Laravel framework plumbing
+//  (cache, jobs, sessions, migrations, password_reset_tokens) omitted.
+// =====================================================================
+
+// ---------------------------------------------------------------------
+//  Identity & Access
+// ---------------------------------------------------------------------
+
+Table users {
+  id integer [pk, increment]
+  name varchar [not null]
+  email varchar [unique, not null]
+  email_verified_at datetime
+  password varchar [not null]
+  remember_token varchar
+  phone varchar
+  role varchar [note: 'super_admin | secretary | faculty | student']
+  is_active boolean [not null, default: 1]
+  name_en varchar
+  academic_rank varchar
+  qualification varchar
+  institution varchar
+  national_id varchar [unique]
+  birth_date date
+  birth_place varchar
+  nationality varchar
+  gender varchar
+  deleted_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table students {
+  id integer [pk, increment]
+  user_id integer [unique, not null]
+  enrollment_no varchar [unique]
+  specialization_id integer [not null]
+  status varchar [not null, default: 'active']
+  gpa decimal [not null, default: 0]
+  warnings_count integer [not null, default: 0]
+  suspension_count integer [not null, default: 0]
+  last_name varchar
+  mother_name varchar
+  birth_date date
+  birth_place varchar
+  gender varchar
+  marital_status varchar
+  nationality varchar
+  national_id varchar
+  card_number varchar
+  residence varchar
+  permanent_address varchar
+  profession varchar
+  workplace varchar
+  study_type varchar
+  delegation_number varchar
+  delegation_entity varchar
+  is_transfer boolean [not null, default: 0]
+  degree_image varchar
+  dismissed_at datetime
+  dismissal_type varchar
+  dismissal_course_id integer
+  deleted_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table supervisors {
+  id integer [pk, increment]
+  name varchar [not null]
+  academic_rank varchar [not null]
+  qualification varchar [not null]
+  institution varchar [not null]
+  email varchar
+  phone varchar
+  national_id varchar [unique]
+  birth_date date
+  birth_place varchar
+  nationality varchar
+  gender varchar
+  created_at datetime
+  updated_at datetime
+}
+
+// ---------------------------------------------------------------------
+//  Admissions
+// ---------------------------------------------------------------------
+
+Table applications {
+  id integer [pk, increment]
+  user_id integer
+  specialization_id integer
+  semester_id integer
+  tracking_code varchar [unique]
+  name varchar
+  name_en varchar
+  last_name varchar
+  mother_name varchar
+  email varchar
+  phone varchar
+  password varchar
+  birth_date date
+  birth_place varchar
+  gender varchar
+  marital_status varchar
+  nationality varchar [default: 'ليبية']
+  national_id varchar
+  card_number varchar
+  residence varchar
+  profession varchar
+  workplace varchar
+  permanent_address text
+  study_type varchar
+  delegation_number varchar
+  delegation_entity varchar
+  is_transfer boolean [not null, default: 0]
+  bachelor_certificate varchar
+  remedial_statement varchar
+  status varchar [not null, default: 'pending']
+  exam_date datetime
+  exam_score decimal
+  exam_passed boolean
+  exam_result_date datetime
+  notes text
+  rejection_reason text
+  created_at datetime
+  updated_at datetime
+}
+
+// ---------------------------------------------------------------------
+//  Academic catalog
+// ---------------------------------------------------------------------
+
+Table specializations {
+  id integer [pk, increment]
+  name varchar [not null]
+  code integer [unique, not null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table courses {
+  id integer [pk, increment]
+  name varchar [not null]
+  code varchar [unique, not null]
+  credits integer [not null, default: 3]
+  is_active boolean [not null, default: 1]
+  deleted_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table semesters {
+  id integer [pk, increment]
+  name varchar [not null]
+  year integer [not null]
+  season varchar [not null]
+  start_date date [not null]
+  end_date date [not null]
+  add_drop_start date
+  add_drop_end date
+  is_active boolean [not null, default: 0]
+  survey_open boolean [not null, default: 0]
+  archived_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table course_specialization {
+  id integer [pk, increment]
+  course_id integer [not null]
+  specialization_id integer [not null]
+  type varchar [not null, default: 'specialized']
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (course_id, specialization_id) [unique]
+  }
+}
+
+Table semester_course {
+  id integer [pk, increment]
+  semester_id integer [not null]
+  course_id integer [not null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (semester_id, course_id) [unique]
+  }
+}
+
+Table course_offerings {
+  id integer [pk, increment]
+  course_id integer [not null]
+  semester_id integer [not null]
+  faculty_id integer
+  is_open boolean [not null, default: 0]
+  coursework_max integer [not null, default: 40]
+  final_max integer [not null, default: 60]
+  time_slot varchar
+  paper_sheet_path varchar
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (course_id, semester_id) [unique]
+  }
+}
+
+// ---------------------------------------------------------------------
+//  Enrollment & grading
+// ---------------------------------------------------------------------
+
+Table course_surveys {
+  id integer [pk, increment]
+  student_id integer [not null]
+  semester_id integer [not null]
+  course_id integer [not null]
+  priority integer [not null]
+  is_processed boolean [not null, default: 0]
+  is_retake boolean [not null, default: 0]
+  rejected_at datetime
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (student_id, semester_id, course_id, is_retake) [unique]
+  }
+}
+
+Table student_enrollments {
+  id integer [pk, increment]
+  student_id integer [not null]
+  course_offering_id integer [not null]
+  status varchar [not null, default: 'enrolled', note: 'enrolled | dropped | withdrawn']
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (student_id, course_offering_id) [unique]
+  }
+}
+
+Table grades {
+  id integer [pk, increment]
+  enrollment_id integer [unique, not null]
+  coursework_grade decimal
+  final_grade decimal
+  total decimal
+  letter varchar
+  points decimal
+  status varchar [not null, default: 'draft']
+  paper_sheet_path varchar
+  approved_by integer
+  approved_at datetime
+  midterm_published_at datetime
+  published_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table transfer_courses {
+  id integer [pk, increment]
+  student_id integer [not null]
+  course_id integer [not null]
+  coursework_grade decimal [not null]
+  final_grade decimal [not null]
+  total decimal [note: 'stored generated: coursework_grade + final_grade']
+  letter varchar
+  points decimal
+  created_at datetime
+  updated_at datetime
+}
+
+// ---------------------------------------------------------------------
+//  Lifecycle requests
+// ---------------------------------------------------------------------
+
+Table add_drop_requests {
+  id integer [pk, increment]
+  student_id integer [not null]
+  course_offering_id integer [not null]
+  type varchar [not null, note: 'add | drop']
+  status varchar [not null, default: 'pending']
+  reason text
+  decided_by integer
+  decided_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table suspension_requests {
+  id integer [pk, increment]
+  student_id integer [not null]
+  semester_id integer [not null]
+  reason text [not null]
+  status varchar [not null, default: 'pending']
+  decided_by integer
+  decided_at datetime
+  decision_notes text
+  created_at datetime
+  updated_at datetime
+}
+
+Table thesis_registrations {
+  id integer [pk, increment]
+  student_id integer [not null]
+  title varchar [not null]
+  title_en varchar
+  supervisor_id integer
+  faculty_supervisor_id integer
+  is_external_supervisor boolean [not null, default: 0]
+  supervisor_name varchar
+  supervisor_degree varchar
+  supervisor_employer varchar
+  proposal_path varchar
+  official_form_path varchar
+  status varchar [not null, default: 'pending']
+  decided_by integer
+  decided_at datetime
+  rejection_reason text
+  printed_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table discussion_requests {
+  id integer [pk, increment]
+  student_id integer [not null]
+  thesis_registration_id integer [not null]
+  status varchar [not null, default: 'pending']
+  discussion_date date
+  rejection_reason text
+  decided_by integer
+  decided_at datetime
+  discussed_at datetime
+  completed_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table exceptional_requests {
+  id integer [pk, increment]
+  student_id integer [not null]
+  reason text [not null]
+  status varchar [not null, default: 'pending']
+  decided_by integer
+  decided_at datetime
+  decision_notes text
+  summon_message text
+  summon_sent_at datetime
+  can_reapply boolean [not null, default: 1]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (student_id, status)
+  }
+}
+
+Table clearance_requests {
+  id integer [pk, increment]
+  student_id integer [unique, not null]
+  status varchar [not null, default: 'pending']
+  form_path varchar
+  issued_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table student_warnings {
+  id integer [pk, increment]
+  student_id integer [not null]
+  type varchar [not null]
+  course_id integer
+  semester_id integer [not null]
+  is_active boolean [not null, default: 1]
+  has_exceptional_chance boolean [not null, default: 0]
+  resolved_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+// ---------------------------------------------------------------------
+//  Support / observability
+// ---------------------------------------------------------------------
+
+Table notification_logs {
+  id integer [pk, increment]
+  student_id integer [not null]
+  channel varchar [not null, note: 'email | whatsapp']
+  event varchar [not null]
+  message text [not null]
+  status varchar [not null, default: 'sent']
+  sent_at datetime [not null]
+  created_at datetime [not null]
+}
+
+Table audit_logs {
+  id integer [pk, increment]
+  user_id integer
+  action varchar [not null]
+  model_type varchar [not null]
+  model_id integer [not null]
+  old_values text
+  new_values text
+  ip_address varchar
+  created_at datetime [not null]
+}
+
+Table settings {
+  id integer [pk, increment]
+  key varchar [unique, not null]
+  value text
+  created_at datetime
+  updated_at datetime
+}
+
+// ---------------------------------------------------------------------
+//  RBAC (spatie/laravel-permission)
+// ---------------------------------------------------------------------
+
+Table roles {
+  id integer [pk, increment]
+  name varchar [not null]
+  guard_name varchar [not null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (name, guard_name) [unique]
+  }
+}
+
+Table permissions {
+  id integer [pk, increment]
+  name varchar [not null]
+  guard_name varchar [not null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (name, guard_name) [unique]
+  }
+}
+
+Table model_has_roles {
+  role_id integer [not null]
+  model_type varchar [not null]
+  model_id integer [not null]
+
+  indexes {
+    (role_id, model_id, model_type) [pk]
+  }
+}
+
+Table model_has_permissions {
+  permission_id integer [not null]
+  model_type varchar [not null]
+  model_id integer [not null]
+
+  indexes {
+    (permission_id, model_id, model_type) [pk]
+  }
+}
+
+Table role_has_permissions {
+  permission_id integer [not null]
+  role_id integer [not null]
+
+  indexes {
+    (permission_id, role_id) [pk]
+  }
+}
+
+// =====================================================================
+//  Relationships
+// =====================================================================
+
+// Identity
+Ref: students.user_id > users.id [delete: cascade]
+Ref: students.specialization_id > specializations.id
+Ref: students.dismissal_course_id > courses.id [delete: set null]
+
+// Admissions
+Ref: applications.user_id > users.id [delete: set null]
+Ref: applications.specialization_id > specializations.id [delete: set null]
+Ref: applications.semester_id > semesters.id [delete: set null]
+
+// Catalog
+Ref: course_specialization.course_id > courses.id [delete: cascade]
+Ref: course_specialization.specialization_id > specializations.id [delete: cascade]
+Ref: semester_course.semester_id > semesters.id [delete: cascade]
+Ref: semester_course.course_id > courses.id [delete: cascade]
+Ref: course_offerings.course_id > courses.id [delete: cascade]
+Ref: course_offerings.semester_id > semesters.id [delete: cascade]
+Ref: course_offerings.faculty_id > users.id [delete: set null]
+
+// Enrollment & grading
+Ref: course_surveys.student_id > students.id [delete: cascade]
+Ref: course_surveys.semester_id > semesters.id [delete: cascade]
+Ref: course_surveys.course_id > courses.id [delete: cascade]
+Ref: student_enrollments.student_id > students.id [delete: cascade]
+Ref: student_enrollments.course_offering_id > course_offerings.id [delete: cascade]
+Ref: grades.enrollment_id - student_enrollments.id [delete: cascade]
+Ref: grades.approved_by > users.id [delete: set null]
+Ref: transfer_courses.student_id > students.id [delete: cascade]
+Ref: transfer_courses.course_id > courses.id [delete: cascade]
+
+// Lifecycle requests
+Ref: add_drop_requests.student_id > students.id [delete: cascade]
+Ref: add_drop_requests.course_offering_id > course_offerings.id [delete: cascade]
+Ref: add_drop_requests.decided_by > users.id [delete: set null]
+Ref: suspension_requests.student_id > students.id [delete: cascade]
+Ref: suspension_requests.semester_id > semesters.id [delete: cascade]
+Ref: suspension_requests.decided_by > users.id [delete: set null]
+Ref: thesis_registrations.student_id > students.id [delete: cascade]
+Ref: thesis_registrations.supervisor_id > supervisors.id [delete: set null]
+Ref: thesis_registrations.faculty_supervisor_id > users.id [delete: set null]
+Ref: thesis_registrations.decided_by > users.id [delete: set null]
+Ref: discussion_requests.student_id > students.id [delete: cascade]
+Ref: discussion_requests.thesis_registration_id > thesis_registrations.id [delete: cascade]
+Ref: discussion_requests.decided_by > users.id [delete: set null]
+Ref: exceptional_requests.student_id > students.id [delete: cascade]
+Ref: exceptional_requests.decided_by > users.id [delete: set null]
+Ref: clearance_requests.student_id - students.id [delete: cascade]
+Ref: student_warnings.student_id > students.id [delete: cascade]
+Ref: student_warnings.course_id > courses.id [delete: set null]
+Ref: student_warnings.semester_id > semesters.id [delete: cascade]
+
+// Support
+Ref: notification_logs.student_id > students.id [delete: cascade]
+Ref: audit_logs.user_id > users.id [delete: set null]
+
+// RBAC
+Ref: model_has_roles.role_id > roles.id [delete: cascade]
+Ref: model_has_permissions.permission_id > permissions.id [delete: cascade]
+Ref: role_has_permissions.role_id > roles.id [delete: cascade]
+Ref: role_has_permissions.permission_id > permissions.id [delete: cascade]

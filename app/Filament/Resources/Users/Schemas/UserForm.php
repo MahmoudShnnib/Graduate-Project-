@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -48,9 +49,48 @@ class UserForm
                     ->label('نشط')
                     ->default(true),
 
-                // Faculty-only academic fields — mirrors the external-supervisor modal
+                // Faculty-only identity fields — mirrors the external-supervisor modal
                 // on /admin/thesis-registrations so internal + external supervisors
                 // share the same schema.
+                Section::make('البيانات الشخصية')
+                    ->icon(Heroicon::Identification)
+                    ->columns(2)
+                    ->visible(fn (callable $get): bool => $get('role') === 'faculty')
+                    ->schema([
+                        TextInput::make('national_id')
+                            ->label('الرقم الوطني')
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255),
+
+                        DatePicker::make('birth_date')
+                            ->label('تاريخ الميلاد')
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->native(false)
+                            ->displayFormat('Y/m/d'),
+
+                        TextInput::make('birth_place')
+                            ->label('مكان الميلاد')
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->maxLength(255),
+
+                        TextInput::make('nationality')
+                            ->label('الجنسية')
+                            ->default('ليبية')
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->maxLength(255),
+
+                        Select::make('gender')
+                            ->label('الجنس')
+                            ->options([
+                                'male' => 'ذكر',
+                                'female' => 'أنثى',
+                            ])
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
+                            ->searchable()
+                            ->preload(),
+                    ]),
+
                 Section::make('البيانات الأكاديمية')
                     ->icon(Heroicon::AcademicCap)
                     ->description('تظهر هذه الحقول لأعضاء هيئة التدريس فقط، وتطابق نموذج المشرفين الخارجيين.')
@@ -58,7 +98,7 @@ class UserForm
                     ->visible(fn (callable $get): bool => $get('role') === 'faculty')
                     ->schema([
                         TextInput::make('academic_rank')
-                            ->label('الدرجة العلمية')
+                            ->label('الدرجة الأكاديمية')
                             ->placeholder('مثال: أستاذ، أستاذ مشارك')
                             ->required(fn (callable $get): bool => $get('role') === 'faculty')
                             ->maxLength(255),
@@ -70,7 +110,7 @@ class UserForm
                             ->maxLength(255),
 
                         TextInput::make('institution')
-                            ->label('الجامعة / الكلية / المعهد')
+                            ->label('جهة العمل / المؤسسة التعليمية')
                             ->default('كلية التقنية الإلكترونية – طرابلس')
                             ->required(fn (callable $get): bool => $get('role') === 'faculty')
                             ->maxLength(255)
