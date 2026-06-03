@@ -14,6 +14,12 @@ Route::post('/apply', [RegistrationController::class, 'store'])->name('registrat
 Route::get('/apply/sample', [RegistrationController::class, 'sample'])
     ->middleware('throttle:20,1')
     ->name('registration.sample');
+Route::post('/apply/otp/send', [RegistrationController::class, 'sendOtp'])
+    ->middleware('throttle:6,1')
+    ->name('registration.otp.send');
+Route::post('/apply/otp/verify', [RegistrationController::class, 'verifyOtp'])
+    ->middleware('throttle:10,1')
+    ->name('registration.otp.verify');
 Route::get('/apply/track', [ApplicationTrackingController::class, 'show'])->name('application.track.show');
 Route::post('/apply/track', [ApplicationTrackingController::class, 'track'])
     ->middleware('throttle:5,1')

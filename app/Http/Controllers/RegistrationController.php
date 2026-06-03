@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
 use App\Services\NotificationService;
+use App\Services\WhatsAppOtpService;
+use App\Services\WhatsAppService;
 use App\Support\SampleApplicantData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,13 +22,48 @@ class RegistrationController extends Controller
 {
     public function __construct(
         public CreateApplication $createApplication,
+        public WhatsAppOtpService $otpService,
     ) {}
 
-    public function create(): View
+    public function create(WhatsAppService $whatsApp): View
     {
         $specializations = Specialization::orderBy('name')->get();
+        $whatsappEnabled = $whatsApp->isConfigured();
 
-        return view('registration.create', compact('specializations'));
+        return view('registration.create', compact('specializations', 'whatsappEnabled'));
+    }
+
+    /**
+     * Send a WhatsApp OTP to the applicant's phone before submission.
+     */
+    public function sendOtp(Request $request): JsonResponse
+    {
+        $validated = $request->validate(
+            ['phone' => $this->phoneRules()],
+            ['phone.required' => 'يرجى إدخال رقم النقال'],
+        );
+
+        $result = $this->otpService->request($validated['phone']);
+
+        return response()->json($result, $result['sent'] ? 200 : 422);
+    }
+
+    /**
+     * Verify the WhatsApp OTP the applicant received.
+     */
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone' => $this->phoneRules(),
+            'code' => ['required', 'string'],
+        ], [
+            'phone.required' => 'يرجى إدخال رقم النقال',
+            'code.required' => 'يرجى إدخال رمز التحقق',
+        ]);
+
+        $result = $this->otpService->verify($validated['phone'], $validated['code']);
+
+        return response()->json($result, $result['verified'] ? 200 : 422);
     }
 
     /**
@@ -43,7 +80,7 @@ class RegistrationController extends Controller
         return response()->json(SampleApplicantData::forPublicApplication());
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, WhatsAppService $whatsApp): RedirectResponse
     {
         $validated = $request->validate([
             // Contact
@@ -70,19 +107,7 @@ class RegistrationController extends Controller
                     }
                 },
             ],
-            'phone' => [
-                'bail', 'required',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    $v = (string) $value;
-                    if (! preg_match('/^\d+$/', $v)) {
-                        $fail('رقم النقال يتكون من أرقام فقط');
-                    } elseif (! str_starts_with($v, '09')) {
-                        $fail('رقم النقال يبدأ بـ 09');
-                    } elseif (strlen($v) !== 10) {
-                        $fail('رقم النقال يتكون من 10 أرقام (مثال: 0912345678)');
-                    }
-                },
-            ],
+            'phone' => $this->phoneRules(),
             'specialization_id' => ['required', 'exists:specializations,id'],
             // Personal info
             'mother_name' => [
@@ -171,6 +196,12 @@ class RegistrationController extends Controller
             'password.confirmed' => 'كلمة المرور وتأكيدها غير متطابقتين',
         ]);
 
+        if ($whatsApp->isConfigured() && ! $this->otpService->hasVerified($validated['phone'])) {
+            return back()
+                ->withInput()
+                ->withErrors(['phone' => 'يرجى التحقق من رقم النقال عبر واتساب قبل إرسال الطلب.']);
+        }
+
         $data = $validated;
 
         // Extract last word from the 4-part name as last_name
@@ -202,5 +233,27 @@ class RegistrationController extends Controller
         return redirect()->route('registration.create')
             ->with('success', 'تم إرسال طلبك بنجاح!')
             ->with('tracking_code', $application->tracking_code);
+    }
+
+    /**
+     * Shared validation rules for the Libyan mobile number.
+     *
+     * @return array<int, mixed>
+     */
+    private function phoneRules(): array
+    {
+        return [
+            'bail', 'required',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                $v = (string) $value;
+                if (! preg_match('/^\d+$/', $v)) {
+                    $fail('رقم النقال يتكون من أرقام فقط');
+                } elseif (! str_starts_with($v, '09')) {
+                    $fail('رقم النقال يبدأ بـ 09');
+                } elseif (strlen($v) !== 10) {
+                    $fail('رقم النقال يتكون من 10 أرقام (مثال: 0912345678)');
+                }
+            },
+        ];
     }
 }
