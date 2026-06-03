@@ -185,6 +185,28 @@
                         <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" required />
                         <p class="mt-1 text-xs text-slate-400">10 أرقام يبدأ بـ 09 (ليبي فقط)</p>
                         <x-form.error name="phone" />
+
+                        @if($whatsappEnabled)
+                            <div id="otp-widget" class="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <button type="button" id="otp-send-btn"
+                                    class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 transition disabled:opacity-50">
+                                    <span id="otp-send-label">إرسال رمز التحقق عبر واتساب</span>
+                                </button>
+
+                                <div id="otp-verify-row" class="mt-2 hidden items-center gap-2">
+                                    <input type="text" id="otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+                                        placeholder="رمز التحقق"
+                                        class="w-32 rounded-lg border border-slate-300 px-3 py-1.5 text-sm tracking-widest" />
+                                    <button type="button" id="otp-verify-btn"
+                                        class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800 transition disabled:opacity-50">
+                                        تأكيد الرمز
+                                    </button>
+                                </div>
+
+                                <p id="otp-status" class="mt-2 text-xs text-slate-500"></p>
+                                <span id="otp-verified-badge" class="mt-1 hidden text-xs font-bold text-emerald-700">✓ تم التحقق من رقم النقال</span>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="md:col-span-2">
@@ -305,7 +327,7 @@
                         قدمت طلباً سابقاً؟
                         <a href="{{ route('application.track.show') }}" class="font-medium text-blue-600 hover:underline">متابعة حالة الطلب</a>
                     </p>
-                    <x-form.button type="submit">
+                    <x-form.button type="submit" id="submit-btn">
                         إرسال الطلب
                     </x-form.button>
                 </div>
@@ -395,4 +417,144 @@
             }
         });
     </script>
+
+    @if($whatsappEnabled)
+    <script>
+        // WhatsApp OTP phone verification. The applicant must verify their
+        // phone via a code sent over WhatsApp before the form can be submitted.
+        // The server (RegistrationController::store) re-checks verification, so
+        // this is a UX guard, not the security boundary.
+        (() => {
+            const phoneInput = document.getElementById('phone');
+            const sendBtn = document.getElementById('otp-send-btn');
+            const sendLabel = document.getElementById('otp-send-label');
+            const verifyRow = document.getElementById('otp-verify-row');
+            const codeInput = document.getElementById('otp-code');
+            const verifyBtn = document.getElementById('otp-verify-btn');
+            const status = document.getElementById('otp-status');
+            const badge = document.getElementById('otp-verified-badge');
+            const submitBtn = document.getElementById('submit-btn');
+            const csrf = document.querySelector('input[name="_token"]')?.value;
+
+            let verified = false;
+            let cooldownTimer = null;
+
+            const setStatus = (msg, ok = false) => {
+                status.textContent = msg ?? '';
+                status.className = 'mt-2 text-xs ' + (ok ? 'text-emerald-700' : 'text-red-600');
+            };
+
+            const lockSubmit = () => {
+                if (! verified) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            };
+
+            const unlockSubmit = () => {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            };
+
+            // Verification is bound to a specific number — changing it resets state.
+            const resetVerification = () => {
+                verified = false;
+                badge.classList.add('hidden');
+                lockSubmit();
+            };
+
+            const post = async (url, body) => {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json().catch(() => ({}));
+                return { ok: res.ok, data };
+            };
+
+            const startCooldown = (seconds) => {
+                let remaining = seconds;
+                sendBtn.disabled = true;
+                const tick = () => {
+                    sendLabel.textContent = `إعادة الإرسال بعد ${remaining} ثانية`;
+                    if (remaining <= 0) {
+                        clearInterval(cooldownTimer);
+                        sendBtn.disabled = false;
+                        sendLabel.textContent = 'إعادة إرسال الرمز';
+                        return;
+                    }
+                    remaining--;
+                };
+                tick();
+                cooldownTimer = setInterval(tick, 1000);
+            };
+
+            phoneInput.addEventListener('input', resetVerification);
+
+            sendBtn.addEventListener('click', async () => {
+                const phone = phoneInput.value.trim();
+                if (! /^09\d{8}$/.test(phone)) {
+                    setStatus('أدخل رقم نقال صحيح (10 أرقام يبدأ بـ 09) أولاً.');
+                    return;
+                }
+                sendBtn.disabled = true;
+                setStatus('جاري الإرسال...');
+                try {
+                    const { ok, data } = await post('{{ route('registration.otp.send') }}', { phone });
+                    setStatus(data.message ?? (ok ? 'تم الإرسال.' : 'تعذّر الإرسال.'), ok);
+                    if (ok) {
+                        verifyRow.classList.remove('hidden');
+                        verifyRow.classList.add('flex');
+                        codeInput.focus();
+                        startCooldown(60);
+                    } else {
+                        sendBtn.disabled = false;
+                        if (data.retry_after) startCooldown(data.retry_after);
+                    }
+                } catch (e) {
+                    setStatus('حدث خطأ في الاتصال. حاول مرة أخرى.');
+                    sendBtn.disabled = false;
+                }
+            });
+
+            verifyBtn.addEventListener('click', async () => {
+                const phone = phoneInput.value.trim();
+                const code = codeInput.value.trim();
+                if (! code) {
+                    setStatus('أدخل رمز التحقق.');
+                    return;
+                }
+                verifyBtn.disabled = true;
+                setStatus('جاري التحقق...');
+                try {
+                    const { ok, data } = await post('{{ route('registration.otp.verify') }}', { phone, code });
+                    if (ok && data.verified) {
+                        verified = true;
+                        setStatus('', true);
+                        badge.classList.remove('hidden');
+                        verifyRow.classList.add('hidden');
+                        sendBtn.classList.add('hidden');
+                        if (cooldownTimer) clearInterval(cooldownTimer);
+                        unlockSubmit();
+                    } else {
+                        setStatus(data.message ?? 'الرمز غير صحيح.');
+                    }
+                } catch (e) {
+                    setStatus('حدث خطأ في الاتصال. حاول مرة أخرى.');
+                } finally {
+                    verifyBtn.disabled = false;
+                }
+            });
+
+            // Gate submission until verified.
+            lockSubmit();
+        })();
+    </script>
+    @endif
 </x-layout.app>
