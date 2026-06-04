@@ -3,6 +3,7 @@
 use App\Models\Application;
 use App\Models\Specialization;
 use App\Models\WhatsAppOtp;
+use App\Services\WhatsAppOtpService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -79,6 +80,44 @@ it('degrades gracefully when the WhatsApp provider times out', function () {
     $this->postJson(route('registration.otp.send'), ['phone' => '0912345678'])
         ->assertStatus(422)
         ->assertJson(['sent' => false]);
+});
+
+it('prunes fully-dead OTP rows when a new code is requested', function () {
+    configureQonvo();
+    Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+
+    $dead = WhatsAppOtp::create([
+        'phone' => '0912345678',
+        'purpose' => 'apply_phone',
+        'code_hash' => Hash::make('111111'),
+        'expires_at' => now()->subMinutes(15),
+    ]);
+    $dead->forceFill(['created_at' => now()->subMinutes(20)])->save();
+
+    app(WhatsAppOtpService::class)->request('0912345678');
+
+    expect(WhatsAppOtp::find($dead->id))->toBeNull();
+    expect(WhatsAppOtp::where('phone', '0912345678')->count())->toBe(1);
+});
+
+it('does not prune a verified OTP still inside the grace window', function () {
+    configureQonvo();
+    Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+
+    $verified = WhatsAppOtp::create([
+        'phone' => '0912345678',
+        'purpose' => 'apply_phone',
+        'code_hash' => Hash::make('111111'),
+        'verified_at' => now()->subMinutes(10),
+        'expires_at' => now()->subMinutes(10),
+    ]);
+    $verified->forceFill(['created_at' => now()->subMinutes(20)])->save();
+
+    $service = app(WhatsAppOtpService::class);
+    $service->request('0912345678');
+
+    expect(WhatsAppOtp::find($verified->id))->not->toBeNull();
+    expect($service->hasVerified('0912345678'))->toBeTrue();
 });
 
 it('verifies a correct code and marks the OTP verified', function () {
