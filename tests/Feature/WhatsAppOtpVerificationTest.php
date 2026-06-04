@@ -3,7 +3,6 @@
 use App\Models\Application;
 use App\Models\Specialization;
 use App\Models\WhatsAppOtp;
-use App\Support\SampleApplicantData;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
@@ -15,13 +14,29 @@ function configureQonvo(bool $enabled = true): void
 
 function validApplicationPayload(array $overrides = []): array
 {
-    Specialization::factory()->create();
+    $specialization = Specialization::factory()->create();
 
-    return array_merge(
-        SampleApplicantData::forPublicApplication(),
-        ['declaration' => '1'],
-        $overrides,
-    );
+    return array_merge([
+        'name' => 'محمد أحمد علي الزاوي',
+        'name_en' => 'Mohammed Ahmed Ali Zawai',
+        'email' => 'applicant_'.uniqid().'@example.com',
+        'phone' => '0912345678',
+        'specialization_id' => $specialization->id,
+        'mother_name' => 'فاطمة المبروك',
+        'birth_date' => '1990-01-15',
+        'birth_place' => 'طرابلس',
+        'gender' => 'male',
+        'marital_status' => 'single',
+        'nationality' => 'ليبية',
+        'national_id' => '119900115'.str_pad((string) rand(1, 999), 3, '0', STR_PAD_LEFT),
+        'card_number' => '12345',
+        'residence' => 'طرابلس',
+        'permanent_address' => 'طرابلس شارع الجمهورية',
+        'study_type' => 'self_funded',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'declaration' => '1',
+    ], $overrides);
 }
 
 it('sends an OTP over WhatsApp and stores it for the phone', function () {

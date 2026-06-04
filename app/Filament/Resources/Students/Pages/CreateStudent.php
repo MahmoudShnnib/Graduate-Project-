@@ -8,29 +8,13 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\EnrollmentNumberService;
 use App\Services\GradeCalculationService;
-use App\Support\SampleApplicantData;
-use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 
 class CreateStudent extends CreateRecord
 {
     protected static string $resource = StudentResource::class;
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('fillSampleData')
-                ->label('توليد بيانات تجريبية')
-                ->icon(Heroicon::Sparkles)
-                ->color('warning')
-                ->action(function (): void {
-                    $this->form->fill(SampleApplicantData::forAdminStudent());
-                }),
-        ];
-    }
 
     protected function handleRecordCreation(array $data): Model
     {

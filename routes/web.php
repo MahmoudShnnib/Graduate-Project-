@@ -11,9 +11,6 @@ Route::get('/', function () {
 });
 Route::get('/apply', [RegistrationController::class, 'create'])->name('registration.create');
 Route::post('/apply', [RegistrationController::class, 'store'])->name('registration.store');
-Route::get('/apply/sample', [RegistrationController::class, 'sample'])
-    ->middleware('throttle:20,1')
-    ->name('registration.sample');
 Route::post('/apply/otp/send', [RegistrationController::class, 'sendOtp'])
     ->middleware('throttle:6,1')
     ->name('registration.otp.send');
