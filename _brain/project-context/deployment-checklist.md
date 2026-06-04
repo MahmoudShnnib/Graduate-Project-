@@ -58,6 +58,17 @@ What remains is environment, secrets, and the merge — actions that are inheren
       returns promptly (timeouts bound it to ~10s worst case).
 - [ ] Generate a transcript PDF — confirm it renders within the time budget.
 
+## 🛡️ Production hardening backlog
+A full audited security/perf/ops backlog (beyond this checklist's scope) lives at
+[[production-hardening-backlog]]. **Two items there are true go-live blockers** and belong on this
+checklist:
+- [ ] **C1 — uploaded files on ephemeral storage** (lost on redeploy): persistent volume for
+      `storage/app/public` or move to S3-compatible object storage.
+- [ ] **C2 — HTTPS-behind-proxy**: add `TrustProxies` in `bootstrap/app.php` + `SESSION_SECURE_COOKIE=true`.
+
+The rest (OPcache config, nginx gzip + security headers, `Africa/Tripoli` timezone, the `YEARWEEK`
+Postgres bug, HEALTHCHECK, graceful shutdown, error pages, …) are High/Medium — see the backlog.
+
 ## ⏭️ Deferred (revisit triggers in the decision note)
 - Queue worker + scheduler — only if action latency becomes a complaint or batch deadline-reminders
   are added.
