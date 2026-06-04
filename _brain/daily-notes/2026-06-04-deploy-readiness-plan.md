@@ -94,4 +94,34 @@ notifications are merged into `fixes-and-date`. The WhatsApp work changed the ri
 
 Execute in order P0 → P3. After each change: `vendor/bin/pint --dirty --format agent` +
 `php artisan test --compact` (175 green). Re-measure query counts with tinker where relevant.
+
+---
+
+## ✅ EXECUTED (2026-06-04, same session) — P0–P2 done, PR #43 open
+
+181 tests green (up from 175: +1 timeout resilience, +3 active-semester resolver, +2 OTP prune), Pint
+clean. 10 commits on `fixes-and-date`, pushed; **PR #43 → main** opened. Branch was 18 ahead of stale
+local `main` but exactly **10 ahead of `origin/main`** (the real target).
+
+| Commit | Tier | Notes |
+|---|---|---|
+| `2d98a5b` | P0 | N+1 elimination |
+| `e5783c1` | P0 | dummy-data/sample cleanup |
+| `cc4e50d` | P0 | Docker setup (was untracked) |
+| `dc0dcbd` | P1 | `docker/php.ini` (upload 20M / mem 256M / exec 120) |
+| `c3d268c` | P1 | Qonvo `connectTimeout(5)/timeout(10)` + SMTP `MAIL_TIMEOUT` 10 |
+| `e90a9b3` | P1 | 14-index migration `2026_06_04_011121_add_performance_indexes` |
+| `7c83752` | P2 | `Semester::active()/activeId()` memoized resolver (~22 sites) |
+| `c7798d5` | P2 | opportunistic OTP pruning (rate-window + verified-grace safe) |
+| `f1feb62`, `0599a67` | docs | plan/decision notes, `.env.example` MAIL_TIMEOUT, checklist |
+
+**Index re-audit result:** 14 (not the stale 17). Production is PostgreSQL → FK columns unindexed.
+Tier-1 hot path + Tier-2 request/log tables. Skipped Tier-3 (decided_by FKs, low-volume).
+
+**Remaining = operator-only**, see [[../project-context/deployment-checklist]]: prod `.env`, **rotate
+Qonvo token**, pick platform, merge PR #43, first-deploy smoke test.
+
+> ⚠️ `docker/php.ini` is the one change not runtime-verifiable locally (only applies inside the built
+> image). Verify on first deploy via `phpinfo()` → `upload_max_filesize=20M`, and confirm PHP-FPM
+> `request_terminate_timeout` isn't capping `max_execution_time`.
 </content>
