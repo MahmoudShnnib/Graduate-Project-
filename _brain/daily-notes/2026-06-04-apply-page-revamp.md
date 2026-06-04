@@ -57,6 +57,27 @@ Visual + interactivity overhaul of the public application flow. Pure **view-laye
 - **Hamburger**: Alpine `x-data="{ mobileOpen: false }"` on `<header>`, button toggles between menu/close SVG icons, `:aria-expanded`. Mobile dropdown nav with `x-show` + `x-cloak` + `x-transition` (no `x-collapse` — that plugin isn't loaded, only core Alpine). `@click.outside` closes it; each link closes on tap; register CTA repeats in the menu for `<sm` (where the header button is hidden).
 - **Breakpoint correction (after first screenshot):** first pass put the inline nav at `lg` — at ~1280px the long brand title **truncated** ("طراب…") and the 6 Arabic links were squeezed enough that "هيئة التدريس" wrapped to two lines. Fix: inline nav now `xl:flex` / hamburger `xl:hidden` (6 long RTL links + a long brand name only fit ≥1280px); links given `whitespace-nowrap`; brand title shrunk to `lg:text-lg` (was `md:text-2xl`) and CET badge to `size-12`; header height `md:h-24` (was `h-28`). Below `xl` the hamburger handles everything.
 
+## Follow-up: real college logo in navbar
+
+- Replaced the placeholder `CET` circle **and** the hand-typed Arabic/English brand text with the official logo lockup (user chose "full logo, replace the text too").
+- Asset copied to `public/images/logo.png` (5881×1475, ~252KB), referenced via `asset('images/logo.png')`. Brand block is now a single `<a href="/">` wrapping an `<img>` sized `h-11 md:h-14 w-auto object-contain` with the college name as `alt`.
+- Note: the source PNG is very high-res (5881px wide shown at ~255px) → ~252KB on every public page. A navbar-sized copy (~600px) would cut it to ~40KB if bandwidth matters.
+
+## Follow-up: landing sections + scroll-to-section nav
+
+The `/apply` page is now a single-page landing site; nav links smooth-scroll to on-page sections.
+- **Layout** (`app.blade.php`): added `html { scroll-behavior: smooth; scroll-padding-top: 7rem }` (offsets the sticky header on anchor jumps). Defined a shared `$navLinks` array (label + `route('registration.create').'#id'`) and looped it in BOTH the desktop nav and mobile menu — single source of truth, absolute URLs so the links also work from `/apply/track`. Hero got `id="home"`; hero CTA + "التسجيل" buttons now target `#apply`.
+- **Breakpoint fix:** mobile menu was `lg:hidden` while the hamburger is `xl:hidden` → 1024–1280px showed the button but no menu. Both now `xl:hidden`.
+- **Apply page** (`create.blade.php`): five new `<section>`s above the form, each `scroll-mt-28`:
+  - `#about` (عن الكلية) — intro using `Setting::get('college_name')` + رؤية/رسالة/أهداف cards.
+  - `#faculty` (هيئة التدريس) — leadership cards from real `Setting` (`dean_name`, `director_name`, `office_name`).
+  - `#departments` (الأقسام) — grid built from `$specializations` (real data; 3 cards), each links to `#apply`.
+  - `#news` (الأخبار) — **placeholder** cards (marked with a Blade comment).
+  - `#contact` (اتصل بنا) — **placeholder** phone/email/address cards (marked).
+  - Form wrapped in `<div id="apply" class="… scroll-mt-28">`.
+
+> Placeholders to replace with real values: news items, and contact phone/email/address (not in `Setting`). Departments + leadership names are live data.
+
 ## Loose ends
 
 - No automated test renders this Blade; visual correctness verified via rendered-HTML assertions only (no headless browser available this session). Worth an eyeball in the browser.
