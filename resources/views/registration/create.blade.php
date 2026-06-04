@@ -10,7 +10,6 @@
                 استمارة طلب التحاق بالدراسات العليا
             </h2>
             <p class="mt-3 text-base text-slate-500">الإجازة العليا (الماجستير)</p>
-
         </div>
 
         {{-- Success --}}
@@ -35,7 +34,8 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8">
+        <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8"
+              x-data="applyForm()">
             @csrf
 
             {{-- 1. Personal Information --}}
@@ -104,16 +104,16 @@
                     {{-- Nationality combo --}}
                     <div>
                         <x-form.label for="nationality">الجنسية <span class="text-red-500">*</span></x-form.label>
-                        <x-form.select id="nationality" name="nationality" required>
+                        <x-form.select id="nationality" name="nationality" x-model="nationality" required>
                             <option value="ليبية" @selected(old('nationality', 'ليبية') !== 'أخرى')>ليبية</option>
                             <option value="أخرى" @selected(old('nationality') === 'أخرى')>أخرى</option>
                         </x-form.select>
                         <x-form.error name="nationality" />
                     </div>
 
-                    <div id="nationality_other_row" class="{{ old('nationality') === 'أخرى' ? '' : 'hidden' }}">
+                    <div x-show="isOther" x-cloak x-transition>
                         <x-form.label for="nationality_other">حدد الجنسية <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="nationality_other" name="nationality_other" type="text" value="{{ old('nationality_other') }}" placeholder="أدخل الجنسية بالعربية" />
+                        <x-form.input id="nationality_other" name="nationality_other" type="text" value="{{ old('nationality_other') }}" placeholder="أدخل الجنسية بالعربية" ::required="isOther" />
                         <x-form.error name="nationality_other" />
                     </div>
 
@@ -170,8 +170,12 @@
 
                     <div>
                         <x-form.label for="phone">رقم النقال <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" required />
-                        <p class="mt-1 text-xs text-slate-400">10 أرقام يبدأ بـ 09 (ليبي فقط)</p>
+                        <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" required x-model="phone" dir="ltr" class="text-right" />
+                        <p class="mt-1 text-xs" :class="phone && ! phoneValid ? 'text-red-500' : 'text-slate-400'">
+                            <span x-show="! phone">10 أرقام يبدأ بـ 09 (ليبي فقط)</span>
+                            <span x-show="phone && ! phoneValid" x-cloak>الرقم يجب أن يكون 10 أرقام ويبدأ بـ 09</span>
+                            <span x-show="phoneValid" x-cloak class="font-bold text-emerald-600">✓ رقم صحيح</span>
+                        </p>
                         <x-form.error name="phone" />
 
                         @if($whatsappEnabled)
@@ -212,13 +216,16 @@
 
                     <div>
                         <x-form.label for="password">كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password" name="password" type="password" placeholder="8 أحرف على الأقل" required />
+                        <x-form.input id="password" name="password" type="password" placeholder="8 أحرف على الأقل" required x-model="password" />
+                        <p x-show="password && password.length < 8" x-cloak class="mt-1 text-xs text-red-500">كلمة المرور يجب أن تكون 8 أحرف على الأقل</p>
                         <x-form.error name="password" />
                     </div>
 
                     <div>
                         <x-form.label for="password_confirmation">تأكيد كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" placeholder="أعد كتابة كلمة المرور" required />
+                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" placeholder="أعد كتابة كلمة المرور" required x-model="passwordConfirm" />
+                        <p x-show="passwordConfirm && ! passwordsMatch" x-cloak class="mt-1 text-xs text-red-500">كلمتا المرور غير متطابقتين</p>
+                        <p x-show="passwordConfirm && passwordsMatch" x-cloak class="mt-1 text-xs font-bold text-emerald-600">✓ كلمتا المرور متطابقتان</p>
                     </div>
                 </div>
             </div>
@@ -231,32 +238,32 @@
 
                 <div class="space-y-3">
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="self_funded" @checked(old('study_type') === 'self_funded') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="self_funded" x-model="studyType" @checked(old('study_type') === 'self_funded') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">الدراسة على حسابي الخاص</span>
                     </label>
 
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="internally_delegated" @checked(old('study_type') === 'internally_delegated') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="internally_delegated" x-model="studyType" @checked(old('study_type') === 'internally_delegated') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">موفد بموجب قرار إيفاد داخلي</span>
                     </label>
 
-                    <div id="delegation_number_row" class="hidden ps-12">
+                    <div x-show="showDelegationNumber" x-cloak x-transition class="ps-12">
                         <x-form.label for="delegation_number">رقم قرار الإيفاد</x-form.label>
                         <x-form.input id="delegation_number" name="delegation_number" type="text" value="{{ old('delegation_number') }}" class="max-w-xs" />
                         <x-form.error name="delegation_number" />
                     </div>
 
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="faculty_assistant" @checked(old('study_type') === 'faculty_assistant') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="faculty_assistant" x-model="studyType" @checked(old('study_type') === 'faculty_assistant') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">معيد بالكلية</span>
                     </label>
 
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="public_delegation" @checked(old('study_type') === 'public_delegation') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="public_delegation" x-model="studyType" @checked(old('study_type') === 'public_delegation') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">موفد من قِبَل جهة عامة</span>
                     </label>
 
-                    <div id="delegation_entity_row" class="hidden ps-12">
+                    <div x-show="showDelegationEntity" x-cloak x-transition class="ps-12">
                         <x-form.label for="delegation_entity">اسم الجهة المُوفِدة</x-form.label>
                         <x-form.input id="delegation_entity" name="delegation_entity" type="text" value="{{ old('delegation_entity') }}" />
                         <x-form.error name="delegation_entity" />
@@ -324,33 +331,33 @@
     </div>
 
     <script>
-        // Nationality combo: show/hide custom nationality input
-        function updateNationalityField() {
-            const val = document.getElementById('nationality').value;
-            const row = document.getElementById('nationality_other_row');
-            const input = document.getElementById('nationality_other');
-            const isOther = val === 'أخرى';
-            row.classList.toggle('hidden', ! isOther);
-            input.required = isOther;
+        // Alpine component backing the application form: conditional fields and
+        // live phone/password validation.
+        function applyForm() {
+            return {
+                nationality: @js(old('nationality', 'ليبية')),
+                studyType: @js(old('study_type', '')),
+                phone: @js(old('phone', '')),
+                password: '',
+                passwordConfirm: '',
+
+                get isOther() {
+                    return this.nationality === 'أخرى';
+                },
+                get showDelegationNumber() {
+                    return this.studyType === 'internally_delegated';
+                },
+                get showDelegationEntity() {
+                    return this.studyType === 'faculty_assistant' || this.studyType === 'public_delegation';
+                },
+                get phoneValid() {
+                    return /^09\d{8}$/.test(this.phone);
+                },
+                get passwordsMatch() {
+                    return this.password === this.passwordConfirm;
+                },
+            };
         }
-
-        document.getElementById('nationality').addEventListener('change', updateNationalityField);
-        updateNationalityField();
-
-        // Study type: show/hide delegation fields
-        function updateDelegationFields() {
-            const selected = document.querySelector('input[name="study_type"]:checked')?.value;
-            document.getElementById('delegation_number_row').classList.toggle('hidden', selected !== 'internally_delegated');
-            document.getElementById('delegation_entity_row').classList.toggle('hidden',
-                selected !== 'faculty_assistant' && selected !== 'public_delegation');
-        }
-
-        document.querySelectorAll('input[name="study_type"]').forEach(el => {
-            el.addEventListener('change', updateDelegationFields);
-        });
-
-        updateDelegationFields();
-
     </script>
 
     @if($whatsappEnabled)
