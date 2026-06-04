@@ -28,6 +28,11 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 7rem; /* offset for the sticky header on anchor jumps */
+        }
+
         body {
             font-family: "Noto Kufi Arabic", sans-serif;
             background: #f3f4f6;
@@ -38,39 +43,41 @@
 </head>
 <body class="min-h-screen text-slate-900">
 
+@php
+    // Public nav — anchors into the landing sections on the /apply page.
+    // Absolute (route + #hash) so they also work from /apply/track.
+    $applyUrl = route('registration.create');
+    $navLinks = [
+        ['label' => 'الرئيسية', 'href' => $applyUrl.'#home'],
+        ['label' => 'عن الكلية', 'href' => $applyUrl.'#about'],
+        ['label' => 'هيئة التدريس', 'href' => $applyUrl.'#faculty'],
+        ['label' => 'الأقسام', 'href' => $applyUrl.'#departments'],
+        ['label' => 'الأخبار', 'href' => $applyUrl.'#news'],
+        ['label' => 'اتصل بنا', 'href' => $applyUrl.'#contact'],
+    ];
+@endphp
+
 <header class="sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur" x-data="{ mobileOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
-        <div class="flex items-center justify-between gap-4 h-20 md:h-24">
+        <div class="flex items-center justify-between gap-4 h-24 md:h-28">
 
             {{-- Brand --}}
-            <div class="flex min-w-0 items-center gap-3">
-                <div class="min-w-0 text-right">
-                    <h1 class="truncate text-sm font-bold leading-tight text-slate-800 sm:text-base lg:text-lg">
-                        كلية التقنية الإلكترونية - طرابلس
-                    </h1>
-                    <p class="hidden truncate text-xs text-slate-500 sm:block">
-                        College of Electronic Technology - Tripoli
-                    </p>
-                </div>
-
-                <div class="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-sky-400 text-base font-bold text-sky-500 md:size-12 md:text-xl">
-                    CET
-                </div>
+            <div class="flex min-w-0 shrink items-center">
+                <img src="{{ asset('images/logo.png') }}"
+                     alt="كلية التقنية الإلكترونية - طرابلس"
+                     class="h-20 w-auto max-w-full object-contain md:h-24">
             </div>
 
             {{-- Desktop nav --}}
             <nav class="hidden shrink-0 items-center gap-5 text-base font-semibold text-slate-700 xl:flex xl:gap-7">
-                <a href="#" class="whitespace-nowrap transition hover:text-blue-700">الرئيسية</a>
-                <a href="#" class="whitespace-nowrap transition hover:text-blue-700">عن الكلية</a>
-                <a href="#" class="whitespace-nowrap transition hover:text-blue-700">هيئة التدريس</a>
-                <a href="#" class="whitespace-nowrap transition hover:text-blue-700">الأقسام</a>
-                <a href="#" class="whitespace-nowrap transition hover:text-blue-700">الأخبار</a>
-                <a href="#" class="whitespace-nowrap transition hover:text-blue-700">اتصل بنا</a>
+                @foreach($navLinks as $link)
+                    <a href="{{ $link['href'] }}" class="whitespace-nowrap transition hover:text-blue-700">{{ $link['label'] }}</a>
+                @endforeach
             </nav>
 
             {{-- Actions: register (desktop) + hamburger (mobile) --}}
             <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-                <a href="{{ route('registration.create') }}"
+                <a href="{{ route('registration.create') }}#apply"
                    class="hidden items-center justify-center whitespace-nowrap rounded-xl bg-blue-800 px-5 py-2.5 text-base font-bold text-white shadow transition hover:bg-blue-900 sm:inline-flex md:px-7 md:py-3">
                     التسجيل
                 </a>
@@ -98,15 +105,12 @@
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 -translate-y-2"
              x-transition:enter-end="opacity-100 translate-y-0"
-             class="border-t border-slate-100 py-3 lg:hidden">
+             class="border-t border-slate-100 py-3 xl:hidden">
             <div class="flex flex-col gap-1 text-base font-semibold text-slate-700">
-                <a href="#" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">الرئيسية</a>
-                <a href="#" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">عن الكلية</a>
-                <a href="#" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">هيئة التدريس</a>
-                <a href="#" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">الأقسام</a>
-                <a href="#" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">الأخبار</a>
-                <a href="#" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">اتصل بنا</a>
-                <a href="{{ route('registration.create') }}"
+                @foreach($navLinks as $link)
+                    <a href="{{ $link['href'] }}" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">{{ $link['label'] }}</a>
+                @endforeach
+                <a href="{{ route('registration.create') }}#apply" @click="mobileOpen = false"
                    class="mt-2 rounded-xl bg-blue-800 px-3 py-3 text-center text-white shadow transition hover:bg-blue-900 sm:hidden">
                     التسجيل
                 </a>
@@ -115,7 +119,7 @@
     </div>
 </header>
 
-<section class="relative overflow-hidden bg-gradient-to-bl from-blue-900 via-blue-800 to-sky-700">
+<section id="home" class="relative overflow-hidden bg-gradient-to-bl from-blue-900 via-blue-800 to-sky-700">
     {{-- soft decorative glows --}}
     <div class="pointer-events-none absolute inset-0 overflow-hidden">
         <div class="absolute -top-24 -start-24 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl"></div>
@@ -142,7 +146,7 @@
                 </p>
 
                 <div class="mt-10">
-                    <a href="#registration-form"
+                    <a href="#apply"
                        class="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-lg font-bold text-blue-800 shadow-lg shadow-blue-950/30 transition hover:bg-sky-50 hover:shadow-xl">
                         التقديم على الدراسات العليا
                     </a>
