@@ -33,6 +33,7 @@ RUN npm run build \
     && composer dump-autoload --optimize \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
+COPY docker/php.ini /usr/local/etc/php/conf.d/zz-app.ini
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/entrypoint.sh /entrypoint.sh
