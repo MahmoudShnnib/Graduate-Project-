@@ -3,6 +3,7 @@
 use App\Models\Application;
 use App\Models\Specialization;
 use App\Models\WhatsAppOtp;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
@@ -69,6 +70,15 @@ it('enforces a resend cooldown', function () {
         ->assertStatus(422)
         ->assertJson(['sent' => false])
         ->assertJsonStructure(['retry_after']);
+});
+
+it('degrades gracefully when the WhatsApp provider times out', function () {
+    configureQonvo();
+    Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out'));
+
+    $this->postJson(route('registration.otp.send'), ['phone' => '0912345678'])
+        ->assertStatus(422)
+        ->assertJson(['sent' => false]);
 });
 
 it('verifies a correct code and marks the OTP verified', function () {
