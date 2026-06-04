@@ -14,12 +14,14 @@
             {{-- Testing helper: generate sample applicant data --}}
             <div class="mt-6 inline-flex">
                 <button type="button"
-                        id="fill-sample-btn"
+                        x-data
+                        @click="$dispatch('fill-sample')"
+                        :disabled="$store.apply?.filling"
                         class="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">
-                    <svg id="fill-sample-icon" class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg class="size-4" :class="$store.apply?.filling && 'animate-spin'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18 7.5v3m0 0v3m0-3h3m-3 0h-3" />
                     </svg>
-                    <span id="fill-sample-label">توليد بيانات تجريبية</span>
+                    <span x-text="$store.apply?.filling ? 'جاري التوليد...' : 'توليد بيانات تجريبية'">توليد بيانات تجريبية</span>
                 </button>
             </div>
             <p class="mt-2 text-xs text-slate-400">يملأ الاستمارة ببيانات عشوائية للاختبار — ما عدا الملفات (يجب اختيارها يدوياً).</p>
@@ -47,7 +49,8 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8">
+        <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8"
+              x-data="applyForm()" @fill-sample.window="fillSample()">
             @csrf
 
             {{-- 1. Personal Information --}}
@@ -116,16 +119,16 @@
                     {{-- Nationality combo --}}
                     <div>
                         <x-form.label for="nationality">الجنسية <span class="text-red-500">*</span></x-form.label>
-                        <x-form.select id="nationality" name="nationality" required>
+                        <x-form.select id="nationality" name="nationality" x-model="nationality" required>
                             <option value="ليبية" @selected(old('nationality', 'ليبية') !== 'أخرى')>ليبية</option>
                             <option value="أخرى" @selected(old('nationality') === 'أخرى')>أخرى</option>
                         </x-form.select>
                         <x-form.error name="nationality" />
                     </div>
 
-                    <div id="nationality_other_row" class="{{ old('nationality') === 'أخرى' ? '' : 'hidden' }}">
+                    <div x-show="isOther" x-cloak x-transition>
                         <x-form.label for="nationality_other">حدد الجنسية <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="nationality_other" name="nationality_other" type="text" value="{{ old('nationality_other') }}" placeholder="أدخل الجنسية بالعربية" />
+                        <x-form.input id="nationality_other" name="nationality_other" type="text" value="{{ old('nationality_other') }}" placeholder="أدخل الجنسية بالعربية" ::required="isOther" />
                         <x-form.error name="nationality_other" />
                     </div>
 
@@ -182,8 +185,12 @@
 
                     <div>
                         <x-form.label for="phone">رقم النقال <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" required />
-                        <p class="mt-1 text-xs text-slate-400">10 أرقام يبدأ بـ 09 (ليبي فقط)</p>
+                        <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" required x-model="phone" dir="ltr" class="text-right" />
+                        <p class="mt-1 text-xs" :class="phone && ! phoneValid ? 'text-red-500' : 'text-slate-400'">
+                            <span x-show="! phone">10 أرقام يبدأ بـ 09 (ليبي فقط)</span>
+                            <span x-show="phone && ! phoneValid" x-cloak>الرقم يجب أن يكون 10 أرقام ويبدأ بـ 09</span>
+                            <span x-show="phoneValid" x-cloak class="font-bold text-emerald-600">✓ رقم صحيح</span>
+                        </p>
                         <x-form.error name="phone" />
 
                         @if($whatsappEnabled)
@@ -224,13 +231,16 @@
 
                     <div>
                         <x-form.label for="password">كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password" name="password" type="password" placeholder="8 أحرف على الأقل" required />
+                        <x-form.input id="password" name="password" type="password" placeholder="8 أحرف على الأقل" required x-model="password" />
+                        <p x-show="password && password.length < 8" x-cloak class="mt-1 text-xs text-red-500">كلمة المرور يجب أن تكون 8 أحرف على الأقل</p>
                         <x-form.error name="password" />
                     </div>
 
                     <div>
                         <x-form.label for="password_confirmation">تأكيد كلمة المرور <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" placeholder="أعد كتابة كلمة المرور" required />
+                        <x-form.input id="password_confirmation" name="password_confirmation" type="password" placeholder="أعد كتابة كلمة المرور" required x-model="passwordConfirm" />
+                        <p x-show="passwordConfirm && ! passwordsMatch" x-cloak class="mt-1 text-xs text-red-500">كلمتا المرور غير متطابقتين</p>
+                        <p x-show="passwordConfirm && passwordsMatch" x-cloak class="mt-1 text-xs font-bold text-emerald-600">✓ كلمتا المرور متطابقتان</p>
                     </div>
                 </div>
             </div>
@@ -243,32 +253,32 @@
 
                 <div class="space-y-3">
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="self_funded" @checked(old('study_type') === 'self_funded') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="self_funded" x-model="studyType" @checked(old('study_type') === 'self_funded') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">الدراسة على حسابي الخاص</span>
                     </label>
 
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="internally_delegated" @checked(old('study_type') === 'internally_delegated') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="internally_delegated" x-model="studyType" @checked(old('study_type') === 'internally_delegated') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">موفد بموجب قرار إيفاد داخلي</span>
                     </label>
 
-                    <div id="delegation_number_row" class="hidden ps-12">
+                    <div x-show="showDelegationNumber" x-cloak x-transition class="ps-12">
                         <x-form.label for="delegation_number">رقم قرار الإيفاد</x-form.label>
                         <x-form.input id="delegation_number" name="delegation_number" type="text" value="{{ old('delegation_number') }}" class="max-w-xs" />
                         <x-form.error name="delegation_number" />
                     </div>
 
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="faculty_assistant" @checked(old('study_type') === 'faculty_assistant') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="faculty_assistant" x-model="studyType" @checked(old('study_type') === 'faculty_assistant') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">معيد بالكلية</span>
                     </label>
 
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-5 py-4 transition hover:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                        <input type="radio" name="study_type" value="public_delegation" @checked(old('study_type') === 'public_delegation') class="size-4 accent-blue-600" />
+                        <input type="radio" name="study_type" value="public_delegation" x-model="studyType" @checked(old('study_type') === 'public_delegation') class="size-4 accent-blue-600" />
                         <span class="text-base font-medium text-slate-700">موفد من قِبَل جهة عامة</span>
                     </label>
 
-                    <div id="delegation_entity_row" class="hidden ps-12">
+                    <div x-show="showDelegationEntity" x-cloak x-transition class="ps-12">
                         <x-form.label for="delegation_entity">اسم الجهة المُوفِدة</x-form.label>
                         <x-form.input id="delegation_entity" name="delegation_entity" type="text" value="{{ old('delegation_entity') }}" />
                         <x-form.error name="delegation_entity" />
@@ -336,86 +346,82 @@
     </div>
 
     <script>
-        // Nationality combo: show/hide custom nationality input
-        function updateNationalityField() {
-            const val = document.getElementById('nationality').value;
-            const row = document.getElementById('nationality_other_row');
-            const input = document.getElementById('nationality_other');
-            const isOther = val === 'أخرى';
-            row.classList.toggle('hidden', ! isOther);
-            input.required = isOther;
-        }
-
-        document.getElementById('nationality').addEventListener('change', updateNationalityField);
-        updateNationalityField();
-
-        // Study type: show/hide delegation fields
-        function updateDelegationFields() {
-            const selected = document.querySelector('input[name="study_type"]:checked')?.value;
-            document.getElementById('delegation_number_row').classList.toggle('hidden', selected !== 'internally_delegated');
-            document.getElementById('delegation_entity_row').classList.toggle('hidden',
-                selected !== 'faculty_assistant' && selected !== 'public_delegation');
-        }
-
-        document.querySelectorAll('input[name="study_type"]').forEach(el => {
-            el.addEventListener('change', updateDelegationFields);
+        // Alpine store shared with the "fill sample" button (which lives in the
+        // page header, outside the form's x-data scope).
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('apply', { filling: false });
         });
 
-        updateDelegationFields();
+        // Alpine component backing the application form: conditional fields,
+        // live phone/password validation, and the test-data filler.
+        function applyForm() {
+            return {
+                nationality: @js(old('nationality', 'ليبية')),
+                studyType: @js(old('study_type', '')),
+                phone: @js(old('phone', '')),
+                password: '',
+                passwordConfirm: '',
 
-        // Testing helper: fetch sample applicant data from the server and
-        // fill every matching field. File inputs are skipped (browser
-        // security — cannot be set programmatically) and the declaration
-        // checkbox is auto-ticked for convenience.
-        const fillSampleBtn = document.getElementById('fill-sample-btn');
-        const fillSampleLabel = document.getElementById('fill-sample-label');
-        const defaultFillLabel = fillSampleLabel?.textContent ?? 'توليد بيانات تجريبية';
+                get isOther() {
+                    return this.nationality === 'أخرى';
+                },
+                get showDelegationNumber() {
+                    return this.studyType === 'internally_delegated';
+                },
+                get showDelegationEntity() {
+                    return this.studyType === 'faculty_assistant' || this.studyType === 'public_delegation';
+                },
+                get phoneValid() {
+                    return /^09\d{8}$/.test(this.phone);
+                },
+                get passwordsMatch() {
+                    return this.password === this.passwordConfirm;
+                },
 
-        fillSampleBtn?.addEventListener('click', async () => {
-            fillSampleBtn.disabled = true;
-            fillSampleLabel.textContent = 'جاري التوليد...';
+                // Fetch sample applicant data and fill every matching field.
+                // File inputs are skipped (browser security) and the declaration
+                // checkbox is auto-ticked. Dispatching input/change keeps the
+                // Alpine-bound fields (nationality, study_type, phone, …) in sync.
+                async fillSample() {
+                    this.$store.apply.filling = true;
+                    try {
+                        const response = await fetch('{{ route('registration.sample') }}', {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin',
+                        });
+                        if (! response.ok) throw new Error('sample endpoint returned ' + response.status);
 
-            try {
-                const response = await fetch('{{ route('registration.sample') }}', {
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                });
-                if (! response.ok) throw new Error('sample endpoint returned ' + response.status);
+                        const data = await response.json();
 
-                const data = await response.json();
+                        for (const [name, value] of Object.entries(data)) {
+                            const radios = document.querySelectorAll(`input[name="${name}"][type="radio"]`);
+                            if (radios.length > 0) {
+                                radios.forEach(r => {
+                                    r.checked = String(r.value) === String(value);
+                                    r.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+                                continue;
+                            }
+                            const el = document.querySelector(`[name="${name}"]`);
+                            if (! el) continue;
+                            if (el.type === 'file') continue;
+                            if (el.type === 'checkbox') { el.checked = !! value; continue; }
+                            el.value = value ?? '';
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
 
-                // Fill each named field if it exists on this form.
-                for (const [name, value] of Object.entries(data)) {
-                    const radios = document.querySelectorAll(`input[name="${name}"][type="radio"]`);
-                    if (radios.length > 0) {
-                        radios.forEach(r => { r.checked = String(r.value) === String(value); });
-                        radios.forEach(r => r.dispatchEvent(new Event('change', { bubbles: true })));
-                        continue;
+                        const decl = document.querySelector('input[name="declaration"]');
+                        if (decl) decl.checked = true;
+                    } catch (err) {
+                        console.error(err);
+                        alert('فشل توليد البيانات. راجع الكونسول.');
+                    } finally {
+                        this.$store.apply.filling = false;
                     }
-                    const el = document.querySelector(`[name="${name}"]`);
-                    if (! el) continue;
-                    if (el.type === 'file') continue;      // can't programmatically set
-                    if (el.type === 'checkbox') { el.checked = !! value; continue; }
-                    el.value = value ?? '';
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-
-                // Tick the declaration checkbox so the form is submittable in one click.
-                const decl = document.querySelector('input[name="declaration"]');
-                if (decl) decl.checked = true;
-
-                // Re-run conditional-visibility handlers now that study_type is set.
-                updateDelegationFields();
-                updateNationalityField();
-            } catch (err) {
-                console.error(err);
-                alert('فشل توليد البيانات. راجع الكونسول.');
-            } finally {
-                fillSampleBtn.disabled = false;
-                fillSampleLabel.textContent = defaultFillLabel;
-            }
-        });
+                },
+            };
+        }
     </script>
 
     @if($whatsappEnabled)
