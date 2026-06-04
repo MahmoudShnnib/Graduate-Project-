@@ -33,7 +33,7 @@ class CoursesSurveyResults extends Page
 
     public static function getNavigationBadge(): ?string
     {
-        $activeSemester = Semester::where('is_active', true)->value('id');
+        $activeSemester = Semester::activeId();
         if (! $activeSemester) {
             return null;
         }
@@ -66,7 +66,7 @@ class CoursesSurveyResults extends Page
 
     public function getActiveSemester(): ?Semester
     {
-        return Semester::where('is_active', true)->first();
+        return Semester::active();
     }
 
     public function getSurveyResults(): Collection

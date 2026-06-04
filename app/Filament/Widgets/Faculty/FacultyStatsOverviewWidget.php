@@ -20,7 +20,7 @@ class FacultyStatsOverviewWidget extends BaseWidget
     protected function getStats(): array
     {
         $userId = auth()->id();
-        $activeSemester = Semester::where('is_active', true)->first();
+        $activeSemester = Semester::active();
         $activeSemesterId = $activeSemester?->id;
 
         $myOfferings = CourseOffering::query()

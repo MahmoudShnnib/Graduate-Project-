@@ -61,7 +61,7 @@ class CreateStudent extends CreateRecord
             'degree_image' => $data['degree_image'] ?? null,
         ]);
 
-        $activeSemester = Semester::where('is_active', true)->first();
+        $activeSemester = Semester::active();
 
         if ($activeSemester) {
             app(EnrollmentNumberService::class)->generate(

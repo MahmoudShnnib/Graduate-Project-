@@ -214,7 +214,7 @@ class EditStudent extends EditRecord
             return;
         }
 
-        $activeSemester = Semester::where('is_active', true)->first();
+        $activeSemester = Semester::active();
 
         if (! $activeSemester) {
             return;

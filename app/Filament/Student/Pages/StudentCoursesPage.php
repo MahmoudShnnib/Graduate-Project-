@@ -23,7 +23,7 @@ class StudentCoursesPage extends Page
 
     public function getActiveSemester(): ?Semester
     {
-        return $this->resolvedSemester ??= Semester::where('is_active', true)->first();
+        return $this->resolvedSemester ??= Semester::active();
     }
 
     public function getEnrollments(): Collection

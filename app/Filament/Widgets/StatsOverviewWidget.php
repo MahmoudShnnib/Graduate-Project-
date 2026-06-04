@@ -21,7 +21,7 @@ class StatsOverviewWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $activeSemester = Semester::where('is_active', true)->first();
+        $activeSemester = Semester::active();
 
         $activeStudents = Student::where('status', StudentStatus::Active)->count();
         $onHoldStudents = Student::where('status', StudentStatus::OnHold)->count();

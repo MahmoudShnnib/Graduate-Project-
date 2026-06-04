@@ -24,7 +24,7 @@ class ListAddDropRequests extends ListRecords
 
     public function getActiveSemester(): ?Semester
     {
-        return Semester::where('is_active', true)->first();
+        return Semester::active();
     }
 
     /**

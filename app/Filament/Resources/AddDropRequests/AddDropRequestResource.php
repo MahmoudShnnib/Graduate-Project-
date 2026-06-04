@@ -71,12 +71,12 @@ class AddDropRequestResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $activeSemester = Semester::where('is_active', true)->first();
+        $activeSemester = Semester::active();
 
         return $table
             ->modifyQueryUsing(function (Builder $query, HasTable $livewire): void {
                 if (property_exists($livewire, 'activeTab') && $livewire->activeTab === 'active_semester') {
-                    $active = Semester::where('is_active', true)->first();
+                    $active = Semester::active();
                     if ($active) {
                         $query->whereHas('courseOffering', fn (Builder $q) => $q->where('semester_id', $active->id));
                     }

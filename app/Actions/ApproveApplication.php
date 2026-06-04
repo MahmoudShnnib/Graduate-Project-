@@ -76,7 +76,7 @@ class ApproveApplication
                 'is_transfer' => $application->is_transfer,
             ]);
 
-            $activeSemester = Semester::where('is_active', true)->first();
+            $activeSemester = Semester::active();
 
             if ($activeSemester) {
                 $this->enrollmentNumberService->generate($student, $activeSemester, (bool) $application->is_transfer);
