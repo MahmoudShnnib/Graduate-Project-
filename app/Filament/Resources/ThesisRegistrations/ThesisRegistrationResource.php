@@ -53,7 +53,13 @@ class ThesisRegistrationResource extends Resource
             ->groupBy('student_id')
             ->pluck('id');
 
-        return parent::getEloquentQuery()->whereIn('id', $latestIds);
+        return parent::getEloquentQuery()
+            ->whereIn('id', $latestIds)
+            ->with([
+                'student.user',
+                'supervisor',
+                'facultySupervisor',
+            ]);
     }
 
     public static function form(Schema $schema): Schema

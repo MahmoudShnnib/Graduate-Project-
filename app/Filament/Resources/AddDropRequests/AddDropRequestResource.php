@@ -44,6 +44,16 @@ class AddDropRequestResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with([
+                'student.user',
+                'courseOffering.course',
+                'courseOffering.semester',
+            ]);
+    }
+
     public static function getNavigationBadge(): ?string
     {
         return (string) AddDropRequest::where('status', 'pending')->count() ?: null;

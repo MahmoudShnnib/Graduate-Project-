@@ -38,6 +38,12 @@ class CourseOfferingResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['course', 'semester', 'faculty']);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema

@@ -19,9 +19,11 @@ class StudentCoursesPage extends Page
 
     protected static ?int $navigationSort = 4;
 
+    private ?Semester $resolvedSemester = null;
+
     public function getActiveSemester(): ?Semester
     {
-        return Semester::where('is_active', true)->first();
+        return $this->resolvedSemester ??= Semester::where('is_active', true)->first();
     }
 
     public function getEnrollments(): Collection

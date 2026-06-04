@@ -44,9 +44,11 @@ class CourseSurveyPage extends Page
         }
     }
 
+    private ?Semester $resolvedSemester = null;
+
     public function getActiveSemester(): ?Semester
     {
-        return Semester::where('is_active', true)->first();
+        return $this->resolvedSemester ??= Semester::where('is_active', true)->first();
     }
 
     public function getAvailableCourses(): Collection

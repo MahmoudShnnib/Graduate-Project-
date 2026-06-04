@@ -47,6 +47,12 @@ class ApplicationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with('specialization');
+    }
+
     public static function getNavigationBadge(): ?string
     {
         return (string) Application::where('status', ApplicationStatus::Pending)->count() ?: null;

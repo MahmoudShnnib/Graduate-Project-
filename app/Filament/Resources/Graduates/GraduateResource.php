@@ -47,7 +47,12 @@ class GraduateResource extends Resource
 
         return parent::getEloquentQuery()
             ->whereIn('id', $latestIds)
-            ->where('status', DiscussionStatus::Completed);
+            ->where('status', DiscussionStatus::Completed)
+            ->with([
+                'student.user',
+                'student.specialization',
+                'thesisRegistration',
+            ]);
     }
 
     public static function table(Table $table): Table

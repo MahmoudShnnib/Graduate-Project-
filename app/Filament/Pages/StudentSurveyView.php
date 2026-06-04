@@ -103,19 +103,40 @@ class StudentSurveyView extends Page
             ->map(fn (CourseSurvey $survey) => $this->buildSurveyEntry($survey));
     }
 
+    /** @var Collection<int, CourseOffering>|null offerings for this semester, keyed by course_id */
+    private ?Collection $offeringsByCourseId = null;
+
+    /** @var Collection<int, StudentEnrollment>|null this student's active enrollments, keyed by course_offering_id */
+    private ?Collection $activeEnrollmentsByOfferingId = null;
+
+    /**
+     * @return Collection<int, CourseOffering>
+     */
+    private function offeringsByCourseId(): Collection
+    {
+        return $this->offeringsByCourseId ??= CourseOffering::where('semester_id', $this->semester->id)
+            ->get()
+            ->keyBy('course_id');
+    }
+
+    /**
+     * @return Collection<int, StudentEnrollment>
+     */
+    private function activeEnrollmentsByOfferingId(): Collection
+    {
+        return $this->activeEnrollmentsByOfferingId ??= StudentEnrollment::where('student_id', $this->student->id)
+            ->active()
+            ->get()
+            ->keyBy('course_offering_id');
+    }
+
     private function buildSurveyEntry(CourseSurvey $survey): object
     {
-        $offering = CourseOffering::where('course_id', $survey->course_id)
-            ->where('semester_id', $this->semester->id)
-            ->first();
+        $offering = $this->offeringsByCourseId()->get($survey->course_id);
 
-        $enrollment = null;
-        if ($offering) {
-            $enrollment = StudentEnrollment::where('student_id', $this->student->id)
-                ->where('course_offering_id', $offering->id)
-                ->active()
-                ->first();
-        }
+        $enrollment = $offering
+            ? $this->activeEnrollmentsByOfferingId()->get($offering->id)
+            : null;
 
         return (object) [
             'survey' => $survey,
@@ -154,10 +175,7 @@ class StudentSurveyView extends Page
         $capped = false;
 
         foreach ($this->selected as $courseId) {
-            $offering = CourseOffering::query()
-                ->where('course_id', (int) $courseId)
-                ->where('semester_id', $this->semester->id)
-                ->first();
+            $offering = $this->offeringsByCourseId()->get((int) $courseId);
 
             if (! $offering) {
                 $missing++;

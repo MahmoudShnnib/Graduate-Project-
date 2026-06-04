@@ -55,7 +55,11 @@ class DiscussionRequestResource extends Resource
 
         return parent::getEloquentQuery()
             ->whereIn('id', $latestIds)
-            ->where('status', '!=', DiscussionStatus::Completed);
+            ->where('status', '!=', DiscussionStatus::Completed)
+            ->with([
+                'student.user',
+                'thesisRegistration',
+            ]);
     }
 
     public static function table(Table $table): Table
