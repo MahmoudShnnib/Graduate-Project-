@@ -1,0 +1,15 @@
+.env
+vendor/
+node_modules/
+.git/
+_brain/
+mobile/
+storage/logs/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+doc-screenshots/
+diagram-shots/
+docs/
+.phpunit.result.cache
+.claude/
