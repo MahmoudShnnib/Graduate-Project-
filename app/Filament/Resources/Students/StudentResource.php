@@ -44,6 +44,10 @@ class StudentResource extends Resource
 
     protected static ?string $navigationLabel = 'الطلاب';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'شؤون الطلاب';
+
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'طالب';
 
     protected static ?string $pluralModelLabel = 'الطلاب';
@@ -579,7 +583,13 @@ class StudentResource extends Resource
                     ->badge()
                     ->state(fn (Student $record): string => $record->getDisplayStatusLabel())
                     ->color(fn (Student $record): string => $record->getDisplayStatusColor()),
+
+                TextColumn::make('created_at')
+                    ->label('تاريخ التسجيل')
+                    ->dateTime('Y/m/d')
+                    ->sortable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->label('الحالة')

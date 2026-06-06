@@ -40,7 +40,7 @@ class UserForm
                     ->label('الدور')
                     ->options([
                         'super_admin' => 'رئيس مكتب الدراسات العليا',
-                        'secretary' => 'السكرتير',
+                        'manager_assistant' => 'مساعد إداري',
                         'faculty' => 'عضو هيئة التدريس',
                     ])
                     ->live(),

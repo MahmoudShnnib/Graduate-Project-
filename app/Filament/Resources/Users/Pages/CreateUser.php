@@ -18,7 +18,7 @@ class CreateUser extends CreateRecord
     {
         $role = $this->record->role;
 
-        if (in_array($role, ['super_admin', 'secretary', 'faculty', 'student'], true)) {
+        if (in_array($role, ['super_admin', 'manager_assistant', 'faculty', 'student'], true)) {
             $this->record->syncRoles([$role]);
         }
     }

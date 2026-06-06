@@ -78,7 +78,7 @@ class User extends Authenticatable implements FilamentUser
             return true;
         }
 
-        if (in_array($this->role, ['secretary', 'faculty'], true)) {
+        if (in_array($this->role, ['manager_assistant', 'faculty'], true)) {
             return true;
         }
 

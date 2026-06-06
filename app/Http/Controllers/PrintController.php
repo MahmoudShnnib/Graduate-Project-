@@ -335,7 +335,7 @@ class PrintController extends Controller
     private function authorizeAdminOnly(): void
     {
         abort_unless(
-            in_array(auth()->user()?->role, ['super_admin', 'secretary'], true),
+            in_array(auth()->user()?->role, ['super_admin', 'manager_assistant'], true),
             403
         );
     }
@@ -343,7 +343,7 @@ class PrintController extends Controller
     private function authorizeAdminOrCourseFaculty(CourseOffering $offering): void
     {
         $user = auth()->user();
-        $isAdmin = in_array($user?->role, ['super_admin', 'secretary'], true);
+        $isAdmin = in_array($user?->role, ['super_admin', 'manager_assistant'], true);
         $isFaculty = $user?->role === 'faculty' && $offering->faculty_id === $user->id;
         abort_unless($isAdmin || $isFaculty, 403);
     }

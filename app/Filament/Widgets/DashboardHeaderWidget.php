@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Semester;
 use App\Models\Setting;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -13,22 +14,37 @@ use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Widgets\Widget;
 
-class SettingsWidget extends Widget implements HasActions, HasSchemas
+class DashboardHeaderWidget extends Widget implements HasActions, HasSchemas
 {
     use InteractsWithActions;
     use InteractsWithSchemas;
 
-    protected string $view = 'filament.widgets.settings-widget';
+    protected string $view = 'filament.widgets.dashboard-header';
 
     protected static ?int $sort = -10;
 
     protected int|string|array $columnSpan = 'full';
 
-    public static function canView(): bool
+    /**
+     * @return array{name: string, roleLabel: string, semesterName: string, canEditSettings: bool}
+     */
+    public function getHeaderData(): array
     {
-        $role = auth()->user()?->role;
+        $user = auth()->user();
 
-        return in_array($role, ['super_admin', 'secretary'], true);
+        $roleLabels = [
+            'super_admin' => 'مدير النظام',
+            'manager_assistant' => 'مساعد إداري',
+            'faculty' => 'عضو هيئة التدريس',
+            'student' => 'طالب',
+        ];
+
+        return [
+            'name' => $user?->name ?? '',
+            'roleLabel' => $roleLabels[$user?->role] ?? '',
+            'semesterName' => Semester::where('is_active', true)->value('name') ?? 'لا يوجد فصل نشط',
+            'canEditSettings' => in_array($user?->role, ['super_admin', 'manager_assistant'], true),
+        ];
     }
 
     public function editSettingsAction(): Action

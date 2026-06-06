@@ -1,17 +1,19 @@
 <x-filament-panels::page>
     @php
         $specializations = $this->getSpecializations();
+        $semesters       = $this->getSemesters();
+        $selectedSem     = $this->selectedSemester;
         $applications    = $this->getApplications();
         $activeSpec      = $this->activeSpecialization;
         $activeSpecName  = $activeSpec ? $specializations->firstWhere('id', $activeSpec)?->name : null;
         $selectedCount   = count($this->selected);
 
-        $tabs = collect([['id' => null, 'label' => 'الكل', 'count' => \App\Models\Application::where('status', 'initially_approved')->count()]]);
+        $tabs = collect([['id' => null, 'label' => 'الكل', 'count' => \App\Models\Application::where('status', 'initially_approved')->when($selectedSem, fn ($q) => $q->where('semester_id', $selectedSem))->count()]]);
         foreach ($specializations as $spec) {
             $tabs->push([
                 'id'    => $spec->id,
                 'label' => $spec->name,
-                'count' => \App\Models\Application::where('status', 'initially_approved')->where('specialization_id', $spec->id)->count(),
+                'count' => \App\Models\Application::where('status', 'initially_approved')->when($selectedSem, fn ($q) => $q->where('semester_id', $selectedSem))->where('specialization_id', $spec->id)->count(),
             ]);
         }
     @endphp
@@ -20,9 +22,18 @@
     <div class="flex items-center justify-between gap-4 flex-wrap">
         <x-admin.filter-tabs :tabs="$tabs" :active="$activeSpec" wire-method="filterBySpecialization" />
 
-        @if($activeSpec && $applications->isNotEmpty())
-            <x-admin.print-button onclick="window.open('{{ route('print.exam-list', $activeSpec) }}', '_blank')" />
-        @endif
+        <div class="flex items-center gap-3 flex-wrap">
+            <select wire:model.live="selectedSemester"
+                class="rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white text-sm focus:border-primary-500 focus:ring-primary-500">
+                @foreach($semesters as $semester)
+                    <option value="{{ $semester->id }}">{{ $semester->name }}</option>
+                @endforeach
+            </select>
+
+            @if($activeSpec && $applications->isNotEmpty())
+                <x-admin.print-button onclick="window.open('{{ route('print.exam-list', $activeSpec) }}', '_blank')" />
+            @endif
+        </div>
     </div>
 
     {{-- Content --}}

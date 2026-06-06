@@ -27,9 +27,9 @@ class GraduateResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الخريجون';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'طلبات المناقشة';
+    protected static string|\UnitEnum|null $navigationGroup = 'المناقشة والتخرج';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $slug = 'graduates';
 

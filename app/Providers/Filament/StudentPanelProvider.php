@@ -28,6 +28,7 @@ class StudentPanelProvider extends PanelProvider
             ->path('portal')
             ->font('Noto Kufi Arabic', url: asset('css/noto-kufi-arabic.css'), provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/student/theme.css')
+            ->spa(hasPrefetching: true)
             ->login()
             ->brandName('بوابة الطالب')
             ->colors([

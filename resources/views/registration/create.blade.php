@@ -6,75 +6,60 @@
     <div class="space-y-20 mb-20">
 
         {{-- عن الكلية --}}
-        <section id="about" class="scroll-mt-28">
-            <div class="mb-10 text-center">
-                <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">عن الكلية</span>
-                <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">نبذة عن كليتنا</h2>
-                <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">
-                    {{ $settings['college_name'] }} — مؤسسة تعليمية رائدة في مجال التقنية الإلكترونية، تسعى لإعداد كوادر مؤهلة قادرة على مواكبة التطور الرقمي وخدمة المجتمع.
-                </p>
-            </div>
+        <section id="about" data-spy class="reveal scroll-mt-28">
+            <div class="grid items-center gap-10 lg:grid-cols-2">
 
-            <div class="grid gap-6 md:grid-cols-3">
-                <div class="rounded-2xl bg-white p-8 text-center shadow-md ring-1 ring-slate-200">
-                    <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                        <svg class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-slate-800">رؤيتنا</h3>
-                    <p class="text-sm leading-relaxed text-slate-500">الريادة في التعليم التقني والإسهام في بناء مجتمع المعرفة الرقمي.</p>
-                </div>
-                <div class="rounded-2xl bg-white p-8 text-center shadow-md ring-1 ring-slate-200">
-                    <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                        <svg class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-slate-800">رسالتنا</h3>
-                    <p class="text-sm leading-relaxed text-slate-500">إعداد خريجين متميزين علمياً وعملياً وفق أحدث المعايير الأكاديمية.</p>
-                </div>
-                <div class="rounded-2xl bg-white p-8 text-center shadow-md ring-1 ring-slate-200">
-                    <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                        <svg class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-slate-800">أهدافنا</h3>
-                    <p class="text-sm leading-relaxed text-slate-500">تطوير البحث العلمي وربط مخرجات التعليم باحتياجات سوق العمل.</p>
-                </div>
-            </div>
-        </section>
+                {{-- Text + checklist (right in RTL) --}}
+                <div>
+                    <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">عن الكلية</span>
+                    <h2 class="mt-4 text-3xl font-extrabold leading-tight text-slate-900 md:text-4xl">
+                        بوابتك إلى الدراسات العليا
+                    </h2>
+                    <p class="mt-4 text-base leading-relaxed text-slate-500">
+                        من خلال هذه المنصة يمكنك التقديم على برامج الإجازة العليا (الماجستير) في {{ $settings['college_name'] }}،
+                        ومتابعة مسار طلبك بالكامل إلكترونياً — من تعبئة الاستمارة ورفع المستندات، إلى معرفة موعد الاختبار وحالة القبول.
+                    </p>
 
-        {{-- هيئة التدريس --}}
-        <section id="faculty" class="scroll-mt-28">
-            <div class="mb-10 text-center">
-                <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">هيئة التدريس</span>
-                <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">قيادة وكوادر أكاديمية متميزة</h2>
-                <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">
-                    نخبة من أعضاء هيئة التدريس ذوي الخبرة والكفاءة يشرفون على العملية التعليمية والبحثية بالكلية.
-                </p>
-            </div>
+                    <ul class="mt-7 space-y-4">
+                        @foreach([
+                            'برامج ماجستير في تخصصات تقنية معتمدة',
+                            'تقديم وتسجيل إلكتروني بالكامل دون حضور',
+                            'متابعة فورية لحالة الطلب برقم التتبع',
+                            'إشعارات عبر الواتساب',
+                        ] as $point)
+                            <li class="flex items-start gap-3">
+                                <span class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                                    <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                </span>
+                                <span class="text-base font-medium text-slate-700">{{ $point }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
 
-            <div class="grid gap-6 md:grid-cols-2">
-                <div class="flex items-center gap-5 rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                    <div class="flex size-16 shrink-0 items-center justify-center rounded-full bg-blue-700 text-2xl font-extrabold text-white">
-                        {{ mb_substr(trim($settings['dean_name'] ?? ''), 0, 1) ?: 'ع' }}
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-blue-700">عميد الكلية</p>
-                        <h3 class="mt-1 text-lg font-bold text-slate-800">{{ $settings['dean_name'] }}</h3>
-                    </div>
+                    <a href="#apply" class="mt-8 inline-flex items-center gap-2 rounded-xl bg-blue-800 px-6 py-3 text-base font-bold text-white shadow transition hover:bg-blue-900">
+                        ابدأ التقديم الآن
+                        <svg class="size-5 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                    </a>
                 </div>
-                <div class="flex items-center gap-5 rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200">
-                    <div class="flex size-16 shrink-0 items-center justify-center rounded-full bg-sky-600 text-2xl font-extrabold text-white">
-                        {{ mb_substr(trim($settings['director_name'] ?? ''), 0, 1) ?: 'م' }}
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-sky-700">{{ $settings['office_name'] }}</p>
-                        <h3 class="mt-1 text-lg font-bold text-slate-800">{{ $settings['director_name'] }}</h3>
+
+                {{-- Visual (left in RTL) --}}
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-bl from-blue-800 to-sky-600 p-12 text-center shadow-xl">
+                    <div class="pointer-events-none absolute -top-12 -start-10 h-44 w-44 rounded-full bg-white/10 blur-2xl"></div>
+                    <div class="pointer-events-none absolute -bottom-14 -end-8 h-52 w-52 rounded-full bg-white/10 blur-2xl"></div>
+                    <div class="relative">
+                        <div class="mx-auto mb-6 flex size-24 items-center justify-center rounded-3xl bg-white/15 backdrop-blur">
+                            <svg class="size-14 text-white" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+                        </div>
+                        <p class="text-2xl font-extrabold text-white">برامج الإجازة العليا</p>
+                        <p class="mt-2 text-sky-100">الماجستير في كلية التقنية</p>
                     </div>
                 </div>
             </div>
         </section>
 
         {{-- الأقسام --}}
-        <section id="departments" class="scroll-mt-28">
-            <div class="mb-10 text-center">
+        <section id="departments" data-spy class="reveal scroll-mt-28">
+            <div class="mb-8 text-center">
                 <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">الأقسام</span>
                 <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">الأقسام والتخصصات</h2>
                 <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">
@@ -107,38 +92,65 @@
             @endif
         </section>
 
-        {{-- الأخبار --}}
-        {{-- NOTE: placeholder news — replace with real announcements when available. --}}
-        <section id="news" class="scroll-mt-28">
+        {{-- الأخبار / إرشادات المتقدمين --}}
+        <section id="news" data-spy class="reveal scroll-mt-28">
             <div class="mb-10 text-center">
                 <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">الأخبار</span>
-                <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">آخر الأخبار والإعلانات</h2>
-                <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">تابع أحدث المستجدات والإعلانات الخاصة بالدراسات العليا.</p>
+                <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">معلومات تهمّ المتقدمين</h2>
+                <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">كل ما تحتاج معرفته قبل وأثناء وبعد تقديم طلبك للدراسات العليا.</p>
             </div>
 
             <div class="grid gap-6 md:grid-cols-3">
-                @foreach([
-                    ['date' => 'فتح باب التقديم', 'title' => 'بدء استقبال طلبات الالتحاق بالدراسات العليا', 'excerpt' => 'تعلن الكلية عن فتح باب التقديم لبرامج الماجستير للعام الدراسي الجديد عبر المنصة الإلكترونية.'],
-                    ['date' => 'مواعيد الاختبارات', 'title' => 'الإعلان عن جدول اختبارات القبول', 'excerpt' => 'سيتم إخطار المتقدمين المقبولين مبدئياً بمواعيد اختبارات القبول عبر رقم التتبع والبريد الإلكتروني.'],
-                    ['date' => 'إرشادات التسجيل', 'title' => 'دليل المتقدم لاستكمال الطلب', 'excerpt' => 'يرجى من المتقدمين تجهيز المستندات المطلوبة والتأكد من صحة البيانات قبل إرسال الطلب.'],
-                ] as $news)
-                    <article class="overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:shadow-lg">
-                        <div class="flex h-32 items-center justify-center bg-gradient-to-bl from-blue-700 to-sky-600 text-white">
-                            <svg class="size-12 opacity-80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>
-                        </div>
-                        <div class="p-6">
-                            <span class="text-xs font-bold text-blue-700">{{ $news['date'] }}</span>
-                            <h3 class="mt-2 text-base font-bold leading-snug text-slate-800">{{ $news['title'] }}</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ $news['excerpt'] }}</p>
-                        </div>
-                    </article>
-                @endforeach
+
+                {{-- Card 1: how to apply --}}
+                <article class="flex flex-col overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-lg">
+                    <div class="flex h-28 items-center justify-center bg-gradient-to-bl from-blue-700 to-sky-600 text-white">
+                        <svg class="size-11 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                    </div>
+                    <div class="flex flex-1 flex-col p-6">
+                        <span class="text-xs font-bold text-blue-700">التقديم الإلكتروني</span>
+                        <h3 class="mt-2 text-base font-bold leading-snug text-slate-800">قدّم طلبك في خطوات بسيطة</h3>
+                        <p class="mt-2 text-sm leading-relaxed text-slate-500">عبّئ بياناتك، اختر التخصص، ارفع مستنداتك، وفعّل التحقق من رقم النقال — كل ذلك أونلاين دون الحاجة للحضور.</p>
+                        <a href="#apply" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900">
+                            ابدأ التقديم
+                            <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                        </a>
+                    </div>
+                </article>
+
+                {{-- Card 2: required documents --}}
+                <article class="flex flex-col overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-lg">
+                    <div class="flex h-28 items-center justify-center bg-gradient-to-bl from-blue-700 to-sky-600 text-white">
+                        <svg class="size-11 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                    </div>
+                    <div class="flex flex-1 flex-col p-6">
+                        <span class="text-xs font-bold text-blue-700">قبل التقديم</span>
+                        <h3 class="mt-2 text-base font-bold leading-snug text-slate-800">جهّز المستندات المطلوبة</h3>
+                        <p class="mt-2 text-sm leading-relaxed text-slate-500">شهادة البكالوريوس وكشف المواد التكميلية بصيغة PDF أو صورة (JPG/PNG) بحجم أقصى 5 ميجابايت لكل ملف، مع التأكد من صحة الاسم والرقم الوطني.</p>
+                    </div>
+                </article>
+
+                {{-- Card 3: track application --}}
+                <article class="flex flex-col overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-lg">
+                    <div class="flex h-28 items-center justify-center bg-gradient-to-bl from-blue-700 to-sky-600 text-white">
+                        <svg class="size-11 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <div class="flex flex-1 flex-col p-6">
+                        <span class="text-xs font-bold text-blue-700">بعد التقديم</span>
+                        <h3 class="mt-2 text-base font-bold leading-snug text-slate-800">تابع حالة طلبك وموعد الاختبار</h3>
+                        <p class="mt-2 text-sm leading-relaxed text-slate-500">استخدم رقم التتبع والرقم الوطني للاستعلام عن حالة القبول ومعرفة موعد اختبار القبول في أي وقت.</p>
+                        <a href="{{ route('application.track.show') }}" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900">
+                            متابعة الطلب
+                            <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                        </a>
+                    </div>
+                </article>
             </div>
         </section>
 
         {{-- اتصل بنا --}}
         {{-- NOTE: placeholder contact details — replace phone/email/address with real values. --}}
-        <section id="contact" class="scroll-mt-28">
+        <section id="contact" data-spy class="reveal scroll-mt-28">
             <div class="mb-10 text-center">
                 <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">اتصل بنا</span>
                 <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">تواصل معنا</h2>
@@ -179,7 +191,7 @@
     </div>
 
     {{-- ============================ Registration form ============================ --}}
-    <div id="apply" class="mx-auto max-w-5xl scroll-mt-28">
+    <div id="apply" data-spy class="mx-auto max-w-5xl scroll-mt-28">
 
         {{-- Header --}}
         <div class="mb-10 text-center">
@@ -190,21 +202,6 @@
                 استمارة طلب التحاق بالدراسات العليا
             </h2>
             <p class="mt-3 text-base text-slate-500">الإجازة العليا (الماجستير)</p>
-
-            {{-- Testing helper: generate sample applicant data --}}
-            <div class="mt-6 inline-flex">
-                <button type="button"
-                        x-data
-                        @click="$dispatch('fill-sample')"
-                        :disabled="$store.apply?.filling"
-                        class="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-60">
-                    <svg class="size-4" :class="$store.apply?.filling && 'animate-spin'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18 7.5v3m0 0v3m0-3h3m-3 0h-3" />
-                    </svg>
-                    <span x-text="$store.apply?.filling ? 'جاري التوليد...' : 'توليد بيانات تجريبية'">توليد بيانات تجريبية</span>
-                </button>
-            </div>
-            <p class="mt-2 text-xs text-slate-400">يملأ الاستمارة ببيانات عشوائية للاختبار — ما عدا الملفات (يجب اختيارها يدوياً).</p>
         </div>
 
         {{-- Success --}}
@@ -230,13 +227,29 @@
         @endif
 
         <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8"
-              x-data="applyForm()" @fill-sample.window="fillSample()">
+              x-data="applyForm()" x-init="recalc()" @input="recalc()" @change="recalc()">
             @csrf
 
+            {{-- Live completion progress --}}
+            <div class="sticky top-28 z-20 rounded-2xl border border-slate-200 bg-white/95 px-5 py-3 shadow-sm backdrop-blur">
+                <div class="mb-2 flex items-center justify-between text-sm font-bold">
+                    <span class="text-slate-700">اكتمال الاستمارة</span>
+                    <span class="text-blue-700" x-text="progress + '%'">0%</span>
+                </div>
+                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div class="h-full rounded-full bg-gradient-to-l from-sky-400 to-blue-700 transition-[width] duration-300 ease-out"
+                         :style="`width: ${progress}%`"></div>
+                </div>
+            </div>
+
             {{-- 1. Personal Information --}}
-            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-6 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
-                    أولاً: البيانات الشخصية
+            <div data-section="personal" class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                <h3 class="mb-6 flex items-center justify-between border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
+                    <span>أولاً: البيانات الشخصية</span>
+                    <span x-show="sections.personal" x-cloak class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
+                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                        مكتمل
+                    </span>
                 </h3>
 
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -314,7 +327,11 @@
 
                     <div>
                         <x-form.label for="national_id">الرقم الوطني <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" placeholder="12 رقماً" maxlength="12" required />
+                        <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" placeholder="12 رقماً" maxlength="12" required x-model="nationalId" dir="ltr" class="text-right" />
+                        <p class="mt-1 text-xs" :class="nationalId.length === 12 ? 'text-emerald-600 font-bold' : 'text-slate-400'">
+                            <span x-text="nationalId.length + '/12'">0/12</span>
+                            <span x-show="nationalId.length === 12">✓</span>
+                        </p>
                         <x-form.error name="national_id" />
                     </div>
 
@@ -351,9 +368,13 @@
             </div>
 
             {{-- 2. Contact & Academic --}}
-            <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
-                <h3 class="mb-6 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
-                    ثانياً: بيانات التواصل والقسم
+            <div data-section="contact" class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                <h3 class="mb-6 flex items-center justify-between border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">
+                    <span>ثانياً: بيانات التواصل والقسم</span>
+                    <span x-show="sections.contact" x-cloak class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600">
+                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                        مكتمل
+                    </span>
                 </h3>
 
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -366,10 +387,13 @@
                     <div>
                         <x-form.label for="phone">رقم النقال <span class="text-red-500">*</span></x-form.label>
                         <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" required x-model="phone" dir="ltr" class="text-right" />
-                        <p class="mt-1 text-xs" :class="phone && ! phoneValid ? 'text-red-500' : 'text-slate-400'">
-                            <span x-show="! phone">10 أرقام يبدأ بـ 09 (ليبي فقط)</span>
-                            <span x-show="phone && ! phoneValid" x-cloak>الرقم يجب أن يكون 10 أرقام ويبدأ بـ 09</span>
-                            <span x-show="phoneValid" x-cloak class="font-bold text-emerald-600">✓ رقم صحيح</span>
+                        <p class="mt-1 flex items-center justify-between text-xs" :class="phone && ! phoneValid ? 'text-red-500' : 'text-slate-400'">
+                            <span>
+                                <span x-show="! phone">10 أرقام يبدأ بـ 09 (ليبي فقط)</span>
+                                <span x-show="phone && ! phoneValid" x-cloak>الرقم يجب أن يكون 10 أرقام ويبدأ بـ 09</span>
+                                <span x-show="phoneValid" x-cloak class="font-bold text-emerald-600">✓ رقم صحيح</span>
+                            </span>
+                            <span class="tabular-nums" :class="phoneValid && 'font-bold text-emerald-600'" x-text="phone.length + '/10'">0/10</span>
                         </p>
                         <x-form.error name="phone" />
 
@@ -479,6 +503,7 @@
                     <div>
                         <x-form.label for="bachelor_certificate">شهادة البكالوريوس</x-form.label>
                         <input id="bachelor_certificate" name="bachelor_certificate" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                            @change="checkFile($event)"
                             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
                         <x-form.error name="bachelor_certificate" />
                     </div>
@@ -486,6 +511,7 @@
                     <div>
                         <x-form.label for="remedial_statement">كشف المواد التكميلية</x-form.label>
                         <input id="remedial_statement" name="remedial_statement" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                            @change="checkFile($event)"
                             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
                         <x-form.error name="remedial_statement" />
                     </div>
@@ -526,21 +552,58 @@
     </div>
 
     <script>
-        // Alpine store shared with the "fill sample" button (which lives in the
-        // page header, outside the form's x-data scope).
-        document.addEventListener('alpine:init', () => {
-            Alpine.store('apply', { filling: false });
-        });
-
-        // Alpine component backing the application form: conditional fields,
-        // live phone/password validation, and the test-data filler.
+        // Alpine component backing the application form: conditional fields
+        // and live phone/password validation.
         function applyForm() {
             return {
                 nationality: @js(old('nationality', 'ليبية')),
                 studyType: @js(old('study_type', '')),
                 phone: @js(old('phone', '')),
+                nationalId: @js(old('national_id', '')),
                 password: '',
                 passwordConfirm: '',
+
+                progress: 0,
+                sections: {},
+
+                // Recompute the completion progress bar + per-section badges by
+                // scanning the form's required fields. Called on init + every input.
+                recalc() {
+                    const form = this.$root;
+                    const filled = (el) => el.type === 'checkbox'
+                        ? el.checked
+                        : String(el.value || '').trim() !== '';
+
+                    const required = [...form.querySelectorAll('[required]')];
+                    this.progress = required.length
+                        ? Math.round(required.filter(filled).length / required.length * 100)
+                        : 0;
+
+                    const secs = {};
+                    form.querySelectorAll('[data-section]').forEach((sec) => {
+                        const req = [...sec.querySelectorAll('[required]')];
+                        secs[sec.dataset.section] = req.length > 0 && req.every(filled);
+                    });
+                    this.sections = secs;
+                },
+
+                // Reject oversized uploads on the client (5 MB/file) with a clear
+                // alert, then clear the input so a huge file is never submitted.
+                // The server (max:5120) re-validates as the real guard.
+                maxFileBytes: 5 * 1024 * 1024,
+                checkFile(event) {
+                    const input = event.target;
+                    const file = input.files && input.files[0];
+                    if (file && file.size > this.maxFileBytes) {
+                        const mb = (file.size / 1024 / 1024).toFixed(1);
+                        this.$store.toast.notify(
+                            'حجم الملف كبير جداً',
+                            `حجم الملف ${mb} ميجابايت ويتجاوز الحد الأقصى المسموح به وهو 5 ميجابايت. يرجى اختيار ملف أصغر.`,
+                            'error',
+                        );
+                        input.value = '';
+                    }
+                },
 
                 get isOther() {
                     return this.nationality === 'أخرى';
@@ -556,49 +619,6 @@
                 },
                 get passwordsMatch() {
                     return this.password === this.passwordConfirm;
-                },
-
-                // Fetch sample applicant data and fill every matching field.
-                // File inputs are skipped (browser security) and the declaration
-                // checkbox is auto-ticked. Dispatching input/change keeps the
-                // Alpine-bound fields (nationality, study_type, phone, …) in sync.
-                async fillSample() {
-                    this.$store.apply.filling = true;
-                    try {
-                        const response = await fetch('{{ route('registration.sample') }}', {
-                            headers: { 'Accept': 'application/json' },
-                            credentials: 'same-origin',
-                        });
-                        if (! response.ok) throw new Error('sample endpoint returned ' + response.status);
-
-                        const data = await response.json();
-
-                        for (const [name, value] of Object.entries(data)) {
-                            const radios = document.querySelectorAll(`input[name="${name}"][type="radio"]`);
-                            if (radios.length > 0) {
-                                radios.forEach(r => {
-                                    r.checked = String(r.value) === String(value);
-                                    r.dispatchEvent(new Event('change', { bubbles: true }));
-                                });
-                                continue;
-                            }
-                            const el = document.querySelector(`[name="${name}"]`);
-                            if (! el) continue;
-                            if (el.type === 'file') continue;
-                            if (el.type === 'checkbox') { el.checked = !! value; continue; }
-                            el.value = value ?? '';
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                            el.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-
-                        const decl = document.querySelector('input[name="declaration"]');
-                        if (decl) decl.checked = true;
-                    } catch (err) {
-                        console.error(err);
-                        alert('فشل توليد البيانات. راجع الكونسول.');
-                    } finally {
-                        this.$store.apply.filling = false;
-                    }
                 },
             };
         }

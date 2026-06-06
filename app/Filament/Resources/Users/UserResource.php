@@ -25,6 +25,10 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'المستخدمون';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الوصول والنظام';
+
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'مستخدم';
 
     protected static ?string $pluralModelLabel = 'المستخدمون';

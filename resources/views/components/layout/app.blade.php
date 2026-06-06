@@ -39,25 +39,49 @@
         }
 
         [x-cloak] { display: none !important; }
+
+        /* Scroll-reveal (enabled only when JS runs, so no-JS keeps content visible) */
+        .reveal-enabled .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+        .reveal-enabled .reveal.is-visible {
+            opacity: 1;
+            transform: none;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .reveal-enabled .reveal { opacity: 1; transform: none; transition: none; }
+        }
     </style>
 </head>
 <body class="min-h-screen text-slate-900">
+<script>document.documentElement.classList.add('reveal-enabled');</script>
 
 @php
     // Public nav — anchors into the landing sections on the /apply page.
     // Absolute (route + #hash) so they also work from /apply/track.
+    // 'id' matches the on-page section id used by the scroll-spy.
     $applyUrl = route('registration.create');
     $navLinks = [
-        ['label' => 'الرئيسية', 'href' => $applyUrl.'#home'],
-        ['label' => 'عن الكلية', 'href' => $applyUrl.'#about'],
-        ['label' => 'هيئة التدريس', 'href' => $applyUrl.'#faculty'],
-        ['label' => 'الأقسام', 'href' => $applyUrl.'#departments'],
-        ['label' => 'الأخبار', 'href' => $applyUrl.'#news'],
-        ['label' => 'اتصل بنا', 'href' => $applyUrl.'#contact'],
+        ['label' => 'عن الكلية', 'href' => $applyUrl.'#about', 'id' => 'about'],
+        ['label' => 'الأقسام', 'href' => $applyUrl.'#departments', 'id' => 'departments'],
+        ['label' => 'الأخبار', 'href' => $applyUrl.'#news', 'id' => 'news'],
+        ['label' => 'اتصل بنا', 'href' => $applyUrl.'#contact', 'id' => 'contact'],
     ];
 @endphp
 
-<header class="sticky top-0 z-40 bg-white/95 shadow-sm backdrop-blur" x-data="{ mobileOpen: false }">
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur transition-shadow duration-300"
+        :class="$store.ui?.scrolled ? 'shadow-lg' : 'shadow-sm'"
+        x-data="{ mobileOpen: false }">
+
+    {{-- Reading-progress bar --}}
+    <div class="absolute inset-x-0 top-0 h-1 bg-transparent">
+        <div class="h-full bg-gradient-to-l from-sky-400 to-blue-700 transition-[width] duration-150 ease-out"
+             :style="`width: ${$store.ui?.progress ?? 0}%`"></div>
+    </div>
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="flex items-center justify-between gap-4 h-24 md:h-28">
 
@@ -69,9 +93,15 @@
             </div>
 
             {{-- Desktop nav --}}
-            <nav class="hidden shrink-0 items-center gap-5 text-base font-semibold text-slate-700 xl:flex xl:gap-7">
+            <nav class="hidden shrink-0 items-center gap-5 text-base font-semibold text-slate-700 lg:flex lg:gap-8">
                 @foreach($navLinks as $link)
-                    <a href="{{ $link['href'] }}" class="whitespace-nowrap transition hover:text-blue-700">{{ $link['label'] }}</a>
+                    <a href="{{ $link['href'] }}"
+                       :class="$store.ui?.active === '{{ $link['id'] }}' ? 'text-blue-700' : 'text-slate-700'"
+                       class="relative whitespace-nowrap pb-1 transition hover:text-blue-700">
+                        {{ $link['label'] }}
+                        <span class="absolute inset-x-0 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-700 transition-transform duration-300"
+                              :class="$store.ui?.active === '{{ $link['id'] }}' ? 'scale-x-100' : 'scale-x-0'"></span>
+                    </a>
                 @endforeach
             </nav>
 
@@ -87,7 +117,7 @@
                         @click="mobileOpen = ! mobileOpen"
                         :aria-expanded="mobileOpen"
                         aria-label="القائمة"
-                        class="inline-flex items-center justify-center rounded-lg p-2 text-slate-700 transition hover:bg-slate-100 xl:hidden">
+                        class="inline-flex items-center justify-center rounded-lg p-2 text-slate-700 transition hover:bg-slate-100 lg:hidden">
                     <svg x-show="! mobileOpen" class="size-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
                     </svg>
@@ -105,7 +135,7 @@
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 -translate-y-2"
              x-transition:enter-end="opacity-100 translate-y-0"
-             class="border-t border-slate-100 py-3 xl:hidden">
+             class="border-t border-slate-100 py-3 lg:hidden">
             <div class="flex flex-col gap-1 text-base font-semibold text-slate-700">
                 @foreach($navLinks as $link)
                     <a href="{{ $link['href'] }}" @click="mobileOpen = false" class="rounded-lg px-3 py-2.5 transition hover:bg-blue-50 hover:text-blue-700">{{ $link['label'] }}</a>
@@ -119,79 +149,53 @@
     </div>
 </header>
 
-<section id="home" class="relative overflow-hidden bg-gradient-to-bl from-blue-900 via-blue-800 to-sky-700">
-    {{-- soft decorative glows --}}
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-        <div class="absolute -top-24 -start-24 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl"></div>
-        <div class="absolute -bottom-32 -end-16 h-[28rem] w-[28rem] rounded-full bg-blue-500/20 blur-3xl"></div>
+<section id="home" data-spy class="relative overflow-hidden bg-[#d4effd]">
+
+    {{-- ===== Desktop (lg+): full-bleed illustration with the copy over the open right side ===== --}}
+    <div class="relative hidden lg:block">
+        <img src="{{ asset('images/hero-apply.png') }}" alt="" aria-hidden="true"
+             class="absolute inset-0 h-full w-full object-cover object-[left_bottom]">
+        {{-- directional wash — illustration crisp on the left, text area clear on the right --}}
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#d4effd] via-[#d4effd]/55 to-transparent"></div>
+
+        <div class="relative mx-auto max-w-7xl px-6 py-28">
+            <div class="grid min-h-[26rem] grid-cols-2 items-center">
+                <div class="text-right">
+                    <h2 class="text-6xl font-extrabold leading-tight text-blue-900">
+                        كلية التقنية الإلكترونية
+                        <br>
+                        طرابلس
+                    </h2>
+                    <p class="mt-6 text-2xl font-medium text-blue-800/80">نحو مستقبل رقمي أفضل</p>
+                    <div class="mt-10">
+                        <a href="#apply"
+                           class="inline-flex items-center justify-center rounded-full bg-blue-800 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-blue-900/20 transition hover:bg-blue-900 hover:shadow-xl">
+                            التقديم على الدراسات العليا
+                        </a>
+                    </div>
+                </div>
+                <div aria-hidden="true"></div>
+            </div>
+        </div>
     </div>
 
-    <div class="relative max-w-7xl mx-auto px-6 py-20 lg:py-28">
-        <div class="grid items-center gap-12 lg:grid-cols-2">
+    {{-- ===== Mobile (<lg): faded illustration backdrop with the copy overlaid (text-shadow for legibility) ===== --}}
+    <div class="relative overflow-hidden lg:hidden">
+        <img src="{{ asset('images/hero-apply.png') }}" alt="رسم خريج يحمل شهادته أمام مبنى الكلية"
+             class="absolute inset-0 h-full w-full object-cover object-center opacity-20">
+        {{-- soft top/bottom fade so the copy floats cleanly over the art --}}
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#d4effd]/70 via-transparent to-[#d4effd]/80"></div>
 
-            {{-- Copy (right side in RTL) --}}
-            <div class="text-right text-white">
-                <span class="inline-flex rounded-full bg-white/15 px-5 py-2 text-sm font-medium backdrop-blur">
-                    المؤسسة التعليمية الرائدة في مجال التقنية
-                </span>
-
-                <h2 class="mt-6 text-4xl lg:text-6xl font-extrabold leading-tight">
-                    كلية التقنية الإلكترونية
-                    <br>
-                    طرابلس
-                </h2>
-
-                <p class="mt-6 text-xl lg:text-2xl text-sky-100">
-                    نحو مستقبل رقمي أفضل
-                </p>
-
-                <div class="mt-10">
-                    <a href="#apply"
-                       class="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-lg font-bold text-blue-800 shadow-lg shadow-blue-950/30 transition hover:bg-sky-50 hover:shadow-xl">
-                        التقديم على الدراسات العليا
-                    </a>
-                </div>
-            </div>
-
-            {{-- Illustration (left side in RTL) --}}
-            <div class="relative">
-                <svg viewBox="0 0 560 460" class="mx-auto w-full max-w-md drop-shadow-2xl" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="رسم توضيحي للدراسات العليا">
-                    {{-- backdrop discs --}}
-                    <circle cx="280" cy="235" r="215" fill="#ffffff" opacity="0.06"/>
-                    <circle cx="280" cy="235" r="165" fill="#ffffff" opacity="0.05"/>
-
-                    {{-- floating accents --}}
-                    <circle cx="105" cy="120" r="10" fill="#bae6fd" opacity="0.7"/>
-                    <circle cx="455" cy="300" r="15" fill="#38bdf8" opacity="0.45"/>
-                    <circle cx="92" cy="330" r="7" fill="#7dd3fc" opacity="0.8"/>
-                    <g stroke="#bae6fd" stroke-width="4" stroke-linecap="round" opacity="0.8">
-                        <path d="M428,86 v26"/>
-                        <path d="M415,99 h26"/>
-                    </g>
-
-                    {{-- graduation cap --}}
-                    <path d="M236,150 L236,184 C236,184 254,206 280,206 C306,206 324,184 324,184 L324,150 Z" fill="#1e3a8a"/>
-                    <path d="M236,150 L236,168 C236,168 254,184 280,184 C306,184 324,168 324,168 L324,150 Z" fill="#1e40af"/>
-                    <polygon points="280,96 436,156 280,156 124,156" fill="#3b82f6"/>
-                    <polygon points="124,156 436,156 280,216 124,156" fill="#1d4ed8"/>
-                    <circle cx="280" cy="156" r="10" fill="#fbbf24"/>
-                    <path d="M280,156 H392" stroke="#fbbf24" stroke-width="4" fill="none"/>
-                    <path d="M392,156 C397,184 397,200 392,214" stroke="#fbbf24" stroke-width="4" fill="none"/>
-                    <circle cx="392" cy="218" r="8" fill="#f59e0b"/>
-                    <g stroke="#fbbf24" stroke-width="3" stroke-linecap="round">
-                        <path d="M386,224 l-3,22"/>
-                        <path d="M392,225 v23"/>
-                        <path d="M398,224 l3,22"/>
-                    </g>
-
-                    {{-- stacked books --}}
-                    <rect x="150" y="356" width="252" height="34" rx="9" fill="#1d4ed8"/>
-                    <rect x="160" y="356" width="16" height="34" fill="#1e3a8a"/>
-                    <rect x="136" y="320" width="252" height="34" rx="9" fill="#0ea5e9"/>
-                    <rect x="146" y="320" width="16" height="34" fill="#0284c7"/>
-                    <rect x="158" y="284" width="252" height="34" rx="9" fill="#60a5fa"/>
-                    <rect x="168" y="284" width="16" height="34" fill="#3b82f6"/>
-                </svg>
+        <div class="relative px-6 pb-16 pt-14 text-center">
+            <h2 class="text-3xl font-extrabold leading-tight text-blue-900 [text-shadow:0_2px_12px_rgba(255,255,255,0.85),0_1px_2px_rgba(30,58,138,0.15)] sm:text-4xl">
+                كلية التقنية الإلكترونية طرابلس
+            </h2>
+            <p class="mt-4 text-lg font-semibold text-blue-800 [text-shadow:0_1px_8px_rgba(255,255,255,0.8)]">نحو مستقبل رقمي أفضل</p>
+            <div class="mt-8">
+                <a href="#apply"
+                   class="inline-flex items-center justify-center rounded-full bg-blue-800 px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-900/30 ring-1 ring-white/20 transition hover:bg-blue-900 hover:shadow-xl">
+                    التقديم على الدراسات العليا
+                </a>
             </div>
         </div>
     </div>
@@ -200,6 +204,140 @@
 <main id="registration-form" class="max-w-7xl mx-auto px-6 py-16">
     {{ $slot }}
 </main>
+
+{{-- Toast notifications --}}
+<div x-data
+     x-show="$store.toast?.show"
+     x-cloak
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0 -translate-y-5 sm:scale-95"
+     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100 translate-y-0"
+     x-transition:leave-end="opacity-0 -translate-y-5"
+     class="fixed inset-x-0 top-6 z-[60] flex justify-center px-4"
+     role="alert" aria-live="assertive">
+    <div class="pointer-events-auto flex w-full max-w-md items-start gap-3 overflow-hidden rounded-2xl bg-white p-4 shadow-2xl ring-1"
+         :class="$store.toast?.type === 'error' ? 'ring-red-200' : 'ring-emerald-200'">
+        {{-- icon --}}
+        <div class="flex size-11 shrink-0 items-center justify-center rounded-full"
+             :class="$store.toast?.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'">
+            <svg x-show="$store.toast?.type === 'error'" class="size-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+            <svg x-show="$store.toast?.type !== 'error'" x-cloak class="size-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        {{-- text --}}
+        <div class="flex-1 pt-0.5">
+            <p class="text-sm font-bold text-slate-800" x-text="$store.toast?.title"></p>
+            <p class="mt-1 text-sm leading-relaxed text-slate-500" x-text="$store.toast?.message"></p>
+        </div>
+        {{-- close --}}
+        <button type="button" @click="$store.toast.dismiss()" aria-label="إغلاق"
+                class="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+    </div>
+</div>
+
+{{-- Back-to-top --}}
+<button type="button"
+        x-data
+        x-show="$store.ui?.showTop"
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-3"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-3"
+        @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
+        aria-label="العودة للأعلى"
+        class="fixed bottom-6 start-6 z-50 flex size-12 items-center justify-center rounded-full bg-blue-800 text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-900">
+    <svg class="size-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+    </svg>
+</button>
+
+<script>
+    // Shared UI store: scroll progress, sticky-header shadow, back-to-top
+    // visibility, scroll-spy active section, and scroll-reveal — all driven by
+    // a single scroll listener + IntersectionObservers (no Alpine plugins).
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('ui', {
+            scrolled: false,
+            showTop: false,
+            progress: 0,
+            active: 'home',
+
+            init() {
+                const onScroll = () => {
+                    const y = window.scrollY || document.documentElement.scrollTop;
+                    const doc = document.documentElement;
+                    const max = doc.scrollHeight - doc.clientHeight;
+                    this.scrolled = y > 8;
+                    this.showTop = y > 600;
+                    this.progress = max > 0 ? Math.min(100, (y / max) * 100) : 0;
+                };
+                window.addEventListener('scroll', onScroll, { passive: true });
+                window.addEventListener('resize', onScroll, { passive: true });
+                onScroll();
+
+                // Scroll-spy: mark the section crossing the viewport middle.
+                const spied = document.querySelectorAll('[data-spy]');
+                if ('IntersectionObserver' in window && spied.length) {
+                    const spy = new IntersectionObserver((entries) => {
+                        entries.forEach((e) => {
+                            if (e.isIntersecting && e.target.id) {
+                                this.active = e.target.id;
+                            }
+                        });
+                    }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+                    spied.forEach((el) => spy.observe(el));
+                }
+
+                // Scroll-reveal: fade/slide sections in as they appear.
+                const reveals = document.querySelectorAll('.reveal');
+                if ('IntersectionObserver' in window && reveals.length) {
+                    const ro = new IntersectionObserver((entries, obs) => {
+                        entries.forEach((e) => {
+                            if (e.isIntersecting) {
+                                e.target.classList.add('is-visible');
+                                obs.unobserve(e.target);
+                            }
+                        });
+                    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+                    reveals.forEach((el) => ro.observe(el));
+                    // Safety: reveal everything after a moment even if an observer misses.
+                    setTimeout(() => reveals.forEach((el) => el.classList.add('is-visible')), 2500);
+                } else {
+                    reveals.forEach((el) => el.classList.add('is-visible'));
+                }
+            },
+        });
+
+        Alpine.store('ui').init();
+
+        // Toast notifications (replaces native alert()).
+        Alpine.store('toast', {
+            show: false,
+            title: '',
+            message: '',
+            type: 'error',
+            timer: null,
+            notify(title, message, type = 'error') {
+                this.title = title;
+                this.message = message;
+                this.type = type;
+                this.show = true;
+                clearTimeout(this.timer);
+                this.timer = setTimeout(() => { this.show = false; }, 6000);
+            },
+            dismiss() {
+                this.show = false;
+                clearTimeout(this.timer);
+            },
+        });
+    });
+</script>
 
 </body>
 </html>

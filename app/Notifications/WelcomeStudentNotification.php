@@ -21,9 +21,9 @@ class WelcomeStudentNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject('مرحباً بك في برنامج الدراسات العليا')
+            ->subject('مرحباً بك في كلية التقنية الإلكترونية - الدراسات العليا')
             ->greeting('عزيزي الطالب '.$notifiable->name.'،')
-            ->line('يسعدنا إبلاغك بأنه تم قبولك رسمياً في برنامج الدراسات العليا.')
+            ->line('يسعدنا إبلاغك بأنه تم قبولك رسمياً في كلية التقنية الإلكترونية')
             ->line('**رقمك الجامعي:** '.($this->student->enrollment_no ?? '—'))
             ->line('**البريد الإلكتروني:** '.$notifiable->email);
 

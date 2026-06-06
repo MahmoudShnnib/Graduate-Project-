@@ -13,7 +13,6 @@ use App\Models\ThesisRegistration;
 use App\Notifications\AddDropDecisionNotification;
 use App\Notifications\ApplicationExamPassedNotification;
 use App\Notifications\ApplicationReceivedNotification;
-use App\Notifications\ApplicationStatusChangedNotification;
 use App\Notifications\ClearanceIssuedNotification;
 use App\Notifications\GradePublishedNotification;
 use App\Notifications\SuspensionDecisionNotification;
@@ -26,7 +25,7 @@ use Illuminate\Console\Command;
 class WhatsAppTest extends Command
 {
     protected $signature = 'whatsapp:test {phone : Recipient number, e.g. 0912345678}
-        {--type=all : otp | application_received | exam_passed | status_changed | welcome | grade | add_drop | suspension | thesis | clearance | all}';
+        {--type=all : otp | application_received | exam_passed | welcome | grade | add_drop | suspension | thesis | clearance | all}';
 
     protected $description = 'Send a real WhatsApp message (OTP or any notification) to a number to test delivery and wording.';
 
@@ -96,8 +95,6 @@ class WhatsAppTest extends Command
                 ? (new ApplicationReceivedNotification($application))->toWhatsApp($notifiable) : null,
             'exam_passed' => $application
                 ? (new ApplicationExamPassedNotification($application))->toWhatsApp($notifiable) : null,
-            'status_changed' => $application
-                ? (new ApplicationStatusChangedNotification($application))->toWhatsApp($notifiable) : null,
             'welcome' => $student
                 ? (new WelcomeStudentNotification($student))->toWhatsApp($notifiable) : null,
             'grade' => $grade
