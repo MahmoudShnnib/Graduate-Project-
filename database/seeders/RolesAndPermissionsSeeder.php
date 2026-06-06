@@ -35,7 +35,7 @@ class RolesAndPermissionsSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
-        $secretary = Role::firstOrCreate(['name' => 'secretary', 'guard_name' => 'web']);
+        $secretary = Role::firstOrCreate(['name' => 'manager_assistant', 'guard_name' => 'web']);
         $faculty = Role::firstOrCreate(['name' => 'faculty', 'guard_name' => 'web']);
         $student = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'panel_user', 'guard_name' => 'web']);
@@ -112,7 +112,7 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     private function repairUserRoles(): void
     {
-        $knownRoles = ['super_admin', 'secretary', 'faculty', 'student'];
+        $knownRoles = ['super_admin', 'manager_assistant', 'faculty', 'student'];
 
         User::query()
             ->whereIn('role', $knownRoles)

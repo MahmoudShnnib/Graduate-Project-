@@ -13,7 +13,7 @@ class PrintCourseStudentsController extends Controller
     public function __invoke(CourseOffering $courseOffering): Response
     {
         abort_unless(
-            in_array(auth()->user()?->role, ['super_admin', 'secretary'], true),
+            in_array(auth()->user()?->role, ['super_admin', 'manager_assistant'], true),
             403
         );
 

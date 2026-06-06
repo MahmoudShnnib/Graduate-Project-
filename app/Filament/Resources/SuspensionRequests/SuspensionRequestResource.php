@@ -36,7 +36,7 @@ class SuspensionRequestResource extends Resource
 
     protected static ?string $pluralModelLabel = 'طلبات إيقاف قيد';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
+    protected static string|\UnitEnum|null $navigationGroup = 'شؤون الطلاب';
 
     protected static ?int $navigationSort = 4;
 

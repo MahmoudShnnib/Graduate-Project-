@@ -9,8 +9,8 @@ use App\Filament\Resources\Applications\Pages\ListApplications;
 use App\Filament\Resources\Applications\Pages\ViewApplication;
 use App\Filament\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Models\Application;
+use App\Models\Semester;
 use App\Services\AuditService;
-use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -43,7 +43,9 @@ class ApplicationResource extends Resource
 
     protected static ?string $pluralModelLabel = 'طلبات التسجيل';
 
-    protected static ?int $navigationSort = 2;
+    protected static string|\UnitEnum|null $navigationGroup = 'القبول والتسجيل';
+
+    protected static ?int $navigationSort = 1;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
@@ -55,7 +57,11 @@ class ApplicationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) Application::where('status', ApplicationStatus::Pending)->count() ?: null;
+        $activeSemesterId = Semester::where('is_active', true)->value('id');
+
+        return (string) Application::where('status', ApplicationStatus::Pending)
+            ->where('semester_id', $activeSemesterId)
+            ->count() ?: null;
     }
 
     public static function getNavigationBadgeColor(): string
@@ -323,6 +329,11 @@ class ApplicationResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('semester_id')
+                    ->label('الفصل الدراسي')
+                    ->relationship('semester', 'name')
+                    ->default(Semester::where('is_active', true)->value('id')),
+
                 SelectFilter::make('status')
                     ->label('الحالة')
                     ->options(ApplicationStatus::class),
@@ -364,7 +375,6 @@ class ApplicationResource extends Resource
                             return;
                         }
 
-                        $notifier = app(NotificationService::class);
                         $count = 0;
 
                         foreach ($records as $application) {
@@ -377,7 +387,6 @@ class ApplicationResource extends Resource
                                 'exam_date' => $examDate,
                             ]);
 
-                            $notifier->notifyApplicationStatusChanged($application);
                             $count++;
                         }
 
@@ -470,7 +479,7 @@ class ApplicationResource extends Resource
             ->tooltip(fn (\Livewire\Component $livewire): ?string => ($livewire->scheduledExamDate ?? null)
                 ? null
                 : 'حدد موعد الامتحان أولاً')
-            ->action(function (Application $application, NotificationService $notifier, AuditService $audit, \Livewire\Component $livewire): void {
+            ->action(function (Application $application, AuditService $audit, \Livewire\Component $livewire): void {
                 $examDate = $livewire->scheduledExamDate ?? null;
 
                 if (! $examDate) {
@@ -485,7 +494,6 @@ class ApplicationResource extends Resource
                 ]);
 
                 $audit->log('application_initial_approval', $application);
-                $notifier->notifyApplicationStatusChanged($application);
 
                 Notification::make()->title('تم القبول المبدئي بنجاح')->success()->send();
             })

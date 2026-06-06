@@ -26,6 +26,10 @@ class SpecializationResource extends Resource
 
     protected static ?string $navigationLabel = 'التخصصات';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'الإعدادات الأكاديمية';
+
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'تخصص';
 
     protected static ?string $pluralModelLabel = 'التخصصات';

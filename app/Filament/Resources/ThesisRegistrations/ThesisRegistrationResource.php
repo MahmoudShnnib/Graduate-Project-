@@ -32,9 +32,9 @@ class ThesisRegistrationResource extends Resource
 
     protected static ?string $pluralModelLabel = 'تسجيلات الرسائل';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
+    protected static string|\UnitEnum|null $navigationGroup = 'المناقشة والتخرج';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationBadge(): ?string
     {

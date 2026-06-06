@@ -35,14 +35,14 @@ class UserInfolist
                                     ->inlineLabel()
                                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                                         'super_admin' => 'مشرف عام',
-                                        'secretary' => 'سكرتير',
+                                        'manager_assistant' => 'مساعد إداري',
                                         'faculty' => 'عضو هيئة تدريس',
                                         default => $state ?? '-',
                                     })
                                     ->badge()
                                     ->color(fn (?string $state): string => match ($state) {
                                         'super_admin' => 'danger',
-                                        'secretary' => 'warning',
+                                        'manager_assistant' => 'warning',
                                         'faculty' => 'success',
                                         default => 'gray',
                                     })

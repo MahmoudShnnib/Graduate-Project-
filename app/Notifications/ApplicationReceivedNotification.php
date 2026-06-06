@@ -29,7 +29,11 @@ class ApplicationReceivedNotification extends Notification
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {
         return new WhatsAppMessage(
-            message: "مرحباً {$notifiable->name}، تم استلام طلب قبولك في برنامج الدراسات العليا بنجاح. سيتم مراجعة طلبك والتواصل معك قريباً.",
+            message: "مرحباً {$notifiable->name}، تم استلام طلب قبولك في برنامج الدراسات العليا بنجاح.\n\n"
+                ."🔖 رقم التتبع الخاص بك: {$this->application->tracking_code}\n"
+                ."احتفظ بهذا الرقم لمتابعة حالة طلبك.\n\n"
+                .'لمتابعة حالة الطلب: '.route('application.track.show')."\n\n"
+                .'سيتم مراجعة طلبك والتواصل معك قريباً.',
         );
     }
 

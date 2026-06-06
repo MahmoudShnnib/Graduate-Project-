@@ -2,10 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\ApplicationsOverTimeWidget;
-use App\Filament\Widgets\ApplicationStatusWidget;
-use App\Filament\Widgets\StatsOverviewWidget;
-use App\Filament\Widgets\StudentsPerSpecializationWidget;
+use App\Filament\Widgets\DashboardHeaderWidget;
+use App\Filament\Widgets\DashboardOverviewWidget;
+use App\Filament\Widgets\Faculty\FacultyStatsOverviewWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
@@ -17,10 +16,9 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return [
-            StatsOverviewWidget::class,
-            ApplicationsOverTimeWidget::class,
-            ApplicationStatusWidget::class,
-            StudentsPerSpecializationWidget::class,
+            DashboardHeaderWidget::class,
+            DashboardOverviewWidget::class,
+            FacultyStatsOverviewWidget::class,
         ];
     }
 }

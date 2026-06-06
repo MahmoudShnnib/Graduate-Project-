@@ -27,9 +27,9 @@ class GraduateResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الخريجون';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'طلبات المناقشة';
+    protected static string|\UnitEnum|null $navigationGroup = 'المناقشة والتخرج';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $slug = 'graduates';
 
@@ -78,12 +78,6 @@ class GraduateResource extends Resource
                 TextColumn::make('student.gpa')
                     ->label('المعدل')
                     ->numeric(2),
-
-                TextColumn::make('student.status')
-                    ->label('الحالة')
-                    ->badge()
-                    ->color(fn (StudentStatus $state): string => $state->getColor())
-                    ->formatStateUsing(fn (StudentStatus $state): string => $state->getLabel()),
 
                 TextColumn::make('completed_at')
                     ->label('تاريخ التجليد والتسليم')

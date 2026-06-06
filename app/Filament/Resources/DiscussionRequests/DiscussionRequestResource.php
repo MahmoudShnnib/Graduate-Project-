@@ -27,9 +27,9 @@ class DiscussionRequestResource extends Resource
 
     protected static ?string $pluralModelLabel = 'طلبات المناقشة';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'طلبات المناقشة';
+    protected static string|\UnitEnum|null $navigationGroup = 'المناقشة والتخرج';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {

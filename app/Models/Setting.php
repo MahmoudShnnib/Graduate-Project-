@@ -19,6 +19,11 @@ class Setting extends Model
         'office_name' => 'مكتب الدراسات العليا',
         'director_name' => 'د. بشير محمد الجللي',
         'dean_name' => 'د. هشام الأمين الحجاجي',
+        'contact_phone' => '+218 21 000 0000',
+        'contact_whatsapp' => '218910000000',
+        'contact_email' => 'info@cet.edu.ly',
+        'contact_address' => 'طرابلس — ليبيا',
+        'contact_hours' => 'الأحد — الخميس: 9ص — 3م',
     ];
 
     /**
