@@ -27,7 +27,7 @@ class AdminUserSeeder extends Seeder
             'email' => 'secretary@college.edu',
             'password' => bcrypt('secretary123'),
             'phone' => '0912345679',
-            'role' => 'secretary',
+            'role' => 'manager_assistant',
             'is_active' => true,
             'email_verified_at' => now(),
         ]);
@@ -125,7 +125,7 @@ class AdminUserSeeder extends Seeder
 
         if (class_exists(\Spatie\Permission\Models\Role::class)) {
             $admin->assignRole('super_admin');
-            $secretary->assignRole('secretary');
+            $secretary->assignRole('manager_assistant');
             $faculty1->assignRole('faculty');
             $faculty2->assignRole('faculty');
             $faculty3->assignRole('faculty');

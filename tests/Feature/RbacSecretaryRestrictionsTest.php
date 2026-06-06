@@ -10,8 +10,8 @@ use Spatie\Permission\Models\Role;
  * /admin/shield/roles. Super-admin still can.
  */
 beforeEach(function () {
-    $this->secretary = User::factory()->withRole('secretary')->create();
-    $secretaryRole = Role::firstOrCreate(['name' => 'secretary', 'guard_name' => 'web']);
+    $this->secretary = User::factory()->withRole('manager_assistant')->create();
+    $secretaryRole = Role::firstOrCreate(['name' => 'manager_assistant', 'guard_name' => 'web']);
     $this->secretary->assignRole($secretaryRole);
 });
 

@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Enums\ApplicationStatus;
 use App\Models\Application;
+use App\Models\Semester;
 use App\Services\TrackingCodeService;
 
 class CreateApplication
@@ -24,6 +25,7 @@ class CreateApplication
             'password' => $data['password'] ?? null,
             'phone' => $data['phone'],
             'specialization_id' => $data['specialization_id'],
+            'semester_id' => Semester::where('is_active', true)->value('id'),
             'tracking_code' => $this->trackingCodeService->generate(),
             'status' => ApplicationStatus::Pending,
             'last_name' => $data['last_name'] ?? null,

@@ -11,7 +11,6 @@ use App\Rules\MinArabicWords;
 use App\Services\NotificationService;
 use App\Services\WhatsAppOtpService;
 use App\Services\WhatsAppService;
-use App\Support\SampleApplicantData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,20 +63,6 @@ class RegistrationController extends Controller
         $result = $this->otpService->verify($validated['phone'], $validated['code']);
 
         return response()->json($result, $result['verified'] ? 200 : 422);
-    }
-
-    /**
-     * Returns a synthetic applicant payload to pre-fill the /apply form
-     * for testing. Powered by {@see SampleApplicantData::forPublicApplication}
-     * which shares its name pools with the admin CreateStudent generator.
-     *
-     * File inputs (bachelor_certificate, remedial_statement) cannot be
-     * programmatically filled by the browser — the user must attach files
-     * manually before submitting.
-     */
-    public function sample(): JsonResponse
-    {
-        return response()->json(SampleApplicantData::forPublicApplication());
     }
 
     public function store(Request $request, WhatsAppService $whatsApp): RedirectResponse

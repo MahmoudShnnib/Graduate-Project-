@@ -31,7 +31,7 @@ class UsersTable
                     ->label('الدور')
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'super_admin' => 'رئيس المكتب',
-                        'secretary' => 'السكرتير',
+                        'manager_assistant' => 'مساعد إداري',
                         'faculty' => 'عضو هيئة تدريس',
                         default => $state ?? '-',
                     })

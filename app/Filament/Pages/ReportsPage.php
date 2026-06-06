@@ -15,9 +15,9 @@ class ReportsPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-printer';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'النظام';
+    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الوصول والنظام';
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 3;
 
     public ?int $selectedStudentId = null;
 

@@ -30,9 +30,9 @@ class AuditLogResource extends Resource
 
     protected static ?string $pluralModelLabel = 'سجل التدقيق';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'النظام';
+    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الوصول والنظام';
 
-    protected static ?int $navigationSort = 99;
+    protected static ?int $navigationSort = 4;
 
     public const MODEL_LABELS = [
         'App\\Models\\Grade' => 'درجة',
@@ -66,7 +66,7 @@ class AuditLogResource extends Resource
 
     public const ROLE_LABELS = [
         'super_admin' => 'مدير النظام',
-        'secretary' => 'أمين السجل',
+        'manager_assistant' => 'مساعد إداري',
         'faculty' => 'عضو هيئة تدريس',
         'student' => 'طالب',
     ];

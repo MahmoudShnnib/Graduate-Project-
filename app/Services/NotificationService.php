@@ -14,7 +14,6 @@ use App\Models\ThesisRegistration;
 use App\Notifications\AddDropDecisionNotification;
 use App\Notifications\ApplicationExamPassedNotification;
 use App\Notifications\ApplicationReceivedNotification;
-use App\Notifications\ApplicationStatusChangedNotification;
 use App\Notifications\ClearanceIssuedNotification;
 use App\Notifications\GradePublishedNotification;
 use App\Notifications\SuspensionDecisionNotification;
@@ -44,17 +43,6 @@ class NotificationService
             $application->user?->student,
             'application_exam_passed',
             'اجتزت اختبار القبول — تم قبولك نهائياً'
-        );
-    }
-
-    public function notifyApplicationStatusChanged(Application $application): void
-    {
-        $this->dispatch(
-            $application,
-            new ApplicationStatusChangedNotification($application),
-            $application->user?->student,
-            'application_status_changed',
-            'تم تحديث حالة طلب القبول'
         );
     }
 

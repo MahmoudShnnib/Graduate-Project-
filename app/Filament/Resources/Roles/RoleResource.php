@@ -31,6 +31,19 @@ use Filament\Tables\Table;
  */
 class RoleResource extends ShieldRoleResource
 {
+    // Shield's RoleResource overrides the navigation getters (reading its own
+    // config), so static $navigationGroup/$navigationSort are ignored here —
+    // override the methods to place it in our access/system group.
+    public static function getNavigationGroup(): ?string
+    {
+        return 'إدارة الوصول والنظام';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
+    }
+
     public static function table(Table $table): Table
     {
         return $table

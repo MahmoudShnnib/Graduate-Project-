@@ -27,9 +27,9 @@ class GradeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الدرجات';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
+    protected static string|\UnitEnum|null $navigationGroup = 'شؤون الطلاب';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {

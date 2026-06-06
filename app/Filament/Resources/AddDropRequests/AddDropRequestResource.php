@@ -40,9 +40,9 @@ class AddDropRequestResource extends Resource
 
     protected static ?string $pluralModelLabel = 'طلبات الإضافة/الحذف';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
+    protected static string|\UnitEnum|null $navigationGroup = 'شؤون الطلاب';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationBadge(): ?string
     {

@@ -20,9 +20,9 @@ class ExceptionalOpportunitiesPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shield-exclamation';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'إدارة الطلاب';
+    protected static string|\UnitEnum|null $navigationGroup = 'شؤون الطلاب';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 5;
 
     public static function getNavigationBadge(): ?string
     {

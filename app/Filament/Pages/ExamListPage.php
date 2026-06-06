@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Actions\ApproveApplication;
 use App\Enums\ApplicationStatus;
 use App\Models\Application;
+use App\Models\Semester;
 use App\Models\Specialization;
 use App\Services\AuditService;
 use App\Services\NotificationService;
@@ -23,7 +24,9 @@ class ExamListPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    protected static ?int $navigationSort = 3;
+    protected static string|\UnitEnum|null $navigationGroup = 'القبول والتسجيل';
+
+    protected static ?int $navigationSort = 2;
 
     /** @var array<int, string> */
     public array $selected = [];
@@ -33,9 +36,21 @@ class ExamListPage extends Page
 
     public ?int $activeSpecialization = null;
 
+    public ?int $selectedSemester = null;
+
+    public function mount(): void
+    {
+        $this->selectedSemester = Semester::where('is_active', true)->value('id');
+    }
+
     public function getSpecializations(): Collection
     {
         return Specialization::orderBy('name')->get();
+    }
+
+    public function getSemesters(): Collection
+    {
+        return Semester::orderByDesc('is_active')->orderByDesc('year')->get();
     }
 
     public function filterBySpecialization(?int $id): void
@@ -47,6 +62,7 @@ class ExamListPage extends Page
     {
         return Application::where('status', ApplicationStatus::InitiallyApproved)
             ->with('specialization')
+            ->when($this->selectedSemester, fn ($q) => $q->where('semester_id', $this->selectedSemester))
             ->when($this->activeSpecialization, fn ($q) => $q->where('specialization_id', $this->activeSpecialization))
             ->orderBy('exam_date')
             ->get();
@@ -114,7 +130,6 @@ class ExamListPage extends Page
             return;
         }
 
-        $notifier = app(NotificationService::class);
         $audit = app(AuditService::class);
 
         $applications = Application::whereIn('id', $this->selected)
@@ -131,7 +146,6 @@ class ExamListPage extends Page
             ]);
 
             $audit->log('exam_failed', $application, newValues: ['exam_score' => $application->exam_score]);
-            $notifier->notifyApplicationStatusChanged($application);
         }
 
         $this->selected = [];
