@@ -26,12 +26,15 @@ class UserForm
                     ->required()
                     ->unique(ignoreRecord: true),
 
+                // Password is set only when creating a user. On the edit page the field is
+                // hidden entirely — users change their own password via the WhatsApp
+                // forgot-password / change-password flows, so admins never reset it by hand.
                 TextInput::make('password')
                     ->label('كلمة المرور')
                     ->password()
+                    ->visibleOn('create')
                     ->required()
-                    ->dehydrated(fn ($state) => filled($state))
-                    ->required(fn (string $context): bool => $context === 'create'),
+                    ->minLength(8),
 
                 TextInput::make('phone')
                     ->label('رقم الهاتف'),

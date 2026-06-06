@@ -34,10 +34,17 @@ RUN npm run build \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 COPY docker/php.ini /usr/local/etc/php/conf.d/zz-app.ini
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-www.conf
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
+
+# Hit the framework health endpoint (registered in bootstrap/app.php health: '/up').
+# busybox wget ships with the alpine base; --spider does a HEAD-style check.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://127.0.0.1:8080/up || exit 1
+
 CMD ["/entrypoint.sh"]

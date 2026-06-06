@@ -12,6 +12,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -30,6 +31,16 @@ class StudentPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/student/theme.css')
             ->spa(hasPrefetching: true)
             ->login()
+            ->userMenuItems([
+                \Filament\Navigation\MenuItem::make()
+                    ->label('تغيير كلمة المرور')
+                    ->icon('heroicon-o-key')
+                    ->url(fn (): string => \App\Filament\Student\Pages\ChangePassword::getUrl()),
+            ])
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn (): string => '<div style="margin-top:1rem;text-align:center;"><a href="'.e(route('password.forgot')).'" style="font-size:.875rem;font-weight:600;color:#1F4E79;">نسيت كلمة المرور؟</a></div>',
+            )
             ->brandName('بوابة الطالب')
             ->colors([
                 'primary' => Color::hex('#1F4E79'),

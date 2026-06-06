@@ -21,9 +21,28 @@ class ReportsPage extends Page
 
     public ?int $selectedStudentId = null;
 
-    public function getStudentsProperty()
+    public string $studentSearch = '';
+
+    /**
+     * Lazily resolve at most 50 matching students instead of hydrating every Student
+     * row + relations on each render. Scales to a large student body without growing
+     * the page's memory footprint.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public function getStudentsProperty(): \Illuminate\Support\Collection
     {
-        return Student::with('user', 'specialization')->get()
+        return Student::query()
+            ->with('user:id,name')
+            ->when($this->studentSearch !== '', function ($query) {
+                $term = '%'.$this->studentSearch.'%';
+
+                $query->where('enrollment_no', 'like', $term)
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', $term));
+            })
+            ->orderBy('enrollment_no')
+            ->limit(50)
+            ->get(['id', 'user_id', 'enrollment_no'])
             ->mapWithKeys(fn (Student $s) => [$s->id => "{$s->enrollment_no} - {$s->user?->name}"]);
     }
 

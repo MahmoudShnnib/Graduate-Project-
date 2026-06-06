@@ -140,6 +140,10 @@ class EditStudent extends EditRecord
             ])
             ->toArray();
 
+        // Contact fields live on the related User, not the Student row.
+        $data['user_email'] = $this->record->user?->email;
+        $data['user_phone'] = $this->record->user?->phone;
+
         return $data;
     }
 
@@ -158,8 +162,17 @@ class EditStudent extends EditRecord
         $oldSpecializationId = $record->specialization_id;
         $oldEnrollmentNo = $record->enrollment_no;
 
-        // Strip from $data — not a Student column.
-        unset($data['transfer_courses']);
+        // Contact fields belong to the related User, not the Student row. Persist them
+        // there, then strip so they don't reach the Student update.
+        if (array_key_exists('user_email', $data) || array_key_exists('user_phone', $data)) {
+            $record->user?->update([
+                'email' => $data['user_email'] ?? $record->user->email,
+                'phone' => $data['user_phone'] ?? null,
+            ]);
+        }
+
+        // Strip from $data — not Student columns.
+        unset($data['transfer_courses'], $data['user_email'], $data['user_phone']);
 
         $record = parent::handleRecordUpdate($record, $data);
 

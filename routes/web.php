@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApplicationTrackingController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PrintController;
 use App\Http\Controllers\PrintCourseStudentsController;
 use App\Http\Controllers\RegistrationController;
@@ -10,13 +11,25 @@ Route::get('/', function () {
     return to_route('filament.admin.pages.dashboard');
 });
 Route::get('/apply', [RegistrationController::class, 'create'])->name('registration.create');
-Route::post('/apply', [RegistrationController::class, 'store'])->name('registration.store');
+Route::post('/apply', [RegistrationController::class, 'store'])
+    ->middleware('throttle:6,1')
+    ->name('registration.store');
 Route::post('/apply/otp/send', [RegistrationController::class, 'sendOtp'])
     ->middleware('throttle:6,1')
     ->name('registration.otp.send');
 Route::post('/apply/otp/verify', [RegistrationController::class, 'verifyOtp'])
     ->middleware('throttle:10,1')
     ->name('registration.otp.verify');
+// Public WhatsApp-OTP password reset (identify by national ID → OTP to the phone on file).
+// See _brain/project-context/password-management-guide.md.
+Route::get('/forgot-password', [PasswordResetController::class, 'show'])->name('password.forgot');
+Route::post('/forgot-password/send-otp', [PasswordResetController::class, 'sendOtp'])
+    ->middleware('throttle:6,1')
+    ->name('password.otp.send');
+Route::post('/forgot-password/reset', [PasswordResetController::class, 'reset'])
+    ->middleware('throttle:10,1')
+    ->name('password.reset');
+
 Route::get('/apply/track', [ApplicationTrackingController::class, 'show'])->name('application.track.show');
 Route::post('/apply/track', [ApplicationTrackingController::class, 'track'])
     ->middleware('throttle:5,1')
