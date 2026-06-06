@@ -38,9 +38,11 @@ class AddDropPage extends Page
 
     public string $addReason = '';
 
+    private ?Semester $resolvedSemester = null;
+
     public function getActiveSemester(): ?Semester
     {
-        return Semester::where('is_active', true)->first();
+        return $this->resolvedSemester ??= Semester::active();
     }
 
     public function isAddDropOpen(): bool

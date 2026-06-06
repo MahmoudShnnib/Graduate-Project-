@@ -49,6 +49,12 @@ class ApplicationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with('specialization');
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $activeSemesterId = Semester::where('is_active', true)->value('id');

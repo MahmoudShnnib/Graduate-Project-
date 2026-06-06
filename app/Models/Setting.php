@@ -26,16 +26,33 @@ class Setting extends Model
         'contact_hours' => 'الأحد — الخميس: 9ص — 3م',
     ];
 
+    /**
+     * Per-request memoization of the whole key/value table.
+     * The configured cache store is `database`, so cache()->remember() would
+     * itself fire a DB query per lookup — a static cache is the only way to
+     * guarantee at most one query per request regardless of how many times
+     * Setting::get() is called (e.g. PDF templates call it ~6 times).
+     *
+     * @var array<string, ?string>|null
+     */
+    private static ?array $cached = null;
+
     public static function get(string $key, ?string $default = null): ?string
     {
-        $row = static::query()->where('key', $key)->first();
+        self::$cached ??= static::query()->pluck('value', 'key')->toArray();
 
-        return $row?->value ?? $default ?? (self::DEFAULTS[$key] ?? null);
+        return self::$cached[$key] ?? $default ?? (self::DEFAULTS[$key] ?? null);
     }
 
     public static function set(string $key, ?string $value): void
     {
         static::query()->updateOrCreate(['key' => $key], ['value' => $value]);
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => self::$cached = null);
+        static::deleted(fn () => self::$cached = null);
     }
 
     /**

@@ -40,6 +40,17 @@ class SuspensionRequestResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with([
+                'student.user',
+                'student.specialization',
+                'semester',
+                'decidedBy',
+            ]);
+    }
+
     public static function getNavigationBadge(): ?string
     {
         return (string) SuspensionRequest::where('status', SuspensionStatus::Pending)->count() ?: null;

@@ -29,7 +29,7 @@ class ApplicationObserver
             return;
         }
 
-        $activeSemesterId = Semester::where('is_active', true)->value('id');
+        $activeSemesterId = Semester::activeId();
         if ($activeSemesterId !== null) {
             $application->semester_id = $activeSemesterId;
         }

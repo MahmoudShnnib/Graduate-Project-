@@ -11,6 +11,8 @@ class WhatsAppService
     {
         $response = Http::withToken(config('services.qonvo.api_token'))
             ->acceptJson()
+            ->connectTimeout(5)
+            ->timeout(10)
             ->post(config('services.qonvo.base_url').'/whatsapp/messages/send', [
                 'sender_whatsapp_number_phone' => config('services.qonvo.sender_phone'),
                 'recipient_number' => $this->formatPhone($recipientPhone),

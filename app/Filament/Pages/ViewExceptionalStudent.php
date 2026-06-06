@@ -96,7 +96,7 @@ class ViewExceptionalStudent extends Page
                         ->where('is_active', true)
                         ->update(['is_active' => false, 'resolved_at' => now()]);
 
-                    $semester = Semester::where('is_active', true)->first();
+                    $semester = Semester::active();
 
                     StudentWarning::create([
                         'student_id' => $student->id,

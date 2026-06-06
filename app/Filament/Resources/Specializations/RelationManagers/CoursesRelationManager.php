@@ -23,7 +23,7 @@ class CoursesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        $activeSemesterId = Semester::where('is_active', true)->value('id');
+        $activeSemesterId = Semester::activeId();
 
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with([

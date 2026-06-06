@@ -21,6 +21,8 @@ class WhatsAppOtpService
 
     private const MAX_VERIFY_ATTEMPTS = 5;
 
+    private const VERIFIED_GRACE_MINUTES = 30;
+
     public function __construct(private WhatsAppService $whatsApp) {}
 
     /**
@@ -33,6 +35,8 @@ class WhatsAppOtpService
         if (! $this->whatsApp->isConfigured()) {
             return ['sent' => false, 'message' => 'خدمة التحقق عبر واتساب غير مفعّلة حالياً.'];
         }
+
+        $this->pruneDeadOtps($phone, $purpose);
 
         $recent = WhatsAppOtp::query()
             ->where('phone', $phone)
@@ -128,8 +132,28 @@ class WhatsAppOtpService
             ->where('phone', $phone)
             ->where('purpose', $purpose)
             ->whereNotNull('verified_at')
-            ->where('verified_at', '>=', now()->subMinutes(30))
+            ->where('verified_at', '>=', now()->subMinutes(self::VERIFIED_GRACE_MINUTES))
             ->exists();
+    }
+
+    /**
+     * Opportunistically delete fully-dead OTP rows for this phone/purpose so the
+     * table stays bounded without a scheduler. Only removes rows that are past the
+     * send-rate window (so abuse counting is unaffected) AND either never verified
+     * or past the verified-grace window (so hasVerified() never loses a row it
+     * still honours).
+     */
+    private function pruneDeadOtps(string $phone, string $purpose): void
+    {
+        WhatsAppOtp::query()
+            ->where('phone', $phone)
+            ->where('purpose', $purpose)
+            ->where('created_at', '<', now()->subMinutes(self::SEND_WINDOW_MINUTES))
+            ->where(function ($query): void {
+                $query->whereNull('verified_at')
+                    ->orWhere('verified_at', '<', now()->subMinutes(self::VERIFIED_GRACE_MINUTES));
+            })
+            ->delete();
     }
 
     private function generateCode(): string

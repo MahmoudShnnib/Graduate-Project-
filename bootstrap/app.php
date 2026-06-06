@@ -11,7 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Behind nginx/a load balancer terminating TLS, trust the proxy's X-Forwarded-*
+        // headers so Laravel sees the real client IP + https scheme. Without this, secure
+        // cookies and route()/url() https generation break. `at: '*'` is appropriate when
+        // the only ingress is our own reverse proxy (the container isn't directly exposed).
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // When an unauthenticated user visits /portal, redirect to portal login.

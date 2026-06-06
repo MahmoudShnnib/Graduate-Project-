@@ -38,6 +38,12 @@ class CourseOfferingResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['course', 'semester', 'faculty']);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -71,7 +77,7 @@ class CourseOfferingResource extends Resource
                     ->preload()
                     ->required()
                     ->live()
-                    ->default(fn (): ?int => Semester::where('is_active', true)->value('id'))
+                    ->default(fn (): ?int => Semester::activeId())
                     ->disabled(fn (string $operation): bool => $operation === 'create')
                     ->dehydrated(true)
                     ->rules([
@@ -140,7 +146,7 @@ class CourseOfferingResource extends Resource
                     ->boolean(),
             ])
             ->modifyQueryUsing(function ($query) {
-                $activeSemesterId = Semester::where('is_active', true)->value('id');
+                $activeSemesterId = Semester::activeId();
 
                 return $query
                     ->where('is_open', true)

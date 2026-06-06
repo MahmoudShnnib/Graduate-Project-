@@ -27,7 +27,7 @@ class WarningService
 
     public function processInactiveWarning(Student $student, ?Semester $semester = null): void
     {
-        $semester ??= Semester::where('is_active', true)->first();
+        $semester ??= Semester::active();
 
         if (! $semester) {
             return;

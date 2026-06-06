@@ -35,10 +35,17 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['user', 'specialization']);
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::User;
 
@@ -279,14 +286,18 @@ class StudentResource extends Resource
     {
         return $schema->columns(1)->components([
 
+            // Contact fields (email, phone) live on the related User row and are editable on
+            // BOTH create and edit. Name + password are create-only (password is changed via
+            // the WhatsApp self-service flows). Keeping one section avoids duplicate state
+            // paths that two same-named fields would cause.
             Section::make('بيانات الحساب')
                 ->columns(2)
-                ->visibleOn('create')
                 ->components([
                     TextInput::make('user_name')
                         ->label('الاسم الرباعي واللقب')
                         ->helperText('الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)')
                         ->required()
+                        ->visibleOn('create')
                         ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)')])
                         ->maxLength(255)
                         ->columnSpan(2),
@@ -295,6 +306,7 @@ class StudentResource extends Resource
                         ->label('الاسم بالإنجليزية (كما في جواز السفر)')
                         ->placeholder('Full name as in passport')
                         ->required()
+                        ->visibleOn('create')
                         ->regex("/^[a-zA-Z\\s\\-']+$/")
                         ->maxLength(255)
                         ->columnSpan(2),
@@ -321,6 +333,7 @@ class StudentResource extends Resource
                     TextInput::make('user_password')
                         ->label('كلمة المرور')
                         ->password()
+                        ->visibleOn('create')
                         ->required()
                         ->minLength(8),
                 ]),

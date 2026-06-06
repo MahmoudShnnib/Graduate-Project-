@@ -49,7 +49,13 @@ class MyCourseResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('faculty_id', auth()->id())
-            ->with(['course', 'semester']);
+            ->with(['course', 'semester'])
+            ->withCount([
+                'activeEnrollments as enrollments_count',
+                'activeEnrollments as grade_approved_count' => fn (Builder $query) => $query->whereHas('grade', fn (Builder $g) => $g->where('status', GradeStatus::Approved)),
+                'activeEnrollments as grade_pending_count' => fn (Builder $query) => $query->whereHas('grade', fn (Builder $g) => $g->where('status', GradeStatus::PendingApproval)),
+                'activeEnrollments as grade_draft_count' => fn (Builder $query) => $query->whereHas('grade', fn (Builder $g) => $g->where('status', GradeStatus::Draft)),
+            ]);
     }
 
     public static function form(Schema $schema): Schema
@@ -78,30 +84,21 @@ class MyCourseResource extends Resource
 
                 TextColumn::make('enrollments_count')
                     ->label('عدد الطلاب')
-                    ->counts('activeEnrollments')
                     ->badge()
                     ->color('info'),
 
                 TextColumn::make('grades_status')
                     ->label('حالة الدرجات')
                     ->getStateUsing(function (CourseOffering $record): string {
-                        $total = $record->activeEnrollments()->count();
+                        $total = (int) $record->enrollments_count;
 
                         if ($total === 0) {
                             return 'لا يوجد طلاب';
                         }
 
-                        $approved = $record->activeEnrollments()
-                            ->whereHas('grade', fn ($q) => $q->where('status', GradeStatus::Approved))
-                            ->count();
-
-                        $pending = $record->activeEnrollments()
-                            ->whereHas('grade', fn ($q) => $q->where('status', GradeStatus::PendingApproval))
-                            ->count();
-
-                        $draft = $record->activeEnrollments()
-                            ->whereHas('grade', fn ($q) => $q->where('status', GradeStatus::Draft))
-                            ->count();
+                        $approved = (int) $record->grade_approved_count;
+                        $pending = (int) $record->grade_pending_count;
+                        $draft = (int) $record->grade_draft_count;
 
                         if ($approved === $total) {
                             return 'معتمدة بالكامل';

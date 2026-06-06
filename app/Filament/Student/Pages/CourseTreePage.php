@@ -41,9 +41,11 @@ class CourseTreePage extends Page
         return auth()->user()->student;
     }
 
+    private ?Semester $resolvedSemester = null;
+
     public function getActiveSemester(): ?Semester
     {
-        return Semester::where('is_active', true)->first();
+        return $this->resolvedSemester ??= Semester::active();
     }
 
     /**

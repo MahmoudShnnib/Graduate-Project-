@@ -292,6 +292,26 @@ Also: prefer **explicit** `wire:click="mountAction('actionName')"` over the magi
 
 Surfaces using this pattern in the repo: `app/Filament/Widgets/SettingsWidget.php` + its Blade. See [[../decisions/2026-05-17-settings-dashboard-widget]] for the full settings widget rationale.
 
+## Filament Resource `getEloquentQuery()` eager loads feed view/edit/row-actions too
+
+`getEloquentQuery()` is the **single query source for the whole Resource** — list table, view page, edit page, and row-action record resolution (Filament's `resolveRecordRouteBinding()` resolves the single record through it). So a column-restricted eager load there (`->with(['user:id,name'])`) hydrates that relation with **only** those columns **everywhere**, not just the list.
+
+Accessing an unselected column on an already-loaded relation returns **`null`** — Eloquent does NOT lazy-reload a relation that's already loaded. Real breakages this caused in the 2026-06-03 N+1 work (caught before shipping):
+
+- `user:id,name` → `user.email` / `user.phone` null on the **Student view page** infolist.
+- `courseOffering.semester:id,name` → `semester.is_active` / `add_drop_*` null in **AddDropRequest** approve `visible()` → the approve button silently never renders.
+- Row-action notifications reading `user.email` get null.
+
+**Rule:** on a Filament Resource `getEloquentQuery()`, eager-load **full columns** (`->with(['user', 'specialization'])`). Column restriction does NOT reduce the query count (still 1 query/relation) — it only narrows the SELECT, so it buys nothing while risking null-on-view bugs. Only restrict columns for a relation you're certain is used nowhere but one list column. See [[../decisions/2026-06-03-n1-eager-loading-deviations]].
+
+## Setting cache must be static, not the cache facade (CACHE_STORE=database)
+
+This app runs `CACHE_STORE=database`. With the database cache store, `cache()->remember()` **itself issues a query against the `cache` table on every call** — so wrapping `Setting::get()` in `cache()->remember()` made it *worse* (measured 8 queries for 6 gets vs the original 6).
+
+`Setting::get()` therefore uses a **per-request static** memo (`private static ?array $cached`) that does exactly one `pluck('value','key')` per request regardless of how many gets (PDF templates call it ~6×). `booted()` saved/deleted clears the static for in-request invalidation.
+
+**Rule:** before reaching for `cache()->remember()` as an N+1 fix, check `config('cache.default')`. On a `database`/`dynamodb` store the cache lookup is itself a query — a static (per-request) memo is the driver-agnostic win. See [[../decisions/2026-06-03-n1-eager-loading-deviations]]. (⚠️ static memo persists across requests under Octane — not used here.)
+
 ## Testing gotchas
 
 - `tests/Pest.php` provides `studentWithRecord()` and `adminUser()` — **always** use these instead of manually creating User+Student+Role

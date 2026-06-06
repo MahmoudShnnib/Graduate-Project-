@@ -33,6 +33,16 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('إدارة الدراسات العليا')
             ->spa(hasPrefetching: true)
             ->login()
+            ->userMenuItems([
+                \Filament\Navigation\MenuItem::make()
+                    ->label('تغيير كلمة المرور')
+                    ->icon('heroicon-o-key')
+                    ->url(fn (): string => \App\Filament\Pages\ChangePassword::getUrl()),
+            ])
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn (): string => '<div style="margin-top:1rem;text-align:center;"><a href="'.e(route('password.forgot')).'" style="font-size:.875rem;font-weight:600;color:#1F4E79;">نسيت كلمة المرور؟</a></div>',
+            )
             ->colors([
                 'primary' => Color::hex('#1F4E79'),
             ])
