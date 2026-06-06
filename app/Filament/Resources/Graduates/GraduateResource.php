@@ -74,12 +74,6 @@ class GraduateResource extends Resource
                     ->label('المعدل')
                     ->numeric(2),
 
-                TextColumn::make('student.status')
-                    ->label('الحالة')
-                    ->badge()
-                    ->color(fn (StudentStatus $state): string => $state->getColor())
-                    ->formatStateUsing(fn (StudentStatus $state): string => $state->getLabel()),
-
                 TextColumn::make('completed_at')
                     ->label('تاريخ التجليد والتسليم')
                     ->date('Y/m/d')
