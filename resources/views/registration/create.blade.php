@@ -1,6 +1,29 @@
 <x-layout.app title="طلب الالتحاق بالدراسات العليا">
 
-    @php($settings = \App\Models\Setting::allKeyed())
+    @php
+        $settings = \App\Models\Setting::allKeyed();
+    @endphp
+
+    {{-- ===== Magic FX (scoped to /apply — Play CDN, no build step) ===== --}}
+    <style>
+        @keyframes mgShimmer { to { background-position: 200% center; } }
+        @keyframes mgDrawX { to { transform: scaleX(1); } }
+
+        .mg-card { position:relative; transition:transform .2s ease, box-shadow .2s ease; }
+        .mg-card:hover { transform:translateY(-4px); box-shadow:0 18px 36px -16px rgba(30,58,138,.30); }
+
+        .mg-gtext { background:linear-gradient(90deg,#1e3a8a,#0ea5e9,#6366f1,#1e3a8a); background-size:200% auto;
+            -webkit-background-clip:text; background-clip:text; color:transparent; animation:mgShimmer 7s linear infinite; }
+
+        .mg-line { transform:scaleX(0); transform-origin:right; }
+        .reveal-enabled .is-visible .mg-line { animation:mgDrawX 1.2s ease .15s forwards; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .mg-gtext { animation:none !important; }
+            .mg-card { transition:none !important; }
+            .reveal-enabled .is-visible .mg-line { animation:none; transform:scaleX(1); }
+        }
+    </style>
 
     {{-- ============================ Landing sections ============================ --}}
     <div class="space-y-20 mb-20">
@@ -59,132 +82,204 @@
 
         {{-- الأقسام --}}
         <section id="departments" data-spy class="reveal scroll-mt-28">
-            <div class="mb-8 text-center">
-                <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">الأقسام</span>
-                <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">الأقسام والتخصصات</h2>
-                <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">
-                    تطرح الكلية برامج الدراسات العليا (الماجستير) في التخصصات التالية:
-                </p>
-            </div>
+            <div class="relative z-10">
+                <div class="mb-10 text-center">
+                    <span class="inline-flex rounded-full bg-blue-100/80 px-4 py-2 text-sm font-bold text-blue-700 ring-1 ring-blue-200">الأقسام</span>
+                    <h2 class="mt-4 text-3xl font-extrabold md:text-4xl"><span class="mg-gtext">الأقسام والتخصصات</span></h2>
+                    <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">
+                        تطرح الكلية برامج الدراسات العليا (الماجستير) في التخصصات التالية — اختر مسارك وابدأ رحلتك:
+                    </p>
+                </div>
 
-            @if($specializations->isNotEmpty())
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach($specializations as $specialization)
-                        <div class="group rounded-2xl bg-white p-6 shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-lg hover:ring-blue-300">
-                            <div class="mb-4 flex items-center justify-between">
-                                <div class="flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 transition group-hover:bg-blue-700 group-hover:text-white">
-                                    <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+                @if($specializations->isNotEmpty())
+                    @php
+                        $accents = [
+                            ['ic' => 'bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white', 'bar' => 'from-blue-500 to-sky-400'],
+                            ['ic' => 'bg-indigo-100 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white', 'bar' => 'from-indigo-500 to-violet-400'],
+                            ['ic' => 'bg-cyan-100 text-cyan-700 group-hover:bg-cyan-600 group-hover:text-white', 'bar' => 'from-cyan-500 to-sky-400'],
+                            ['ic' => 'bg-violet-100 text-violet-700 group-hover:bg-violet-600 group-hover:text-white', 'bar' => 'from-violet-500 to-fuchsia-400'],
+                            ['ic' => 'bg-teal-100 text-teal-700 group-hover:bg-teal-600 group-hover:text-white', 'bar' => 'from-teal-500 to-emerald-400'],
+                            ['ic' => 'bg-sky-100 text-sky-700 group-hover:bg-sky-600 group-hover:text-white', 'bar' => 'from-sky-500 to-blue-400'],
+                        ];
+                    @endphp
+                    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach($specializations as $specialization)
+                            @php $a = $accents[$loop->index % count($accents)]; @endphp
+                            <div                                 class="group mg-card bg-white relative overflow-hidden rounded-2xl p-6 ring-1 ring-slate-200 shadow-md">
+                                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-l {{ $a['bar'] }} opacity-0 transition group-hover:opacity-100"></div>
+                                <div class="relative z-10">
+                                    <div class="mb-4 flex items-center justify-between">
+                                        <div class="flex size-12 items-center justify-center rounded-2xl transition {{ $a['ic'] }}">
+                                            <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+                                        </div>
+                                        @if($specialization->code)
+                                            <span class="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200" dir="ltr">#{{ $specialization->code }}</span>
+                                        @endif
+                                    </div>
+                                    <h3 class="mb-3 text-lg font-bold text-slate-800">{{ $specialization->name }}</h3>
+                                    <a href="#apply" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 transition group-hover:gap-2 hover:text-blue-900">
+                                        قدّم على هذا التخصص
+                                        <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                                    </a>
                                 </div>
-                                @if($specialization->code)
-                                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500" dir="ltr">#{{ $specialization->code }}</span>
-                                @endif
                             </div>
-                            <h3 class="mb-3 text-lg font-bold text-slate-800">{{ $specialization->name }}</h3>
-                            <a href="#apply" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900">
-                                قدّم على هذا التخصص
-                                <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-center text-slate-400">سيتم الإعلان عن التخصصات المتاحة قريباً.</p>
+                @endif
+            </div>
+        </section>
+
+        {{-- رحلة التقديم --}}
+        <section id="news" data-spy class="reveal scroll-mt-28">
+            <div class="relative z-10">
+                <div class="mb-12 text-center">
+                    <span class="inline-flex rounded-full bg-blue-100/80 px-4 py-2 text-sm font-bold text-blue-700 ring-1 ring-blue-200">رحلتك معنا</span>
+                    <h2 class="mt-4 text-3xl font-extrabold md:text-4xl"><span class="mg-gtext">رحلة التقديم في 3 خطوات</span></h2>
+                    <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">كل ما تحتاج معرفته قبل وأثناء وبعد تقديم طلبك للدراسات العليا.</p>
+                </div>
+
+                <div class="relative">
+                    {{-- drawing connector line (desktop) --}}
+                    <div class="mg-line pointer-events-none absolute top-7 right-[16%] left-[16%] hidden h-1 rounded-full bg-gradient-to-l from-blue-500 via-sky-400 to-indigo-500 md:block" aria-hidden="true"></div>
+
+                    @php
+                        $steps = [
+                            [
+                                'n' => '1', 'tag' => 'قبل التقديم', 'title' => 'جهّز مستنداتك',
+                                'desc' => 'شهادة البكالوريوس وكشف المواد التكميلية بصيغة PDF أو صورة (حد أقصى 5 ميجابايت لكل ملف)، مع التأكد من صحة الاسم والرقم الوطني.',
+                                'grad' => 'from-blue-600 to-sky-500',
+                                'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 13.5l2.25 2.25 4.5-4.5"/>',
+                                'cta' => null,
+                            ],
+                            [
+                                'n' => '2', 'tag' => 'أثناء التقديم', 'title' => 'قدّم طلبك إلكترونياً',
+                                'desc' => 'عبّئ بياناتك، اختر التخصص، ارفع مستنداتك، وفعّل التحقق من رقم النقال عبر واتساب — كل ذلك أونلاين دون حضور.',
+                                'grad' => 'from-sky-500 to-indigo-500',
+                                'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>',
+                                'cta' => ['label' => 'ابدأ التقديم', 'href' => '#apply'],
+                            ],
+                            [
+                                'n' => '3', 'tag' => 'بعد التقديم', 'title' => 'تابع حالة طلبك',
+                                'desc' => 'استخدم رقم التتبع والرقم الوطني للاستعلام عن حالة القبول ومعرفة موعد اختبار القبول في أي وقت.',
+                                'grad' => 'from-indigo-500 to-violet-500',
+                                'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>',
+                                'cta' => ['label' => 'متابعة الطلب', 'href' => route('application.track.show')],
+                            ],
+                        ];
+                    @endphp
+
+                    <div class="grid gap-8 md:grid-cols-3">
+                        @foreach($steps as $step)
+                            <div class="flex flex-col items-center text-center">
+                                {{-- node --}}
+                                <div class="mg-ring relative z-10 mb-6 flex size-14 items-center justify-center rounded-full bg-gradient-to-bl {{ $step['grad'] }} text-lg font-extrabold text-white shadow-lg ring-4 ring-white">
+                                    {{ $step['n'] }}
+                                </div>
+                                {{-- card --}}
+                                <div                                     class="mg-card bg-white flex w-full flex-1 flex-col items-center rounded-2xl p-6 ring-1 ring-slate-200 shadow-md">
+                                    <div class="relative z-10 flex flex-col items-center">
+                                        <div class="mb-4 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-bl {{ $step['grad'] }} text-white">
+                                            <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">{!! $step['icon'] !!}</svg>
+                                        </div>
+                                        <span class="text-xs font-bold text-blue-700">{{ $step['tag'] }}</span>
+                                        <h3 class="mt-1.5 text-base font-bold leading-snug text-slate-800">{{ $step['title'] }}</h3>
+                                        <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ $step['desc'] }}</p>
+                                        @if($step['cta'])
+                                            <a href="{{ $step['cta']['href'] }}" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 transition hover:gap-2 hover:text-blue-900">
+                                                {{ $step['cta']['label'] }}
+                                                <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {{-- تواصل معنا --}}
+        <section id="contact" data-spy class="reveal scroll-mt-28">
+            <div class="grid items-stretch gap-6 lg:grid-cols-5">
+
+                {{-- Left: CTA panel --}}
+                <div class="relative overflow-hidden rounded-[2rem] bg-gradient-to-bl from-blue-900 via-blue-800 to-sky-700 p-8 text-white lg:col-span-2">
+                    <div class="relative z-10 flex h-full flex-col">
+                        <span class="inline-flex w-fit rounded-full bg-white/15 px-4 py-2 text-sm font-bold ring-1 ring-white/25">تواصل معنا</span>
+                        <h2 class="mt-5 text-3xl font-extrabold leading-tight">هل لديك استفسار؟<br>نحن هنا لمساعدتك</h2>
+                        <p class="mt-4 text-sky-100/90">يسعد فريق مكتب الدراسات العليا بالإجابة على استفساراتكم حول القبول والتسجيل.</p>
+
+                        <div class="mt-auto pt-8 space-y-3">
+                            <a href="https://wa.me/{{ $settings['contact_whatsapp'] }}" target="_blank" rel="noopener"
+                               class="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3.5 font-bold text-white shadow-lg transition hover:bg-emerald-600">
+                                <svg class="size-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.978-1.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                                تواصل عبر واتساب
+                            </a>
+                            <a href="{{ route('application.track.show') }}"
+                               class="flex items-center justify-center gap-2 rounded-xl bg-white/15 px-5 py-3.5 font-bold text-white ring-1 ring-white/25 transition hover:bg-white/25">
+                                تتبّع حالة طلبك
                             </a>
                         </div>
-                    @endforeach
+                    </div>
                 </div>
-            @else
-                <p class="text-center text-slate-400">سيتم الإعلان عن التخصصات المتاحة قريباً.</p>
-            @endif
-        </section>
 
-        {{-- الأخبار / إرشادات المتقدمين --}}
-        <section id="news" data-spy class="reveal scroll-mt-28">
-            <div class="mb-10 text-center">
-                <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">الأخبار</span>
-                <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">معلومات تهمّ المتقدمين</h2>
-                <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">كل ما تحتاج معرفته قبل وأثناء وبعد تقديم طلبك للدراسات العليا.</p>
-            </div>
+                {{-- Right: contact cards --}}
+                <div class="grid gap-5 sm:grid-cols-2 auto-rows-fr lg:col-span-3">
 
-            <div class="grid gap-6 md:grid-cols-3">
+                    {{-- Phone (copy) --}}
+                    <div                         class="mg-card bg-white relative flex items-center gap-4 rounded-2xl p-5 ring-1 ring-slate-200 shadow-sm">
+                        <div class="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                            <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+                        </div>
+                        <div class="relative z-10 min-w-0 flex-1">
+                            <h3 class="text-sm font-bold text-slate-800">الهاتف</h3>
+                            <p class="mt-1 text-sm text-slate-500 break-all" dir="ltr">{{ $settings['contact_phone'] }}</p>
+                        </div>
+                        <button type="button" x-data @click="navigator.clipboard?.writeText(@js($settings['contact_phone'])); $store.toast.notify('تم النسخ', @js($settings['contact_phone']), 'success')" aria-label="نسخ الهاتف"
+                                class="relative z-10 shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-700">
+                            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/></svg>
+                        </button>
+                    </div>
 
-                {{-- Card 1: how to apply --}}
-                <article class="flex flex-col overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-lg">
-                    <div class="flex h-28 items-center justify-center bg-gradient-to-bl from-blue-700 to-sky-600 text-white">
-                        <svg class="size-11 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                    {{-- Email (copy) --}}
+                    <div                         class="mg-card bg-white relative flex items-center gap-4 rounded-2xl p-5 ring-1 ring-slate-200 shadow-sm">
+                        <div class="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                            <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+                        </div>
+                        <div class="relative z-10 min-w-0 flex-1">
+                            <h3 class="text-sm font-bold text-slate-800">البريد الإلكتروني</h3>
+                            <p class="mt-1 text-sm text-slate-500 break-all" dir="ltr">{{ $settings['contact_email'] }}</p>
+                        </div>
+                        <button type="button" x-data @click="navigator.clipboard?.writeText(@js($settings['contact_email'])); $store.toast.notify('تم النسخ', @js($settings['contact_email']), 'success')" aria-label="نسخ البريد"
+                                class="relative z-10 shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-700">
+                            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25"/></svg>
+                        </button>
                     </div>
-                    <div class="flex flex-1 flex-col p-6">
-                        <span class="text-xs font-bold text-blue-700">التقديم الإلكتروني</span>
-                        <h3 class="mt-2 text-base font-bold leading-snug text-slate-800">قدّم طلبك في خطوات بسيطة</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-slate-500">عبّئ بياناتك، اختر التخصص، ارفع مستنداتك، وفعّل التحقق من رقم النقال — كل ذلك أونلاين دون الحاجة للحضور.</p>
-                        <a href="#apply" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900">
-                            ابدأ التقديم
-                            <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                        </a>
-                    </div>
-                </article>
 
-                {{-- Card 2: required documents --}}
-                <article class="flex flex-col overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-lg">
-                    <div class="flex h-28 items-center justify-center bg-gradient-to-bl from-blue-700 to-sky-600 text-white">
-                        <svg class="size-11 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                    {{-- Address --}}
+                    <div                         class="mg-card bg-white relative flex items-center gap-4 rounded-2xl p-5 ring-1 ring-slate-200 shadow-sm">
+                        <div class="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                            <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                        </div>
+                        <div class="relative z-10 min-w-0 flex-1">
+                            <h3 class="text-sm font-bold text-slate-800">العنوان</h3>
+                            <p class="mt-1 text-sm text-slate-500">{{ $settings['contact_address'] }}</p>
+                        </div>
                     </div>
-                    <div class="flex flex-1 flex-col p-6">
-                        <span class="text-xs font-bold text-blue-700">قبل التقديم</span>
-                        <h3 class="mt-2 text-base font-bold leading-snug text-slate-800">جهّز المستندات المطلوبة</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-slate-500">شهادة البكالوريوس وكشف المواد التكميلية بصيغة PDF أو صورة (JPG/PNG) بحجم أقصى 5 ميجابايت لكل ملف، مع التأكد من صحة الاسم والرقم الوطني.</p>
-                    </div>
-                </article>
 
-                {{-- Card 3: track application --}}
-                <article class="flex flex-col overflow-hidden rounded-2xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-lg">
-                    <div class="flex h-28 items-center justify-center bg-gradient-to-bl from-blue-700 to-sky-600 text-white">
-                        <svg class="size-11 opacity-90" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    {{-- Working hours --}}
+                    <div                         class="mg-card bg-white relative flex items-center gap-4 rounded-2xl p-5 ring-1 ring-slate-200 shadow-sm">
+                        <div class="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                            <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div class="relative z-10 min-w-0 flex-1">
+                            <h3 class="text-sm font-bold text-slate-800">ساعات العمل</h3>
+                            <p class="mt-1 text-sm text-slate-500">{{ $settings['contact_hours'] }}</p>
+                        </div>
                     </div>
-                    <div class="flex flex-1 flex-col p-6">
-                        <span class="text-xs font-bold text-blue-700">بعد التقديم</span>
-                        <h3 class="mt-2 text-base font-bold leading-snug text-slate-800">تابع حالة طلبك وموعد الاختبار</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-slate-500">استخدم رقم التتبع والرقم الوطني للاستعلام عن حالة القبول ومعرفة موعد اختبار القبول في أي وقت.</p>
-                        <a href="{{ route('application.track.show') }}" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900">
-                            متابعة الطلب
-                            <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                        </a>
-                    </div>
-                </article>
-            </div>
-        </section>
-
-        {{-- اتصل بنا --}}
-        {{-- NOTE: placeholder contact details — replace phone/email/address with real values. --}}
-        <section id="contact" data-spy class="reveal scroll-mt-28">
-            <div class="mb-10 text-center">
-                <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">اتصل بنا</span>
-                <h2 class="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">تواصل معنا</h2>
-                <p class="mx-auto mt-3 max-w-2xl text-base text-slate-500">نسعد بالإجابة على استفساراتكم حول القبول والتسجيل بالدراسات العليا.</p>
-            </div>
-
-            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="rounded-2xl bg-white p-6 text-center shadow-md ring-1 ring-slate-200">
-                    <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                        <svg class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-                    </div>
-                    <h3 class="mb-1 text-sm font-bold text-slate-800">العنوان</h3>
-                    <p class="text-sm text-slate-500">طرابلس — ليبيا</p>
-                </div>
-                <div class="rounded-2xl bg-white p-6 text-center shadow-md ring-1 ring-slate-200">
-                    <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                        <svg class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
-                    </div>
-                    <h3 class="mb-1 text-sm font-bold text-slate-800">الهاتف</h3>
-                    <p class="text-sm text-slate-500" dir="ltr">+218 21 000 0000</p>
-                </div>
-                <div class="rounded-2xl bg-white p-6 text-center shadow-md ring-1 ring-slate-200">
-                    <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                        <svg class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
-                    </div>
-                    <h3 class="mb-1 text-sm font-bold text-slate-800">البريد الإلكتروني</h3>
-                    <p class="text-sm text-slate-500" dir="ltr">info@cet.edu.ly</p>
-                </div>
-                <div class="rounded-2xl bg-white p-6 text-center shadow-md ring-1 ring-slate-200">
-                    <div class="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-                        <svg class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                    <h3 class="mb-1 text-sm font-bold text-slate-800">ساعات العمل</h3>
-                    <p class="text-sm text-slate-500">الأحد — الخميس: 9ص — 3م</p>
                 </div>
             </div>
         </section>

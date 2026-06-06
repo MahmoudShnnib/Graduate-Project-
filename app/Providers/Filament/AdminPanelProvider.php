@@ -13,6 +13,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -43,6 +44,10 @@ class AdminPanelProvider extends PanelProvider
                 'إدارة الوصول والنظام',
                 'هيئة التدريس',
             ])
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_NAV_END,
+                fn (): string => view('filament.nav-alerts')->render(),
+            )
             ->font('Noto Kufi Arabic', url: asset('css/noto-kufi-arabic.css'), provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

@@ -96,6 +96,34 @@ class DashboardHeaderWidget extends Widget implements HasActions, HasSchemas
                             ->label('Dean name (English)')
                             ->maxLength(255),
                     ]),
+
+                Section::make('بيانات التواصل')
+                    ->description('تظهر في قسم "تواصل معنا" على صفحة التقديم العامة.')
+                    ->columns(2)
+                    ->components([
+                        TextInput::make('contact_phone')
+                            ->label('رقم الهاتف')
+                            ->maxLength(255),
+
+                        TextInput::make('contact_whatsapp')
+                            ->label('رقم واتساب (دولي بدون +)')
+                            ->helperText('مثال: 218910000000')
+                            ->maxLength(255),
+
+                        TextInput::make('contact_email')
+                            ->label('البريد الإلكتروني')
+                            ->email()
+                            ->maxLength(255),
+
+                        TextInput::make('contact_hours')
+                            ->label('ساعات العمل')
+                            ->maxLength(255),
+
+                        TextInput::make('contact_address')
+                            ->label('العنوان')
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                    ]),
             ])
             ->action(function (array $data): void {
                 foreach ($data as $key => $value) {

@@ -98,3 +98,9 @@ Sidebar was "messy" — no explicit group order (Filament rendered groups in dis
 **Gotcha:** `RoleResource` extends Shield's `RoleResource`, which **overrides the navigation getter methods** (reading Shield config) — so static `$navigationGroup`/`$navigationSort` are ignored. Had to override `getNavigationGroup()` / `getNavigationSort()` as methods to move الأدوار into the access/system group.
 
 Verified by dumping the resolved group→sort→label tree (matches the target exactly); 49 related tests pass; Pint clean.
+
+### Follow-up: parent-group alert dot for collapsed groups
+
+When a nav group is collapsed you can't see a child's pending badge (e.g. التسجيل والقبول "2"). Added an **amber pulsing dot on the parent group label** when any child has a badge.
+- Filament v5 has **no native group badge**. Implemented DRY via a render hook (`PanelsRenderHook::SIDEBAR_NAV_END` in `AdminPanelProvider`) → `resources/views/filament/nav-alerts.blade.php`: CSS dot + a tiny idempotent script that toggles `.fi-nav-alert` on any `.fi-sidebar-group` containing a `.fi-sidebar-item-badge-ctn`. **Mirrors existing child badges** (no duplicated counts), re-runs on `livewire:navigated` (SPA-safe).
+- Color `#f59e0b` (matches the yellow pending badges); swap to `#22c55e` for green. Verified present in the authenticated /admin render (200).
