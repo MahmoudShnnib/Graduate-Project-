@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Filament\Auth\Responses\LoginResponse;
 use App\Models\Application;
 use App\Models\CourseOffering;
 use App\Models\Grade;
@@ -15,6 +16,7 @@ use App\Observers\CourseOfferingObserver;
 use App\Observers\GradeObserver;
 use App\Observers\SemesterObserver;
 use App\Observers\StudentObserver;
+use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -23,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(LoginResponseContract::class, LoginResponse::class);
     }
 
     public function boot(): void

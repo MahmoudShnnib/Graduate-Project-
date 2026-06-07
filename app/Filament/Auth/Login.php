@@ -13,14 +13,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Force a full-page redirect after login so the regenerated session cookie is
- * committed before the dashboard loads. SPA / wire:navigate can otherwise loop
- * back to the login form when the cookie is not yet applied.
+ * Wrong-panel guard: students on /admin/login (or staff on /portal/login) are
+ * logged out and sent to the correct panel — breaks dual-panel redirect loops.
  *
- * Also breaks wrong-panel redirect loops: when a student is already logged in
- * and visits /admin/login (or staff visits /portal/login), Filament would
- * bounce them to a panel they cannot access. We log out and send them to the
- * correct panel's login route instead.
+ * Successful auth must return Filament's LoginResponse (bound in AppServiceProvider).
+ * Returning null after login makes Livewire re-render the form — looks like a refresh.
  */
 class Login extends BaseLogin
 {
@@ -51,7 +48,7 @@ class Login extends BaseLogin
     public function authenticate(): ?LoginResponse
     {
         try {
-            $response = parent::authenticate();
+            return parent::authenticate();
         } catch (ValidationException $exception) {
             if ($this->redirectToPreferredPanelAfterWrongPanelAttempt()) {
                 return null;
@@ -59,14 +56,6 @@ class Login extends BaseLogin
 
             throw $exception;
         }
-
-        if ($response === null) {
-            return null;
-        }
-
-        $this->redirectIntended(Filament::getUrl(), navigate: false);
-
-        return null;
     }
 
     protected function redirectToCorrectPanelLogin(FilamentUser $user, Panel $currentPanel): void

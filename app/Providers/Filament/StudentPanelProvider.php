@@ -29,11 +29,6 @@ class StudentPanelProvider extends PanelProvider
             ->path('portal')
             ->font('Noto Kufi Arabic', url: asset('css/noto-kufi-arabic.css'), provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/student/theme.css')
-            ->spa()
-            ->spaUrlExceptions([
-                '*/portal/login',
-                '*/portal/login/*',
-            ])
             ->login(\App\Filament\Auth\Login::class)
             ->userMenuItems([
                 \Filament\Navigation\MenuItem::make()

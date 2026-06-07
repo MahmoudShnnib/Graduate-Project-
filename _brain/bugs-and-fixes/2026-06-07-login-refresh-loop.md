@@ -16,25 +16,27 @@ related:
 
 ## Root cause
 
-`User` already implemented `FilamentUser` + `canAccessPanel()` — that was **not** the issue.
+`User` already implemented `FilamentUser` + `canAccessPanel()` — that was **not** the primary issue.
 
-The real failure mode: **login succeeds and `session()->regenerate()` runs, but the next request arrives without the new session cookie**, so Filament's auth middleware sends the user back to login.
+Two bugs stacked:
 
-Contributing factors behind TLS-terminating proxies (Traefik / Cloudflare → nginx → PHP-FPM):
+1. **`App\Filament\Auth\Login::authenticate()` returned `null` after success** instead of Filament's `LoginResponse`. Livewire re-rendered the login form — looks like an instant refresh with no error (Filament [#11107](https://github.com/filamentphp/filament/discussions/11107) symptom).
+2. **Session cookie not sent on the next request** behind Traefik when `X-Forwarded-Proto` / `HTTPS` were missing in nginx → PHP.
 
-1. **`docker/nginx.conf` did not forward `X-Forwarded-Proto` / `HTTPS` to PHP**, so Laravel could not treat requests as secure consistently.
-2. **Filament SPA mode** (`->spa(hasPrefetching: true)`, added 2026-06-06) can navigate after login before the regenerated cookie is committed.
-3. Legacy `users.role = 'secretary'` (pre-rename migration) was denied by `canAccessPanel()` — secondary issue for older DB rows.
+Contributing factors:
+
+- Filament **SPA mode** navigating before the regenerated cookie is committed.
+- **nginx gzip** on PHP responses can break Livewire updates in production ([#11107 comment](https://github.com/filamentphp/filament/discussions/11107)).
+- Legacy `users.role = 'secretary'` denied by `canAccessPanel()` — secondary.
 
 ## Fix
 
-- `docker/nginx.conf` — map `X-Forwarded-Proto` → `fastcgi_param HTTPS` + forward proxy headers to PHP-FPM.
-- `AppServiceProvider` — `URL::forceScheme('https')` when `APP_URL` is `https://…`.
-- `app/Filament/Auth/Login.php` — custom login page forces `redirectIntended(..., navigate: false)` after successful auth.
-- Both panel providers — `spaUrlExceptions` for `*/admin/login` and `*/portal/login`; dropped prefetching.
-- `User::canAccessPanel()` — accept legacy `secretary` role column; require `is_active` for staff roles.
-- `RolesAndPermissionsSeeder::repairUserRoles()` — map `secretary` column → `manager_assistant` Spatie role.
-- `tests/Feature/AdminLoginTest.php` — guards `FilamentUser` + login redirect (needs `pdo_sqlite` locally to run).
+- `app/Filament/Auth/Responses/LoginResponse.php` + bind in `AppServiceProvider` — return proper redirect response after auth.
+- `app/Filament/Auth/Login.php` — **return** `parent::authenticate()` on success; wrong-panel handling only in `mount()` / failed validation.
+- `docker/nginx.conf` — forward proxy headers; **`gzip off`** in PHP location.
+- Both panel providers — **removed `->spa()`** (re-enable later with login URL exceptions if needed).
+- `User::canAccessPanel()` — legacy `secretary` + `is_active` gate.
+- `tests/Feature/AdminLoginTest.php` — regression guard.
 
 ## Operator follow-up
 
