@@ -1,14 +1,16 @@
 # Graduate Project — production Docker Compose stack
 #
-# Quick start:
+# Quick start (local):
 #   1. cp .env.example .env
-#   2. Set APP_KEY (php artisan key:generate --show), APP_URL, POSTGRES_PASSWORD,
-#      mail + Qonvo credentials. Keep DB_CONNECTION unset — compose overrides it.
-#   3. docker compose up -d --build
-#   4. Open http://localhost:8080/up (health) then /apply
+#   2. Set APP_KEY, APP_URL, POSTGRES_PASSWORD, mail + Qonvo credentials.
+#   3. APP_PORT=8080 docker compose up -d --build   # optional host bind
+#   4. Open http://localhost:8080/up then /apply
 #
-# Uploads (bachelor certificates, thesis proposals, PDFs) persist in the app_uploads
-# volume. Postgres data persists in postgres_data.
+# Dokploy: leave APP_PORT unset — no host port is published (avoids 8080 clashes
+# with other stacks). In the Dokploy app settings, point the domain at container
+# port 8080 on service "app". The reverse proxy reaches it over the compose network.
+#
+# Uploads persist in app_uploads; Postgres data in postgres_data.
 
 name: graduate-project
 
@@ -18,8 +20,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-8080}:8080"
+    expose:
+      - "8080"
     env_file:
       - path: .env
         required: false

@@ -1,0 +1,6 @@
+# Local override — publish app on localhost:8080
+# Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+services:
+  app:
+    ports:
+      - "8080:8080"

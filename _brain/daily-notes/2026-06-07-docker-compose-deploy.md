@@ -41,3 +41,7 @@ Smoke: `http://localhost:8080/up`, then `/apply`.
 ## Follow-up: Dokploy build failure (same day)
 
 First deploy on Dokploy failed at `composer install` — Dockerfile used PHP 8.3 without `ext-intl` while `composer.lock` requires PHP 8.4+ and Filament needs intl. Fixed in `Dockerfile` (see [[../bugs-and-fixes/2026-06-07-docker-build-php84-intl]]). Push and redeploy.
+
+## Follow-up: host port 8080 already allocated
+
+Dokploy deploy failed binding `0.0.0.0:8080` — another stack on the server already uses it. Removed `ports` from `docker-compose.yml`; app only `expose`s 8080 on the compose network. Dokploy proxy routes by domain → container port 8080. Added `docker-compose.local.yml` for local `8080:8080` bind.
