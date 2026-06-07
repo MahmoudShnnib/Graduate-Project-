@@ -1,6 +1,15 @@
 #!/bin/sh
 set -e
 
+# Fix ownership on the writable paths BEFORE anything else. The `app_storage` named
+# volume is mounted over /var/www/storage/app and can come up owned by root (Docker
+# seeds a fresh volume from the image, but a pre-existing volume keeps its own owner).
+# If www-data (PHP-FPM) can't write storage/app/public, the /apply certificate upload
+# throws UnableToWriteFile and nginx returns 500 on every submission. Re-asserting the
+# owner here is idempotent and cheap, and also guarantees storage/logs is writable.
+echo "==> Fixing storage permissions..."
+chown -R www-data:www-data storage bootstrap/cache
+
 echo "==> Linking storage..."
 php artisan storage:link --force
 

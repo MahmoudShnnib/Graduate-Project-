@@ -26,6 +26,13 @@ services:
       APP_DEBUG: ${APP_DEBUG:-false}
       APP_URL: ${APP_URL:-http://localhost:8080}
       APP_TIMEZONE: ${APP_TIMEZONE:-Africa/Tripoli}
+      # Logging — .env is excluded from the image (.dockerignore), so without these the
+      # app falls back to config defaults (stack -> single file only) which writes to an
+      # ephemeral, often-unwritable storage/logs/laravel.log that nobody can see. Routing
+      # to stderr surfaces every error in `docker compose logs app` — the 12-factor way.
+      # Keep LOG_LEVEL=debug while diagnosing the /apply 500, then raise it to "warning".
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
       # The Dockerfile ships pdo_pgsql; point the app at the db service below.
       DB_CONNECTION: pgsql
       DB_HOST: db
@@ -37,6 +44,17 @@ services:
       SESSION_DRIVER: database
       QUEUE_CONNECTION: database
       CACHE_STORE: database
+      # Mail — also absent from the image (.env is ignored). Without these the mailer
+      # defaults to "log"; the /apply confirmation notification is wrapped in try/catch
+      # so a misconfigured mailer can't 500 the form, but real delivery needs these set.
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_SCHEME: ${MAIL_SCHEME:-}
+      MAIL_HOST: ${MAIL_HOST:-127.0.0.1}
+      MAIL_PORT: ${MAIL_PORT:-2525}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-${APP_NAME:-PGSMS}}
       # WhatsApp (Qonvo) — leave blank to disable the channel
       QONVO_API_TOKEN: ${QONVO_API_TOKEN:-}
       QONVO_SENDER_PHONE: ${QONVO_SENDER_PHONE:-}
