@@ -29,6 +29,10 @@ RUN npm ci
 # Full app code
 COPY . .
 
+# .dockerignore excludes storage/framework/* and storage/logs — Laravel still needs
+# those paths during `artisan package:discover` (triggered by dump-autoload).
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+
 # Build Vite assets (Filament admin/student panel themes + Tailwind CSS)
 RUN npm run build \
     && composer dump-autoload --optimize \

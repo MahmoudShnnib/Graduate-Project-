@@ -37,3 +37,7 @@ Smoke: `http://localhost:8080/up`, then `/apply`.
 - Set `SESSION_SECURE_COOKIE=true` when TLS terminates in front of the container.
 - Rotate Qonvo token before go-live (see [[../project-context/deployment-checklist]]).
 - Point Dokploy / reverse proxy at port 8080.
+
+## Follow-up: Dokploy build failure (same day)
+
+First deploy on Dokploy failed at `composer install` — Dockerfile used PHP 8.3 without `ext-intl` while `composer.lock` requires PHP 8.4+ and Filament needs intl. Fixed in `Dockerfile` (see [[../bugs-and-fixes/2026-06-07-docker-build-php84-intl]]). Push and redeploy.
