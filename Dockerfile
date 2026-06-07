@@ -1,17 +1,18 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 # System deps
 # freetype-dev + libjpeg-turbo-dev are required by mPDF's GD image processing
+# icu-dev is required for ext-intl (Filament + Symfony 8)
 RUN apk add --no-cache \
     nginx supervisor \
     postgresql-dev \
     freetype-dev libjpeg-turbo-dev libpng-dev libzip-dev \
-    oniguruma-dev \
+    oniguruma-dev icu-dev \
     nodejs npm
 
 # GD must be configured before installing — mPDF needs freetype + jpeg support
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_pgsql mbstring zip gd bcmath opcache
+    && docker-php-ext-install pdo pdo_pgsql mbstring zip gd bcmath opcache intl
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
