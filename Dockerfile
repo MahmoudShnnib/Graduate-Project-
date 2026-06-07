@@ -5,7 +5,7 @@ FROM php:8.4-fpm-alpine
 # icu-dev is required for ext-intl (Filament + Symfony 8)
 RUN apk add --no-cache \
     nginx supervisor \
-    postgresql-dev \
+    postgresql-dev postgresql-client \
     freetype-dev libjpeg-turbo-dev libpng-dev libzip-dev \
     oniguruma-dev icu-dev \
     nodejs npm

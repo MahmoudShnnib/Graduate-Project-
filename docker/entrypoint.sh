@@ -3,6 +3,17 @@ set -e
 
 mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
 
+echo "==> Waiting for PostgreSQL..."
+TRIES=0
+until pg_isready -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-graduate}" -d "${DB_DATABASE:-graduate_project}" >/dev/null 2>&1; do
+    TRIES=$((TRIES + 1))
+    if [ "$TRIES" -ge 60 ]; then
+        echo "ERROR: PostgreSQL not ready after 120s"
+        exit 1
+    fi
+    sleep 2
+done
+
 echo "==> Linking storage..."
 php artisan storage:link --force
 

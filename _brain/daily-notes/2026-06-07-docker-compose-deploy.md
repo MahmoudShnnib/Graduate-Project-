@@ -45,3 +45,12 @@ First deploy on Dokploy failed at `composer install` — Dockerfile used PHP 8.3
 ## Follow-up: host port 8080 already allocated
 
 Dokploy deploy failed binding `0.0.0.0:8080` — another stack on the server already uses it. Removed `ports` from `docker-compose.yml`; app only `expose`s 8080 on the compose network. Dokploy proxy routes by domain → container port 8080. Added `docker-compose.local.yml` for local `8080:8080` bind.
+
+## Follow-up: Dokploy CET org — domain + env configured via MCP
+
+- **Org:** CET (`AFzHcBQ8C5e85KMCTVQXi`)
+- **Compose:** `regstration` / `cet-regstration-jrhh7q` (`QQR8-FfXOQhHLJ1rCYcec`)
+- **Domain:** `https://cet-regstration-jrhh7q-613782-187-124-221-11.traefik.me` → service `app`, port **8080**, Let's Encrypt
+- **Env saved:** production DB (postgres service), `SESSION_SECURE_COOKIE=true`, `APP_KEY` generated, `APP_URL` matches domain
+- Removed duplicate traefik.me domain that pointed at port 80
+- Redeploy queued
