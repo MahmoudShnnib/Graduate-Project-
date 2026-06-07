@@ -46,7 +46,9 @@ First deploy on Dokploy failed at `composer install` — Dockerfile used PHP 8.3
 
 Dokploy deploy failed binding `0.0.0.0:8080` — another stack on the server already uses it. Removed `ports` from `docker-compose.yml`; app only `expose`s 8080 on the compose network. Dokploy proxy routes by domain → container port 8080. Added `docker-compose.local.yml` for local `8080:8080` bind.
 
-## Follow-up: Dokploy CET org — domain + env configured via MCP
+## Follow-up: switched to Dockerfile-only (no Compose)
+
+Removed `docker-compose.yml` + `docker-compose.local.yml`. Deploy as a **Dokploy Application** (Dockerfile at repo root, port **8080**). Postgres is a **separate** Dokploy Postgres service — set `DB_HOST` to its internal hostname in env.
 
 - **Org:** CET (`AFzHcBQ8C5e85KMCTVQXi`)
 - **Compose:** `regstration` / `cet-regstration-jrhh7q` (`QQR8-FfXOQhHLJ1rCYcec`)

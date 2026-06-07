@@ -3,6 +3,11 @@ set -e
 
 mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
 
+if [ -z "${DB_HOST:-}" ]; then
+    echo "ERROR: DB_HOST is not set. Point it at your Postgres host (Dokploy Postgres internal name or IP)."
+    exit 1
+fi
+
 # ---------------------------------------------------------------------------
 # Phase 1 — readiness: DB must accept connections AND Laravel auth must work
 # before any migration runs. pg_isready alone is not enough (Postgres can be
@@ -11,7 +16,7 @@ mkdir -p storage/framework/cache/data storage/framework/sessions storage/framewo
 
 echo "==> [1/3] Waiting for PostgreSQL (TCP)..."
 TRIES=0
-until pg_isready -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-graduate}" -d "${DB_DATABASE:-graduate_project}" >/dev/null 2>&1; do
+until pg_isready -h "${DB_HOST}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-graduate}" -d "${DB_DATABASE:-graduate_project}" >/dev/null 2>&1; do
     TRIES=$((TRIES + 1))
     if [ "$TRIES" -ge 60 ]; then
         echo "ERROR: PostgreSQL TCP not ready after 120s"
@@ -25,7 +30,7 @@ TRIES=0
 until php artisan db:show --no-interaction >/dev/null 2>&1; do
     TRIES=$((TRIES + 1))
     if [ "$TRIES" -ge 30 ]; then
-        echo "ERROR: Laravel cannot connect to the database after 60s (check DB_PASSWORD / POSTGRES_PASSWORD match)"
+        echo "ERROR: Laravel cannot connect to the database after 60s (check DB_HOST / DB_PASSWORD)"
         exit 1
     fi
     sleep 2

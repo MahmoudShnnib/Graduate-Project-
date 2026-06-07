@@ -1,3 +1,15 @@
+# Production image — Laravel + nginx + PHP-FPM on port 8080.
+#
+# Dokploy (Application / Dockerfile, not Compose):
+#   - Build: Dockerfile at repo root
+#   - Container port: 8080
+#   - Postgres: create a separate Dokploy Postgres service; set DB_* env vars below
+#   - Mount (recommended): /var/www/storage/app/public → persistent volume (uploads)
+#
+# Local smoke test:
+#   docker build -t graduate-project .
+#   docker run --rm -p 8080:8080 --env-file .env graduate-project
+#
 FROM php:8.4-fpm-alpine
 
 # System deps
