@@ -28,8 +28,9 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/up"]
       interval: 30s
       timeout: 5s
-      retries: 3
-      start_period: 90s
+      retries: 5
+      # First deploy runs migrate + full seed before nginx starts — allow up to 4 min.
+      start_period: 240s
 
   postgres:
     image: postgres:16-alpine

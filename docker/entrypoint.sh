@@ -3,53 +3,73 @@ set -e
 
 mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
 
-echo "==> Waiting for PostgreSQL..."
+# ---------------------------------------------------------------------------
+# Phase 1 — readiness: DB must accept connections AND Laravel auth must work
+# before any migration runs. pg_isready alone is not enough (Postgres can be
+# "ready" while auth or the database is still initialising).
+# ---------------------------------------------------------------------------
+
+echo "==> [1/3] Waiting for PostgreSQL (TCP)..."
 TRIES=0
 until pg_isready -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-graduate}" -d "${DB_DATABASE:-graduate_project}" >/dev/null 2>&1; do
     TRIES=$((TRIES + 1))
     if [ "$TRIES" -ge 60 ]; then
-        echo "ERROR: PostgreSQL not ready after 120s"
+        echo "ERROR: PostgreSQL TCP not ready after 120s"
         exit 1
     fi
     sleep 2
 done
 
-echo "==> Linking storage..."
+echo "==> [1/3] Waiting for Laravel database connection..."
+TRIES=0
+until php artisan db:show --no-interaction >/dev/null 2>&1; do
+    TRIES=$((TRIES + 1))
+    if [ "$TRIES" -ge 30 ]; then
+        echo "ERROR: Laravel cannot connect to the database after 60s (check DB_PASSWORD / POSTGRES_PASSWORD match)"
+        exit 1
+    fi
+    sleep 2
+done
+
+# ---------------------------------------------------------------------------
+# Phase 2 — bootstrapping: migrations + seeds + caches BEFORE any HTTP traffic.
+# Nginx / PHP-FPM are not started until this block completes successfully.
+# ---------------------------------------------------------------------------
+
+echo "==> [2/3] Linking storage..."
 php artisan storage:link --force
 
-echo "==> Running migrations..."
-php artisan migrate --force
+echo "==> [2/3] Running migrations..."
+php artisan migrate --force --no-interaction
 
-echo "==> Seeding roles & permissions (idempotent, runs every deploy)..."
-php artisan db:seed --class=RolesAndPermissionsSeeder --force
+echo "==> [2/3] Seeding roles & permissions (idempotent)..."
+php artisan db:seed --class=RolesAndPermissionsSeeder --force --no-interaction
 
-echo "==> Seeding settings (idempotent, runs every deploy)..."
-php artisan db:seed --class=SettingsSeeder --force
+echo "==> [2/3] Seeding settings (idempotent)..."
+php artisan db:seed --class=SettingsSeeder --force --no-interaction
 
-echo "==> Checking for first-deploy seed..."
-# Robust fresh-install detection via a dedicated artisan command (exit 0 = fresh).
-# Replaces the old `tinker --execute ... | grep` parsing, which broke whenever tinker
-# emitted banners/warnings on stdout. `if` swallows the non-zero exit on existing DBs,
-# so `set -e` won't abort here.
+echo "==> [2/3] Checking for first-deploy seed..."
 if php artisan app:check-fresh-install; then
     echo "==> Fresh database — seeding academic data and admin accounts..."
-    php artisan db:seed --class=SpecializationSeeder --force
-    php artisan db:seed --class=SemesterSeeder --force
-    php artisan db:seed --class=CourseSeeder --force
-    php artisan db:seed --class=AdminUserSeeder --force
+    php artisan db:seed --class=SpecializationSeeder --force --no-interaction
+    php artisan db:seed --class=SemesterSeeder --force --no-interaction
+    php artisan db:seed --class=CourseSeeder --force --no-interaction
+    php artisan db:seed --class=AdminUserSeeder --force --no-interaction
     echo "==> Initial seed done."
 else
     echo "==> Existing data found, skipping initial seed."
 fi
 
-echo "==> Caching config / routes / views / events..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
-# filament:optimize bundles icons:cache + filament:cache-components. Skip-on-failure so a
-# Filament build that lacks the command can't break the deploy (|| true keeps set -e calm).
-php artisan filament:optimize || true
+echo "==> [2/3] Caching config / routes / views / events..."
+php artisan config:cache --no-interaction
+php artisan route:cache --no-interaction
+php artisan view:cache --no-interaction
+php artisan event:cache --no-interaction
+php artisan filament:optimize --no-interaction || true
 
-echo "==> Starting PHP-FPM + Nginx..."
+# ---------------------------------------------------------------------------
+# Phase 3 — start web server only after migrations succeeded.
+# ---------------------------------------------------------------------------
+
+echo "==> [3/3] Starting PHP-FPM + Nginx..."
 exec /usr/bin/supervisord -c /etc/supervisord.conf

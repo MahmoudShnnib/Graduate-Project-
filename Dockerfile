@@ -49,7 +49,7 @@ EXPOSE 8080
 
 # Hit the framework health endpoint (registered in bootstrap/app.php health: '/up').
 # busybox wget ships with the alpine base; --spider does a HEAD-style check.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=240s --retries=5 \
     CMD wget --quiet --tries=1 --spider http://127.0.0.1:8080/up || exit 1
 
 CMD ["/entrypoint.sh"]
