@@ -56,6 +56,7 @@ class Application extends Model
     {
         return [
             'status' => ApplicationStatus::class,
+            'birth_date' => 'date',
             'exam_date' => 'datetime',
             'is_transfer' => 'boolean',
             'exam_score' => 'decimal:2',

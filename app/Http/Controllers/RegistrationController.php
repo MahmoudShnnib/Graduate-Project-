@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class RegistrationController extends Controller
@@ -201,19 +202,47 @@ class RegistrationController extends Controller
 
         $data['password'] = Hash::make($validated['password']);
 
-        if ($request->hasFile('bachelor_certificate')) {
-            $data['bachelor_certificate'] = $request->file('bachelor_certificate')
-                ->store('applications', 'public');
+        try {
+            if ($request->hasFile('bachelor_certificate')) {
+                $path = $request->file('bachelor_certificate')->store('applications', 'public');
+
+                if ($path === false) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(['bachelor_certificate' => 'تعذّر رفع شهادة البكالوريوس. يرجى المحاولة مرة أخرى.']);
+                }
+
+                $data['bachelor_certificate'] = $path;
+            }
+
+            if ($request->hasFile('remedial_statement')) {
+                $path = $request->file('remedial_statement')->store('applications', 'public');
+
+                if ($path === false) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(['remedial_statement' => 'تعذّر رفع كشف المواد التكميلية. يرجى المحاولة مرة أخرى.']);
+                }
+
+                $data['remedial_statement'] = $path;
+            }
+
+            $application = $this->createApplication->handle($data);
+
+            app(NotificationService::class)->notifyApplicationReceived($application);
+        } catch (\Throwable $e) {
+            Log::error('Application submission failed', [
+                'email' => $validated['email'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'exception' => $e->getMessage(),
+            ]);
+
+            report($e);
+
+            return back()
+                ->withInput()
+                ->withErrors(['email' => 'حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى أو التواصل مع مكتب الدراسات العليا.']);
         }
-
-        if ($request->hasFile('remedial_statement')) {
-            $data['remedial_statement'] = $request->file('remedial_statement')
-                ->store('applications', 'public');
-        }
-
-        $application = $this->createApplication->handle($data);
-
-        app(NotificationService::class)->notifyApplicationReceived($application);
 
         return redirect()->route('registration.create')
             ->with('success', 'تم إرسال طلبك بنجاح!')
