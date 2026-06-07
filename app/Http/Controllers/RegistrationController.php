@@ -182,27 +182,26 @@ class RegistrationController extends Controller
             'password.confirmed' => 'كلمة المرور وتأكيدها غير متطابقتين',
         ]);
 
-        if ($whatsApp->isConfigured() && ! $this->otpService->hasVerified($validated['phone'])) {
-            return back()
-                ->withInput()
-                ->withErrors(['phone' => 'يرجى التحقق من رقم النقال عبر واتساب قبل إرسال الطلب.']);
-        }
-
-        $data = $validated;
-
-        // Extract last word from the 4-part name as last_name
-        $nameParts = preg_split('/\s+/', trim($validated['name']));
-        $data['last_name'] = end($nameParts);
-
-        // Resolve nationality
-        if ($validated['nationality'] === 'أخرى') {
-            $data['nationality'] = $validated['nationality_other'] ?? '';
-        }
-        unset($data['nationality_other'], $data['declaration']);
-
-        $data['password'] = Hash::make($validated['password']);
-
         try {
+            if ($whatsApp->isConfigured() && ! $this->otpService->hasVerified($validated['phone'])) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['phone' => 'يرجى التحقق من رقم النقال عبر واتساب قبل إرسال الطلب.']);
+            }
+
+            $data = $validated;
+
+            // Extract last word from the 4-part name as last_name
+            $nameParts = preg_split('/\s+/', trim($validated['name']));
+            $data['last_name'] = end($nameParts);
+
+            // Resolve nationality
+            if ($validated['nationality'] === 'أخرى') {
+                $data['nationality'] = $validated['nationality_other'] ?? '';
+            }
+            unset($data['nationality_other'], $data['declaration']);
+
+            $data['password'] = Hash::make($validated['password']);
             if ($request->hasFile('bachelor_certificate')) {
                 $path = $request->file('bachelor_certificate')->store('applications', 'public');
 

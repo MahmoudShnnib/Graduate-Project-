@@ -46,8 +46,9 @@ php artisan storage:link --force
 
 # Dokploy mounts a volume at storage/app/public — it may be owned by root on first
 # attach. /apply uploads (bachelor certificate, remedial statement) land here.
-mkdir -p storage/app/public/applications
+mkdir -p storage/app/public/applications storage/logs
 chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
 
 echo "==> [2/3] Running migrations..."
 php artisan migrate --force --no-interaction

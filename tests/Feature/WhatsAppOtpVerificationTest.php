@@ -5,8 +5,10 @@ use App\Models\Specialization;
 use App\Models\WhatsAppOtp;
 use App\Services\WhatsAppOtpService;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 function configureQonvo(bool $enabled = true): void
 {
@@ -228,4 +230,26 @@ it('allows application submission without OTP when WhatsApp is not configured', 
         ->assertRedirect(route('registration.create'));
 
     expect(Application::where('phone', '0915555555')->exists())->toBeTrue();
+});
+
+it('stores uploaded certificate files on application submission', function () {
+    configureQonvo(false);
+    Storage::fake('public');
+
+    $payload = validApplicationPayload(['phone' => '0916666666']);
+    $payload['bachelor_certificate'] = UploadedFile::fake()->create('certificate.pdf', 512, 'application/pdf');
+    $payload['remedial_statement'] = UploadedFile::fake()->image('remedial.jpg');
+
+    $this->post(route('registration.store'), $payload)
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('registration.create'));
+
+    $application = Application::where('phone', '0916666666')->first();
+
+    expect($application)->not->toBeNull()
+        ->and($application->bachelor_certificate)->toStartWith('applications/')
+        ->and($application->remedial_statement)->toStartWith('applications/');
+
+    Storage::disk('public')->assertExists($application->bachelor_certificate);
+    Storage::disk('public')->assertExists($application->remedial_statement);
 });
