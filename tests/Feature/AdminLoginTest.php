@@ -36,3 +36,41 @@ it('authenticates a super admin through the Filament login page', function () {
 
     $this->assertAuthenticatedAs($admin);
 });
+
+it('redirects an authenticated student away from the admin login to the portal login', function () {
+    ['user' => $student] = studentWithRecord();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    Livewire::actingAs($student)
+        ->test(Login::class)
+        ->assertRedirect(Filament::getPanel('student')->getLoginUrl());
+
+    $this->assertGuest();
+});
+
+it('redirects a student who signs in on the admin form to the portal login', function () {
+    ['user' => $student] = studentWithRecord();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    Livewire::test(Login::class)
+        ->fillForm([
+            'email' => $student->email,
+            'password' => 'password',
+        ])
+        ->call('authenticate')
+        ->assertRedirect(Filament::getPanel('student')->getLoginUrl());
+
+    $this->assertGuest();
+});
+
+it('redirects staff who hit the portal while authenticated to the admin login', function () {
+    $admin = adminUser();
+
+    $this->actingAs($admin)
+        ->get('/portal')
+        ->assertRedirect(Filament::getPanel('admin')->getLoginUrl());
+
+    $this->assertGuest();
+});

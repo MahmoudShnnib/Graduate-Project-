@@ -4,6 +4,7 @@ namespace App\Models;
 
 use BezhanSalleh\FilamentShield\Support\Utils;
 use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
+use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -83,5 +84,22 @@ class User extends Authenticatable implements FilamentUser
         }
 
         return (bool) $this->hasRole(Utils::getPanelUserRoleName());
+    }
+
+    /**
+     * Which Filament panel this user belongs on — used to break login redirect loops
+     * when an authenticated user hits the wrong panel (admin vs student portal).
+     */
+    public function preferredPanelId(): ?string
+    {
+        if ($this->role === 'student' && $this->is_active) {
+            return 'student';
+        }
+
+        if ($this->canAccessPanel(Filament::getPanel('admin'))) {
+            return 'admin';
+        }
+
+        return null;
     }
 }

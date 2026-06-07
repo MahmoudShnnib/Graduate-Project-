@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,11 +21,37 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // When an unauthenticated user visits /portal, redirect to portal login.
-        // Handles the case where Filament/policy throws 403 mid-request after the
-        // user is already on a portal page (e.g. session expiry).
-        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
-            if ($e->getStatusCode() === 403 && str_starts_with($request->path(), 'portal') && ! $request->user()) {
+        // Authenticated user on the wrong Filament panel (e.g. student hitting /admin/*).
+        // Log out and send them to the panel they belong on — breaks redirect loops.
+        $exceptions->render(function (HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() !== 403) {
+                return null;
+            }
+
+            $user = $request->user();
+
+            if ($user instanceof User) {
+                $panelId = match (true) {
+                    str_starts_with($request->path(), 'portal') => 'student',
+                    str_starts_with($request->path(), 'admin') => 'admin',
+                    default => null,
+                };
+
+                if ($panelId !== null && ! $user->canAccessPanel(Filament::getPanel($panelId))) {
+                    $preferredPanelId = $user->preferredPanelId();
+
+                    if ($preferredPanelId !== null && $preferredPanelId !== $panelId) {
+                        auth()->logout();
+                        $request->session()->invalidate();
+                        $request->session()->regenerateToken();
+
+                        return redirect(Filament::getPanel($preferredPanelId)->getLoginUrl());
+                    }
+                }
+            }
+
+            // When an unauthenticated user visits /portal, redirect to portal login.
+            if (str_starts_with($request->path(), 'portal') && ! $request->user()) {
                 return redirect('/portal/login');
             }
         });
