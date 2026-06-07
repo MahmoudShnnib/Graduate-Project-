@@ -112,14 +112,15 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     private function repairUserRoles(): void
     {
-        $knownRoles = ['super_admin', 'manager_assistant', 'faculty', 'student'];
+        $knownRoles = ['super_admin', 'manager_assistant', 'secretary', 'faculty', 'student'];
 
         User::query()
             ->whereIn('role', $knownRoles)
             ->get()
             ->each(function (User $user): void {
                 // syncRoles replaces the full role set — safe and idempotent.
-                $user->syncRoles([$user->role]);
+                $spatieRole = $user->role === 'secretary' ? 'manager_assistant' : $user->role;
+                $user->syncRoles([$spatieRole]);
             });
     }
 }

@@ -78,8 +78,8 @@ class User extends Authenticatable implements FilamentUser
             return true;
         }
 
-        if (in_array($this->role, ['manager_assistant', 'faculty'], true)) {
-            return true;
+        if (in_array($this->role, ['manager_assistant', 'secretary', 'faculty'], true)) {
+            return (bool) $this->is_active;
         }
 
         return (bool) $this->hasRole(Utils::getPanelUserRoleName());
