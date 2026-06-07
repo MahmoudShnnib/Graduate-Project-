@@ -22,6 +22,14 @@ RUN apk add --no-cache \
     oniguruma-dev icu-dev \
     nodejs npm
 
+# nginx.conf runs workers as www-data, but `apk add nginx` creates /var/lib/nginx
+# (incl. the client_body temp dir) owned by the `nginx` user. When a www-data worker
+# spools an upload body larger than client_body_buffer_size to disk it gets EACCES and
+# returns its own 500 — before the request ever reaches PHP-FPM. This is why /apply
+# file uploads 500'd. Make the temp/log dirs owned by the worker user.
+RUN mkdir -p /var/lib/nginx/tmp/client_body /var/lib/nginx/logs \
+    && chown -R www-data:www-data /var/lib/nginx
+
 # GD must be configured before installing — mPDF needs freetype + jpeg support
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql mbstring zip gd bcmath opcache intl

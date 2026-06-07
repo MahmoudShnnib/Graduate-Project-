@@ -50,6 +50,12 @@ mkdir -p storage/app/public/applications storage/logs
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
 
+# nginx workers run as www-data (nginx.conf) but /var/lib/nginx is created owned by the
+# `nginx` user, so spooling an upload body to client_body temp fails with EACCES and nginx
+# returns its own 500 before reaching PHP. Re-assert ownership here so it self-heals.
+mkdir -p /var/lib/nginx/tmp/client_body /var/lib/nginx/logs
+chown -R www-data:www-data /var/lib/nginx
+
 echo "==> [2/3] Running migrations..."
 php artisan migrate --force --no-interaction
 
