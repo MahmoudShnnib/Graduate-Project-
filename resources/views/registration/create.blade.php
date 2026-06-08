@@ -12,16 +12,21 @@
         .mg-card { position:relative; transition:transform .2s ease, box-shadow .2s ease; }
         .mg-card:hover { transform:translateY(-4px); box-shadow:0 18px 36px -16px rgba(30,58,138,.30); }
 
-        .mg-gtext { background:linear-gradient(90deg,#1e3a8a,#0ea5e9,#6366f1,#1e3a8a); background-size:200% auto;
-            -webkit-background-clip:text; background-clip:text; color:transparent; animation:mgShimmer 7s linear infinite; }
+        .mg-gtext { color:#0f172a; }
 
         .mg-line { transform:scaleX(0); transform-origin:right; }
         .reveal-enabled .is-visible .mg-line { animation:mgDrawX 1.2s ease .15s forwards; }
+
+        /* Mobile timeline nodes: hidden until JS reveals them in order on scroll */
+        .tl-node { opacity:0; transform:scale(.4); transition:opacity .45s ease, transform .5s cubic-bezier(.34,1.56,.64,1); }
+        .tl-node.is-on { opacity:1; transform:scale(1); }
 
         @media (prefers-reduced-motion: reduce) {
             .mg-gtext { animation:none !important; }
             .mg-card { transition:none !important; }
             .reveal-enabled .is-visible .mg-line { animation:none; transform:scaleX(1); }
+            .tl-node { opacity:1 !important; transform:none !important; transition:none !important; }
+            [data-tl-fill] { transition:none !important; }
         }
     </style>
 
@@ -34,7 +39,7 @@
 
                 {{-- Text + checklist (right in RTL) --}}
                 <div>
-                    <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">عن الكلية</span>
+                    <span class="inline-flex rounded-full bg-blue-100/80 px-4 py-2 text-sm font-bold text-blue-700 ring-1 ring-blue-200">عن الكلية</span>
                     <h2 class="mt-4 text-3xl font-extrabold leading-tight text-slate-900 md:text-4xl">
                         بوابتك إلى الدراسات العليا
                     </h2>
@@ -95,26 +100,33 @@
                     @php
                         $accents = [
                             ['ic' => 'bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white', 'bar' => 'from-blue-500 to-sky-400'],
-                            ['ic' => 'bg-indigo-100 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white', 'bar' => 'from-indigo-500 to-violet-400'],
+                            ['ic' => 'bg-teal-100 text-teal-700 group-hover:bg-teal-600 group-hover:text-white', 'bar' => 'from-teal-500 to-teal-300'],
                             ['ic' => 'bg-cyan-100 text-cyan-700 group-hover:bg-cyan-600 group-hover:text-white', 'bar' => 'from-cyan-500 to-sky-400'],
-                            ['ic' => 'bg-violet-100 text-violet-700 group-hover:bg-violet-600 group-hover:text-white', 'bar' => 'from-violet-500 to-fuchsia-400'],
+                            ['ic' => 'bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white', 'bar' => 'from-blue-600 to-sky-400'],
                             ['ic' => 'bg-teal-100 text-teal-700 group-hover:bg-teal-600 group-hover:text-white', 'bar' => 'from-teal-500 to-emerald-400'],
                             ['ic' => 'bg-sky-100 text-sky-700 group-hover:bg-sky-600 group-hover:text-white', 'bar' => 'from-sky-500 to-blue-400'],
                         ];
+                        // Per-specialization icons (white PNG glyphs on the colored tile). Mapped by code, with a name fallback.
+                        $specIconsByCode = [1 => 'comm.png', 2 => 'computer.png', 3 => 'control.png'];
+                        $specIconsByName = ['الإتصالات' => 'comm.png', 'الحاسب الآلي' => 'computer.png', 'التحكم الآلي' => 'control.png'];
                     @endphp
                     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach($specializations as $specialization)
-                            @php $a = $accents[$loop->index % count($accents)]; @endphp
+                            @php
+                                $a = $accents[$loop->index % count($accents)];
+                                $icon = $specIconsByCode[$specialization->code] ?? ($specIconsByName[$specialization->name] ?? null);
+                            @endphp
                             <div                                 class="group mg-card bg-white relative overflow-hidden rounded-2xl p-6 ring-1 ring-slate-200 shadow-md">
                                 <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-l {{ $a['bar'] }} opacity-0 transition group-hover:opacity-100"></div>
                                 <div class="relative z-10">
-                                    <div class="mb-4 flex items-center justify-between">
-                                        <div class="flex size-12 items-center justify-center rounded-2xl transition {{ $a['ic'] }}">
-                                            <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+                                    <div class="mb-4 flex items-center">
+                                        <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-bl {{ $a['bar'] }} shadow-sm">
+                                            @if($icon)
+                                                <img src="{{ asset('images/specializations/'.$icon) }}?v={{ @filemtime(public_path('images/specializations/'.$icon)) }}" alt="" class="size-7 object-contain">
+                                            @else
+                                                <svg class="size-6 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+                                            @endif
                                         </div>
-                                        @if($specialization->code)
-                                            <span class="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200" dir="ltr">#{{ $specialization->code }}</span>
-                                        @endif
                                     </div>
                                     <h3 class="mb-3 text-lg font-bold text-slate-800">{{ $specialization->name }}</h3>
                                     <a href="#apply" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 transition group-hover:gap-2 hover:text-blue-900">
@@ -142,7 +154,7 @@
 
                 <div class="relative">
                     {{-- drawing connector line (desktop) --}}
-                    <div class="mg-line pointer-events-none absolute top-7 right-[16%] left-[16%] hidden h-1 rounded-full bg-gradient-to-l from-blue-500 via-sky-400 to-indigo-500 md:block" aria-hidden="true"></div>
+                    <div class="mg-line pointer-events-none absolute top-7 right-[16%] left-[16%] hidden h-1 rounded-full bg-gradient-to-l from-blue-500 via-sky-400 to-teal-500 md:block" aria-hidden="true"></div>
 
                     @php
                         $steps = [
@@ -156,21 +168,61 @@
                             [
                                 'n' => '2', 'tag' => 'أثناء التقديم', 'title' => 'قدّم طلبك إلكترونياً',
                                 'desc' => 'عبّئ بياناتك، اختر التخصص، ارفع مستنداتك، وفعّل التحقق من رقم النقال عبر واتساب — كل ذلك أونلاين دون حضور.',
-                                'grad' => 'from-sky-500 to-indigo-500',
+                                'grad' => 'from-sky-500 to-teal-500',
                                 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>',
                                 'cta' => ['label' => 'ابدأ التقديم', 'href' => '#apply'],
                             ],
                             [
                                 'n' => '3', 'tag' => 'بعد التقديم', 'title' => 'تابع حالة طلبك',
                                 'desc' => 'استخدم رقم التتبع والرقم الوطني للاستعلام عن حالة القبول ومعرفة موعد اختبار القبول في أي وقت.',
-                                'grad' => 'from-indigo-500 to-violet-500',
+                                'grad' => 'from-teal-400 to-teal-600',
                                 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>',
                                 'cta' => ['label' => 'متابعة الطلب', 'href' => route('application.track.show')],
                             ],
                         ];
                     @endphp
 
-                    <div class="grid gap-8 md:grid-cols-3">
+                    {{-- ===== Mobile: vertical timeline (JS-driven reveal) ===== --}}
+                    <div class="relative md:hidden" data-timeline>
+                        {{-- continuous connecting line: grey track + gradient fill (positioned & grown by JS) --}}
+                        <div class="pointer-events-none absolute z-0 w-1 rounded-full bg-slate-200" data-tl-track aria-hidden="true">
+                            <div class="absolute inset-x-0 top-0 h-0 rounded-full bg-gradient-to-b from-blue-500 via-sky-400 to-teal-500 transition-[height] duration-700 ease-out" data-tl-fill></div>
+                        </div>
+                        <div class="space-y-8">
+                            @foreach($steps as $step)
+                                <div class="relative flex items-start gap-4">
+                                    {{-- node --}}
+                                    <div class="relative flex w-14 shrink-0 justify-center">
+                                        <div class="tl-node relative z-10 flex size-14 items-center justify-center rounded-full bg-gradient-to-bl {{ $step['grad'] }} text-lg font-extrabold text-white shadow-lg ring-4 ring-white" data-tl-node>
+                                            {{ $step['n'] }}
+                                        </div>
+                                    </div>
+                                    {{-- card --}}
+                                    <div class="mg-card bg-white relative flex-1 rounded-2xl p-5 ring-1 ring-slate-200 shadow-md">
+                                        {{-- notch pointing at the line --}}
+                                        <span class="absolute right-0 top-7 size-3 translate-x-1/2 rotate-45 rounded-[2px] border-r border-t border-slate-200 bg-white" aria-hidden="true"></span>
+                                        <div class="relative z-10 flex flex-col items-center text-center">
+                                            <div class="mb-3 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-bl {{ $step['grad'] }} text-white">
+                                                <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">{!! $step['icon'] !!}</svg>
+                                            </div>
+                                            <span class="text-xs font-bold text-blue-700">{{ $step['tag'] }}</span>
+                                            <h3 class="mt-1.5 text-base font-bold leading-snug text-slate-800">{{ $step['title'] }}</h3>
+                                            <p class="mt-2 text-sm leading-relaxed text-slate-500">{{ $step['desc'] }}</p>
+                                            @if($step['cta'])
+                                                <a href="{{ $step['cta']['href'] }}" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 transition hover:gap-2 hover:text-blue-900">
+                                                    {{ $step['cta']['label'] }}
+                                                    <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- ===== Desktop: 3-column grid ===== --}}
+                    <div class="hidden gap-8 md:grid md:grid-cols-3">
                         @foreach($steps as $step)
                             <div class="flex flex-col items-center text-center">
                                 {{-- node --}}
@@ -290,11 +342,11 @@
 
         {{-- Header --}}
         <div class="mb-10 text-center">
-            <span class="inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">
+            <span class="inline-flex rounded-full bg-blue-100/80 px-4 py-2 text-sm font-bold text-blue-700 ring-1 ring-blue-200">
                 التسجيل الإلكتروني
             </span>
-            <h2 class="mt-4 text-4xl font-extrabold text-slate-900">
-                استمارة طلب التحاق بالدراسات العليا
+            <h2 class="mt-4 text-3xl font-extrabold md:text-4xl">
+                <span class="mg-gtext">استمارة طلب التحاق بالدراسات العليا</span>
             </h2>
             <p class="mt-3 text-base text-slate-500">الإجازة العليا (الماجستير)</p>
         </div>
@@ -326,7 +378,7 @@
             @csrf
 
             {{-- Live completion progress --}}
-            <div class="sticky top-28 z-20 rounded-2xl border border-slate-200 bg-white/95 px-5 py-3 shadow-sm backdrop-blur">
+            <div class="sticky top-4 z-20 rounded-2xl border border-slate-200 bg-white/95 px-5 py-3 shadow-sm backdrop-blur">
                 <div class="mb-2 flex items-center justify-between text-sm font-bold">
                     <span class="text-slate-700">اكتمال الاستمارة</span>
                     <span class="text-blue-700" x-text="progress + '%'">0%</span>
@@ -858,4 +910,76 @@
         })();
     </script>
     @endif
+
+    {{-- Mobile "رحلة التقديم" timeline: connect the line + reveal nodes 1→2→3 on scroll --}}
+    <script>
+        (function () {
+            function initJourneyTimeline() {
+                const tl = document.querySelector('[data-timeline]');
+                if (!tl) { return; }
+                const nodes = Array.prototype.slice.call(tl.querySelectorAll('[data-tl-node]'));
+                const track = tl.querySelector('[data-tl-track]');
+                const fill = tl.querySelector('[data-tl-fill]');
+                if (!nodes.length || !track || !fill) { return; }
+
+                const LINE_W = 4;
+                const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                function centerY(el) {
+                    const r = el.getBoundingClientRect();
+                    const t = tl.getBoundingClientRect();
+                    return (r.top + r.height / 2) - t.top;
+                }
+
+                function layout() {
+                    if (getComputedStyle(tl).display === 'none') { return; }
+                    const t = tl.getBoundingClientRect();
+                    const n0 = nodes[0].getBoundingClientRect();
+                    const rightOffset = t.right - (n0.left + n0.width / 2) - (LINE_W / 2);
+                    const topY = centerY(nodes[0]);
+                    const botY = centerY(nodes[nodes.length - 1]);
+                    track.style.right = rightOffset + 'px';
+                    track.style.top = topY + 'px';
+                    track.style.height = Math.max(0, botY - topY) + 'px';
+                }
+
+                let activeIndex = -1;
+                function grow(i) {
+                    if (i <= activeIndex) { return; }
+                    activeIndex = i;
+                    const topY = centerY(nodes[0]);
+                    const tgtY = centerY(nodes[i]);
+                    fill.style.height = Math.max(0, tgtY - topY) + 'px';
+                }
+
+                layout();
+                window.addEventListener('resize', layout, { passive: true });
+                window.addEventListener('load', layout);
+
+                if (reduce || !('IntersectionObserver' in window)) {
+                    nodes.forEach(function (n) { n.classList.add('is-on'); });
+                    grow(nodes.length - 1);
+                    return;
+                }
+
+                const io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (e) {
+                        if (e.isIntersecting) {
+                            const i = nodes.indexOf(e.target);
+                            e.target.classList.add('is-on');
+                            grow(i);
+                            io.unobserve(e.target);
+                        }
+                    });
+                }, { rootMargin: '0px 0px -25% 0px', threshold: 0.5 });
+                nodes.forEach(function (n) { io.observe(n); });
+            }
+
+            if (document.readyState !== 'loading') {
+                initJourneyTimeline();
+            } else {
+                document.addEventListener('DOMContentLoaded', initJourneyTimeline);
+            }
+        })();
+    </script>
 </x-layout.app>

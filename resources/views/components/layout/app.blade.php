@@ -12,9 +12,30 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Brand palette — Azure (primary) + Teal (secondary).
+        // Anchored on the supplied hexes (azure 600/400/700, teal 500/400/700);
+        // remapping blue + sky → azure and teal → teal rebrands the whole site
+        // without touching individual utility classes.
+        const azure = {
+            50:  '#ECF4FB', 100: '#D6E8F5', 200: '#B0D2EC', 300: '#74AEDD',
+            400: '#3A93D6', 500: '#2682C6', 600: '#1774B6', 700: '#125E93',
+            800: '#0E4D79', 900: '#0C3E61', 950: '#082942',
+        };
+        const teal = {
+            50:  '#E7FAF7', 100: '#C8F3ED', 200: '#94E7DC', 300: '#5AD6C8',
+            400: '#2BC7B6', 500: '#16B0A0', 600: '#119488', 700: '#0E7D72',
+            800: '#0B6359', 900: '#094E47', 950: '#042E2A',
+        };
         tailwind.config = {
             theme: {
                 extend: {
+                    colors: {
+                        blue: azure,
+                        sky: azure,
+                        teal: teal,
+                        azure: azure,
+                        brand: azure,
+                    },
                     fontFamily: {
                         sans: ['"Noto Kufi Arabic"', 'sans-serif'],
                         kufi: ['"Noto Kufi Arabic"', 'sans-serif'],
@@ -72,24 +93,28 @@
     ];
 @endphp
 
-<header class="sticky top-0 z-40 bg-white/95 backdrop-blur transition-shadow duration-300"
-        :class="$store.ui?.scrolled ? 'shadow-lg' : 'shadow-sm'"
-        x-data="{ mobileOpen: false }">
+{{-- Reading-progress bar — fixed at the very top so it stays visible even when the header hides on scroll --}}
+<div class="pointer-events-none fixed inset-x-0 top-0 z-50 h-1 bg-transparent" x-data>
+    <div class="h-full bg-gradient-to-l from-sky-400 to-blue-700 transition-[width] duration-150 ease-out"
+         :style="`width: ${$store.ui?.progress ?? 0}%`"></div>
+</div>
 
-    {{-- Reading-progress bar --}}
-    <div class="absolute inset-x-0 top-0 h-1 bg-transparent">
-        <div class="h-full bg-gradient-to-l from-sky-400 to-blue-700 transition-[width] duration-150 ease-out"
-             :style="`width: ${$store.ui?.progress ?? 0}%`"></div>
-    </div>
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur transition-[transform,box-shadow] duration-300 will-change-transform"
+        x-data="{ mobileOpen: false }"
+        :class="{
+            'shadow-lg': $store.ui?.scrolled,
+            'shadow-sm': !$store.ui?.scrolled,
+            '-translate-y-full': $store.ui?.hideNav && !mobileOpen,
+        }">
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="flex items-center justify-between gap-4 h-24 md:h-28">
 
             {{-- Brand --}}
             <div class="flex min-w-0 shrink items-center">
-                <img src="{{ asset('images/logo.png') }}"
+                <img src="{{ asset('images/logo.png') }}?v={{ @filemtime(public_path('images/logo.png')) }}"
                      alt="كلية التقنية الإلكترونية - طرابلس"
-                     class="h-20 w-auto max-w-full object-contain md:h-24">
+                     class="h-14 w-auto max-w-full object-contain md:h-24">
             </div>
 
             {{-- Desktop nav --}}
@@ -267,8 +292,10 @@
             showTop: false,
             progress: 0,
             active: 'home',
+            hideNav: false,
 
             init() {
+                let lastY = window.scrollY || document.documentElement.scrollTop;
                 const onScroll = () => {
                     const y = window.scrollY || document.documentElement.scrollTop;
                     const doc = document.documentElement;
@@ -276,6 +303,16 @@
                     this.scrolled = y > 8;
                     this.showTop = y > 600;
                     this.progress = max > 0 ? Math.min(100, (y / max) * 100) : 0;
+
+                    // Hide the header when scrolling down (past its height), reveal on scroll up.
+                    if (y <= 120) {
+                        this.hideNav = false;
+                    } else if (y > lastY + 6) {
+                        this.hideNav = true;
+                    } else if (y < lastY - 6) {
+                        this.hideNav = false;
+                    }
+                    lastY = y;
                 };
                 window.addEventListener('scroll', onScroll, { passive: true });
                 window.addEventListener('resize', onScroll, { passive: true });
