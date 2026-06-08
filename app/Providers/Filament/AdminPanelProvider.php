@@ -31,6 +31,11 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->brandName('إدارة الدراسات العليا')
+            ->spa()
+            ->spaUrlExceptions([
+                '*/admin/login',
+                '*/admin/login/*',
+            ])
             ->login(\App\Filament\Auth\Login::class)
             ->userMenuItems([
                 \Filament\Navigation\MenuItem::make()

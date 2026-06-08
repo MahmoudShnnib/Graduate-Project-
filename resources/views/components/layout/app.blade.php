@@ -176,10 +176,12 @@
 
 <section id="home" data-spy class="relative overflow-hidden bg-[#d4effd]">
 
-    {{-- ===== Desktop (lg+): full-bleed illustration with the copy over the open right side ===== --}}
+    {{-- ===== Desktop (lg+): full-bleed illustration with the copy over the right side ===== --}}
     <div class="relative hidden lg:block">
-        <img src="{{ asset('images/hero-apply.png') }}" alt="" aria-hidden="true"
-             class="absolute inset-0 h-full w-full object-cover object-[left_bottom]">
+        <img src="{{ asset('images/hero-apply.png') }}?v={{ @filemtime(public_path('images/hero-apply.png')) }}" alt="" aria-hidden="true"
+             class="absolute inset-0 h-full w-full object-cover object-center">
+        {{-- subtle darkening for depth --}}
+        <div class="pointer-events-none absolute inset-0 bg-blue-950/20"></div>
         {{-- directional wash — illustration crisp on the left, text area clear on the right --}}
         <div class="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#d4effd] via-[#d4effd]/55 to-transparent"></div>
 
@@ -204,14 +206,16 @@
         </div>
     </div>
 
-    {{-- ===== Mobile (<lg): faded illustration backdrop with the copy overlaid (text-shadow for legibility) ===== --}}
+    {{-- ===== Mobile (<lg): copy over the illustration ===== --}}
     <div class="relative overflow-hidden lg:hidden">
-        <img src="{{ asset('images/hero-apply.png') }}" alt="رسم خريج يحمل شهادته أمام مبنى الكلية"
-             class="absolute inset-0 h-full w-full object-cover object-center opacity-20">
-        {{-- soft top/bottom fade so the copy floats cleanly over the art --}}
-        <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#d4effd]/70 via-transparent to-[#d4effd]/80"></div>
+        <img src="{{ asset('images/hero-apply.png') }}?v={{ @filemtime(public_path('images/hero-apply.png')) }}" alt="رسم منصة الخدمات الأكاديمية للكلية"
+             class="absolute inset-0 h-full w-full object-cover object-center">
+        {{-- subtle darkening for depth --}}
+        <div class="pointer-events-none absolute inset-0 bg-blue-950/20"></div>
+        {{-- legibility wash — lighter at the top where the copy sits --}}
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#d4effd]/90 via-[#d4effd]/30 to-[#d4effd]/55"></div>
 
-        <div class="relative px-6 pb-16 pt-14 text-center">
+        <div class="relative px-6 pb-44 pt-32 text-center">
             <h2 class="text-3xl font-extrabold leading-tight text-blue-900 [text-shadow:0_2px_12px_rgba(255,255,255,0.85),0_1px_2px_rgba(30,58,138,0.15)] sm:text-4xl">
                 كلية التقنية الإلكترونية طرابلس
             </h2>
@@ -229,6 +233,44 @@
 <main id="registration-form" class="max-w-7xl mx-auto px-6 py-16">
     {{ $slot }}
 </main>
+
+{{-- ============================ Footer ============================ --}}
+<footer class="bg-blue-950 text-center text-slate-300">
+    <div class="mx-auto max-w-7xl px-6 py-12">
+        <p class="text-sm text-slate-400">© جميع الحقوق محفوظة لكلية التقنية الإلكترونية {{ date('Y') }}</p>
+
+        <p class="mt-7 text-base font-bold text-slate-100">فريق التطوير</p>
+
+        @php
+            $devs = [
+                ['name' => 'محمود شنيب', 'url' => 'https://github.com/MahmoudShnnib'],
+                ['name' => 'محمد الزايدي', 'url' => 'https://github.com/mohamedzaydi782-alt'],
+                ['name' => 'عمر شنيب', 'url' => 'https://github.com/Omar-shennib'],
+            ];
+        @endphp
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-sm font-semibold">
+            @foreach($devs as $dev)
+                <a href="{{ $dev['url'] }}" target="_blank" rel="noopener noreferrer"
+                   class="inline-flex items-center gap-2 text-slate-200 transition hover:text-sky-400">
+                    <svg class="size-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1.16-.02-2.1-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 015.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.41-5.25 5.69.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.68.8.56A10.52 10.52 0 0023.5 12C23.5 5.73 18.27.5 12 .5z"/>
+                    </svg>
+                    <span>{{ $dev['name'] }}</span>
+                </a>
+                @unless($loop->last)
+                    <span class="text-slate-600" aria-hidden="true">•</span>
+                @endunless
+            @endforeach
+        </div>
+
+        <div class="mt-8">
+            <span class="inline-flex items-center gap-2 rounded-full bg-white/5 px-5 py-2 text-sm text-slate-200 ring-1 ring-white/10">
+                <span class="font-bold text-slate-100">اشراف:</span>
+                أ. مصطفى قاباج
+            </span>
+        </div>
+    </div>
+</footer>
 
 {{-- Toast notifications --}}
 <div x-data
@@ -276,7 +318,7 @@
         x-transition:leave-end="opacity-0 translate-y-3"
         @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
         aria-label="العودة للأعلى"
-        class="fixed bottom-6 start-6 z-50 flex size-12 items-center justify-center rounded-full bg-blue-800 text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-900">
+        class="fixed bottom-6 start-6 z-50 flex size-12 items-center justify-center rounded-full bg-white text-blue-800 ring-1 ring-blue-100 shadow-lg shadow-blue-900/20 transition hover:bg-blue-50">
     <svg class="size-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
     </svg>
