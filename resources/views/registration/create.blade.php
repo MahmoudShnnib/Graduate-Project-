@@ -519,21 +519,21 @@
 
                     <div>
                         <x-form.label for="birth_day">تاريخ ميلادك <span class="text-red-500">*</span></x-form.label>
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-[1fr_1.4fr_1.1fr] gap-2">
                             <x-form.select id="birth_day" x-model="birthDay" required aria-label="اليوم">
-                                <option value="" disabled selected hidden>اليوم</option>
+                                <option value="" disabled selected hidden>يوم</option>
                                 <template x-for="d in daysInMonth" :key="d">
                                     <option :value="d" x-text="d"></option>
                                 </template>
                             </x-form.select>
                             <x-form.select x-model="birthMonth" @change="clampDay()" required aria-label="الشهر">
-                                <option value="" disabled selected hidden>الشهر</option>
+                                <option value="" disabled selected hidden>شهر</option>
                                 <template x-for="m in monthOptions" :key="m.n">
                                     <option :value="m.n" x-text="m.name"></option>
                                 </template>
                             </x-form.select>
                             <x-form.select x-model="birthYear" @change="clampDay()" required aria-label="السنة">
-                                <option value="" disabled selected hidden>السنة</option>
+                                <option value="" disabled selected hidden>سنة</option>
                                 <template x-for="y in yearOptions" :key="y">
                                     <option :value="y" x-text="y"></option>
                                 </template>
