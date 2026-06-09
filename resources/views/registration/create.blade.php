@@ -411,6 +411,61 @@
             </div>
         @endif
 
+        {{-- Error popup — appears after a failed submission to alert the user to fix their data
+             (their entries stay filled via old() — the page is not just silently reloaded). --}}
+        @if($errors->any())
+            <div x-data="{ open: true }"
+                 x-show="open" x-cloak
+                 @keydown.escape.window="open = false"
+                 class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+
+                {{-- Backdrop --}}
+                <div x-show="open" x-transition.opacity.duration.200ms
+                     class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="open = false"></div>
+
+                {{-- Card --}}
+                <div x-show="open"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-90"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     class="relative w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl ring-1 ring-slate-200">
+
+                    {{-- Warning icon --}}
+                    <div class="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-red-100">
+                        <svg class="size-11 text-red-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                        </svg>
+                    </div>
+
+                    <h3 class="text-2xl font-extrabold text-slate-900">تعذّر إرسال الطلب</h3>
+                    <p class="mt-3 text-sm leading-relaxed text-slate-500">
+                        يوجد بعض الحقول التي تحتاج إلى تصحيح. يرجى مراجعة الملاحظات التالية ثم إعادة المحاولة.
+                    </p>
+
+                    {{-- The validation messages --}}
+                    <div class="mt-5 max-h-48 overflow-y-auto rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-right">
+                        <ul class="space-y-2 text-sm font-medium text-red-700">
+                            @foreach($errors->all() as $error)
+                                <li class="flex items-start gap-2">
+                                    <svg class="mt-0.5 size-4 shrink-0 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    <span>{{ $error }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    {{-- Close + jump to the first field that needs fixing --}}
+                    <div class="mt-6">
+                        <button type="button"
+                            @click="open = false; $nextTick(() => { const el = document.querySelector('[data-form-error]'); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } })"
+                            class="w-full rounded-xl bg-blue-800 px-6 py-3 text-base font-bold text-white shadow transition hover:bg-blue-900">
+                            مراجعة البيانات وتصحيحها
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8"
               x-data="applyForm()" x-init="recalc()" @input="recalc()" @change="recalc()" @submit="onSubmit($event)">
             @csrf
@@ -441,7 +496,7 @@
                     {{-- Full name --}}
                     <div class="md:col-span-2">
                         <x-form.label for="name">الاسم الرباعي (باللقب) <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)" required @input="arabicGuard($event, 'name')" />
+                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="مثال: محمد أحمد علي شنيب" required @input="arabicGuard($event, 'name')" />
                         <p class="mt-1 text-xs text-slate-400">الاسم الرباعي مع اللقب — مثال: محمد أحمد علي شنيب</p>
                         <p x-show="arabicErrors.name" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="name" />
@@ -450,14 +505,14 @@
                     {{-- English name --}}
                     <div class="md:col-span-2">
                         <x-form.label for="name_en">الاسم باللغة الإنجليزية (كما في جواز السفر) <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="name_en" name="name_en" type="text" value="{{ old('name_en') }}" placeholder="Full name as it appears in your passport" dir="ltr" required />
+                        <x-form.input id="name_en" name="name_en" type="text" value="{{ old('name_en') }}" placeholder="e.g. Mohammed Ahmed Ali Shnnib" dir="ltr" required />
                         <p class="mt-1 text-xs text-slate-400">يرجى كتابة الاسم كما هو مدوّن في جواز السفر بالضبط</p>
                         <x-form.error name="name_en" />
                     </div>
 
                     <div>
                         <x-form.label for="mother_name">اسم الأم <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="mother_name" name="mother_name" type="text" value="{{ old('mother_name') }}" placeholder="الاسم الأول والثاني على الأقل" required @input="arabicGuard($event, 'mother_name')" />
+                        <x-form.input id="mother_name" name="mother_name" type="text" value="{{ old('mother_name') }}" placeholder="الاسم الأول والثاني" required @input="arabicGuard($event, 'mother_name')" />
                         <p x-show="arabicErrors.mother_name" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="mother_name" />
                     </div>

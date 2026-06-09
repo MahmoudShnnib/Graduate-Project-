@@ -50,6 +50,15 @@ it('rejects a Libyan applicant whose national number is not 12 digits', function
         ->assertSessionHasErrors('national_id');
 });
 
+it('shows the error popup after a failed submission', function () {
+    $this->from(route('registration.create'))
+        ->followingRedirects()
+        ->post(route('registration.store'), nationalityPayload(['national_id' => '12345']))
+        ->assertOk()
+        ->assertSee('تعذّر إرسال الطلب', false)
+        ->assertSee('الرقم الوطني يتكون من 12 رقماً بالضبط', false);
+});
+
 it('accepts a non-Libyan applicant with an alphanumeric passport number', function () {
     $this->post(route('registration.store'), nationalityPayload([
         'nationality' => 'مصر',
