@@ -116,25 +116,28 @@
                                 $a = $accents[$loop->index % count($accents)];
                                 $icon = $specIconsByCode[$specialization->code] ?? ($specIconsByName[$specialization->name] ?? null);
                             @endphp
-                            <div                                 class="group mg-card bg-white relative overflow-hidden rounded-2xl p-6 ring-1 ring-slate-200 shadow-md">
+                            <a href="#apply" class="group mg-card bg-white relative flex flex-col items-center overflow-hidden rounded-2xl p-7 text-center ring-1 ring-slate-200 shadow-md">
+                                {{-- top accent bar --}}
                                 <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-l {{ $a['bar'] }} opacity-0 transition group-hover:opacity-100"></div>
-                                <div class="relative z-10">
-                                    <div class="mb-4 flex items-center">
-                                        <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-bl {{ $a['bar'] }} shadow-sm">
-                                            @if($icon)
-                                                <img src="{{ asset('images/specializations/'.$icon) }}?v={{ @filemtime(public_path('images/specializations/'.$icon)) }}" alt="" class="size-7 object-contain">
-                                            @else
-                                                <svg class="size-6 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <h3 class="mb-3 text-lg font-bold text-slate-800">{{ $specialization->name }}</h3>
-                                    <a href="#apply" class="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 transition group-hover:gap-2 hover:text-blue-900">
-                                        قدّم على هذا التخصص
-                                        <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-                                    </a>
+                                {{-- soft accent glow behind the icon --}}
+                                <div class="pointer-events-none absolute left-1/2 top-2 size-28 -translate-x-1/2 rounded-full bg-gradient-to-bl {{ $a['bar'] }} opacity-[0.12] blur-2xl transition duration-300 group-hover:opacity-20"></div>
+
+                                {{-- centered icon --}}
+                                <div class="relative z-10 mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-bl {{ $a['bar'] }} shadow-lg shadow-slate-900/15 ring-4 ring-white transition duration-300 group-hover:-translate-y-1 group-hover:scale-105">
+                                    @if($icon)
+                                        <img src="{{ asset('images/specializations/'.$icon) }}?v={{ @filemtime(public_path('images/specializations/'.$icon)) }}" alt="" class="size-9 object-contain">
+                                    @else
+                                        <svg class="size-8 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+                                    @endif
                                 </div>
-                            </div>
+
+                                <h3 class="relative z-10 mb-4 text-lg font-bold text-slate-800">{{ $specialization->name }}</h3>
+
+                                <span class="relative z-10 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-700 transition group-hover:gap-2.5 group-hover:bg-blue-100">
+                                    قدّم على هذا التخصص
+                                    <svg class="size-4 -scale-x-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                                </span>
+                            </a>
                         @endforeach
                     </div>
                 @else
@@ -439,7 +442,7 @@
                     <div class="md:col-span-2">
                         <x-form.label for="name">الاسم الرباعي (باللقب) <span class="text-red-500">*</span></x-form.label>
                         <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)" required @input="arabicGuard($event, 'name')" />
-                        <p class="mt-1 text-xs text-slate-400">يجب إدخال الاسم الرباعي كاملاً بما في ذلك اللقب (اسم العائلة) باللغة العربية — مثال: محمد أحمد علي الشنيب</p>
+                        <p class="mt-1 text-xs text-slate-400">الاسم الرباعي مع اللقب — مثال: محمد أحمد علي شنيب</p>
                         <p x-show="arabicErrors.name" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="name" />
                     </div>
@@ -460,8 +463,28 @@
                     </div>
 
                     <div>
-                        <x-form.label for="birth_date">تاريخ ميلادك <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}" required />
+                        <x-form.label for="birth_day">تاريخ ميلادك <span class="text-red-500">*</span></x-form.label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <x-form.select id="birth_day" x-model="birthDay" required aria-label="اليوم">
+                                <option value="" disabled selected hidden>اليوم</option>
+                                <template x-for="d in daysInMonth" :key="d">
+                                    <option :value="d" x-text="d"></option>
+                                </template>
+                            </x-form.select>
+                            <x-form.select x-model="birthMonth" @change="clampDay()" required aria-label="الشهر">
+                                <option value="" disabled selected hidden>الشهر</option>
+                                <template x-for="m in monthOptions" :key="m.n">
+                                    <option :value="m.n" x-text="m.name"></option>
+                                </template>
+                            </x-form.select>
+                            <x-form.select x-model="birthYear" @change="clampDay()" required aria-label="السنة">
+                                <option value="" disabled selected hidden>السنة</option>
+                                <template x-for="y in yearOptions" :key="y">
+                                    <option :value="y" x-text="y"></option>
+                                </template>
+                            </x-form.select>
+                        </div>
+                        <input type="hidden" name="birth_date" :value="birthDate" />
                         <x-form.error name="birth_date" />
                     </div>
 
@@ -475,7 +498,7 @@
                     <div>
                         <x-form.label for="gender">الجنس <span class="text-red-500">*</span></x-form.label>
                         <x-form.select id="gender" name="gender" required>
-                            <option value="">اختر</option>
+                            <option value="" disabled selected hidden>اختر</option>
                             <option value="male" @selected(old('gender') === 'male')>ذكر</option>
                             <option value="female" @selected(old('gender') === 'female')>أنثى</option>
                         </x-form.select>
@@ -485,7 +508,7 @@
                     <div>
                         <x-form.label for="marital_status">الحالة الاجتماعية <span class="text-red-500">*</span></x-form.label>
                         <x-form.select id="marital_status" name="marital_status" required>
-                            <option value="">اختر</option>
+                            <option value="" disabled selected hidden>اختر</option>
                             <option value="single" @selected(old('marital_status') === 'single')>أعزب / عزباء</option>
                             <option value="married" @selected(old('marital_status') === 'married')>متزوج / متزوجة</option>
                             <option value="divorced" @selected(old('marital_status') === 'divorced')>مطلق / مطلقة</option>
@@ -628,26 +651,34 @@
                         <x-form.error name="phone" />
 
                         @if($whatsappEnabled)
-                            <div id="otp-widget" class="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div id="otp-widget" class="mt-3 rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50/70 to-white p-4 shadow-sm">
+                                <p class="mb-3 flex items-start gap-2 text-xs leading-relaxed text-slate-500">
+                                    <svg class="mt-px size-4 shrink-0 text-emerald-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+                                    <span>لتأكيد ملكية رقمك سنرسل لك رمز تحقق عبر <span class="font-semibold text-emerald-700">واتساب</span>.</span>
+                                </p>
                                 <button type="button" id="otp-send-btn"
-                                    class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 transition disabled:opacity-50">
+                                    class="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-l from-green-500 to-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-emerald-600/25 transition hover:from-green-600 hover:to-emerald-700 hover:shadow-lg hover:shadow-emerald-600/40 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none">
+                                    <svg class="size-5 shrink-0 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.978-1.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
                                     <span id="otp-send-label">إرسال رمز التحقق عبر واتساب</span>
                                 </button>
 
-                                <div id="otp-verify-row" class="mt-2 hidden flex-wrap items-center gap-2">
+                                <div id="otp-verify-row" class="mt-3 hidden flex-col gap-2.5 border-t border-emerald-100 pt-3">
                                     <input type="text" id="otp-code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
                                         autocomplete="one-time-code" enterkeyhint="done" dir="ltr"
                                         placeholder="• • • • • •"
-                                        class="w-32 rounded-lg border border-slate-300 px-3 py-1.5 text-center text-sm tracking-[0.35em] outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
-                                    <button type="button" id="otp-paste-btn" title="لصق الرمز من الحافظة"
-                                        class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-700">
-                                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
-                                        لصق
-                                    </button>
-                                    <button type="button" id="otp-verify-btn"
-                                        class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800 transition disabled:opacity-50">
-                                        تأكيد الرمز
-                                    </button>
+                                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-lg font-bold tracking-[0.5em] text-slate-800 outline-none transition placeholder:text-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" />
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="otp-paste-btn" title="لصق الرمز من الحافظة"
+                                            class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 active:scale-[.99]">
+                                            <svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+                                            لصق الرمز
+                                        </button>
+                                        <button type="button" id="otp-verify-btn"
+                                            class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-l from-green-500 to-emerald-600 px-3 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/25 transition hover:from-green-600 hover:to-emerald-700 hover:shadow-lg hover:shadow-emerald-600/40 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none">
+                                            <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                            تأكيد الرمز
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <p id="otp-status" class="mt-2 text-xs text-slate-500"></p>
@@ -659,7 +690,7 @@
                     <div class="md:col-span-2">
                         <x-form.label for="specialization_id">القسم / التخصص المطلوب <span class="text-red-500">*</span></x-form.label>
                         <x-form.select id="specialization_id" name="specialization_id" required>
-                            <option value="">اختر التخصص</option>
+                            <option value="" disabled selected hidden>اختر التخصص</option>
                             @foreach($specializations as $specialization)
                                 <option value="{{ $specialization->id }}" @selected(old('specialization_id') == $specialization->id)>
                                     {{ $specialization->name }}
@@ -778,7 +809,7 @@
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-slate-500">
                         قدمت طلباً سابقاً؟
-                        <a href="{{ route('application.track.show') }}" class="font-medium text-blue-600 hover:underline">متابعة حالة الطلب</a>
+                        <a href="{{ route('application.track.show') }}" class="mt-1 block font-medium text-blue-600 hover:underline">متابعة حالة الطلب ←</a>
                     </p>
                     <x-form.button type="submit" id="submit-btn">
                         <span x-show="! submitting">إرسال الطلب</span>
@@ -792,6 +823,12 @@
         </form>
     </div>
 
+    @php
+        $oldBirth = old('birth_date');
+        $oldBirthParts = ($oldBirth && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $oldBirth, $bm))
+            ? ['y' => (string) (int) $bm[1], 'm' => (string) (int) $bm[2], 'd' => (string) (int) $bm[3]]
+            : ['y' => '', 'm' => '', 'd' => ''];
+    @endphp
     <script>
         // Alpine component backing the application form: conditional fields
         // and live phone/password validation.
@@ -808,6 +845,23 @@
                 password: '',
                 passwordConfirm: '',
                 submitting: false,
+
+                // Birthdate split into day/month/year selects (the native date
+                // picker is painful for birthdates on Android). Combined back into
+                // a YYYY-MM-DD hidden field. Year range honours the 22–60 age rule.
+                birthDay: @js($oldBirthParts['d']),
+                birthMonth: @js($oldBirthParts['m']),
+                birthYear: @js($oldBirthParts['y']),
+                maxBirthYear: {{ now()->subYears(22)->year }},
+                minBirthYear: {{ now()->subYears(60)->year }},
+                months: ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
+
+                // Clear the day if it no longer exists in the chosen month/year.
+                clampDay() {
+                    if (this.birthDay && Number(this.birthDay) > this.daysInMonth) {
+                        this.birthDay = '';
+                    }
+                },
 
                 // Inline "Arabic only" flags per field (real-time validation).
                 arabicErrors: {
@@ -911,6 +965,31 @@
 
                 get isLibyan() {
                     return this.nationality === this.libyaName;
+                },
+                // Combined birthdate submitted to the server (YYYY-MM-DD), or '' until complete.
+                get birthDate() {
+                    if (! this.birthYear || ! this.birthMonth || ! this.birthDay) {
+                        return '';
+                    }
+                    const pad = (n) => String(n).padStart(2, '0');
+                    return `${this.birthYear}-${pad(this.birthMonth)}-${pad(this.birthDay)}`;
+                },
+                get daysInMonth() {
+                    const y = Number(this.birthYear) || 2000;
+                    const m = Number(this.birthMonth) || 1;
+                    return new Date(y, m, 0).getDate();
+                },
+                get monthOptions() {
+                    return this.months
+                        .map((name, n) => ({ n, name }))
+                        .filter((o) => o.n > 0);
+                },
+                get yearOptions() {
+                    const years = [];
+                    for (let y = this.maxBirthYear; y >= this.minBirthYear; y--) {
+                        years.push(y);
+                    }
+                    return years;
                 },
                 get selectedCountry() {
                     return this.countries.find((c) => c.name === this.nationality) ?? this.countries[0];

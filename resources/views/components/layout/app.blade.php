@@ -114,7 +114,7 @@
             <div class="flex min-w-0 shrink items-center">
                 <img src="{{ asset('images/logo.png') }}?v={{ @filemtime(public_path('images/logo.png')) }}"
                      alt="كلية التقنية الإلكترونية - طرابلس"
-                     class="h-14 w-auto max-w-full object-contain md:h-24">
+                     class="h-12 w-auto max-w-full object-contain md:h-16">
             </div>
 
             {{-- Desktop nav --}}
@@ -174,29 +174,29 @@
     </div>
 </header>
 
-<section id="home" data-spy class="relative overflow-hidden bg-[#d4effd]">
+<section id="home" data-spy class="relative overflow-hidden bg-slate-900">
 
-    {{-- ===== Desktop (lg+): full-bleed illustration with the copy over the right side ===== --}}
+    {{-- ===== Desktop (lg+): full-bleed photo with the copy over the right side ===== --}}
     <div class="relative hidden lg:block">
-        <img src="{{ asset('images/hero-apply.png') }}?v={{ @filemtime(public_path('images/hero-apply.png')) }}" alt="" aria-hidden="true"
+        <img src="{{ asset('images/hero-apply.jpg') }}?v={{ @filemtime(public_path('images/hero-apply.jpg')) }}" alt="" aria-hidden="true"
              class="absolute inset-0 h-full w-full object-cover object-center">
-        {{-- subtle darkening for depth --}}
-        <div class="pointer-events-none absolute inset-0 bg-blue-950/20"></div>
-        {{-- directional wash — illustration crisp on the left, text area clear on the right --}}
-        <div class="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#d4effd] via-[#d4effd]/55 to-transparent"></div>
+        {{-- neutral darkening for depth (no blue tint) --}}
+        <div class="pointer-events-none absolute inset-0 bg-black/30"></div>
+        {{-- directional wash — photo clearer on the left, darker on the right where the text sits --}}
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-l from-black/75 via-black/40 to-transparent"></div>
 
         <div class="relative mx-auto max-w-7xl px-6 py-28">
             <div class="grid min-h-[26rem] grid-cols-2 items-center">
                 <div class="text-right">
-                    <h2 class="text-6xl font-extrabold leading-tight text-blue-900">
+                    <h2 class="text-6xl font-extrabold leading-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.55)]">
                         كلية التقنية الإلكترونية
                         <br>
                         طرابلس
                     </h2>
-                    <p class="mt-6 text-2xl font-medium text-blue-800/80">نحو مستقبل رقمي أفضل</p>
+                    <p class="mt-6 text-2xl font-medium text-white/85 [text-shadow:0_1px_10px_rgba(0,0,0,0.5)]">نحو مستقبل رقمي أفضل</p>
                     <div class="mt-10">
                         <a href="#apply"
-                           class="inline-flex items-center justify-center rounded-full bg-blue-800 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-blue-900/20 transition hover:bg-blue-900 hover:shadow-xl">
+                           class="inline-flex items-center justify-center rounded-full bg-blue-800 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-black/30 transition hover:bg-blue-900 hover:shadow-xl">
                             التقديم على الدراسات العليا
                         </a>
                     </div>
@@ -206,23 +206,25 @@
         </div>
     </div>
 
-    {{-- ===== Mobile (<lg): copy over the illustration ===== --}}
-    <div class="relative overflow-hidden lg:hidden">
-        <img src="{{ asset('images/hero-apply.png') }}?v={{ @filemtime(public_path('images/hero-apply.png')) }}" alt="رسم منصة الخدمات الأكاديمية للكلية"
-             class="absolute inset-0 h-full w-full object-cover object-center">
-        {{-- subtle darkening for depth --}}
-        <div class="pointer-events-none absolute inset-0 bg-blue-950/20"></div>
-        {{-- legibility wash — lighter at the top where the copy sits --}}
-        <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#d4effd]/90 via-[#d4effd]/30 to-[#d4effd]/55"></div>
+    {{-- ===== Mobile (<lg): stacked — photo banner on top, copy on white below (no text over the photo) ===== --}}
+    <div class="bg-white lg:hidden">
+        {{-- photo banner --}}
+        <div class="relative">
+            <img src="{{ asset('images/hero-apply.jpg') }}?v={{ @filemtime(public_path('images/hero-apply.jpg')) }}" alt="مبنى كلية التقنية الإلكترونية - طرابلس"
+                 class="h-64 w-full object-cover object-center sm:h-72">
+            {{-- soft fade into the white copy area below --}}
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent"></div>
+        </div>
 
-        <div class="relative px-6 pb-44 pt-32 text-center">
-            <h2 class="text-3xl font-extrabold leading-tight text-blue-900 [text-shadow:0_2px_12px_rgba(255,255,255,0.85),0_1px_2px_rgba(30,58,138,0.15)] sm:text-4xl">
+        {{-- copy --}}
+        <div class="px-6 pb-12 pt-7 text-center">
+            <h2 class="text-3xl font-extrabold leading-tight text-blue-900 sm:text-4xl">
                 كلية التقنية الإلكترونية طرابلس
             </h2>
-            <p class="mt-4 text-lg font-semibold text-blue-800 [text-shadow:0_1px_8px_rgba(255,255,255,0.8)]">نحو مستقبل رقمي أفضل</p>
-            <div class="mt-8">
+            <p class="mt-3 text-lg font-semibold text-slate-500">نحو مستقبل رقمي أفضل</p>
+            <div class="mt-7">
                 <a href="#apply"
-                   class="inline-flex items-center justify-center rounded-full bg-blue-800 px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-900/30 ring-1 ring-white/20 transition hover:bg-blue-900 hover:shadow-xl">
+                   class="inline-flex items-center justify-center rounded-full bg-blue-800 px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-900/20 transition hover:bg-blue-900 hover:shadow-xl">
                     التقديم على الدراسات العليا
                 </a>
             </div>
