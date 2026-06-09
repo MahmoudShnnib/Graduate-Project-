@@ -34,7 +34,7 @@ class CreateApplication
             'birth_place' => $data['birth_place'] ?? null,
             'gender' => $data['gender'] ?? null,
             'marital_status' => $data['marital_status'] ?? null,
-            'nationality' => $data['nationality'] ?? 'ليبية',
+            'nationality' => $data['nationality'] ?? config('nationalities.default'),
             'national_id' => $data['national_id'] ?? null,
             'card_number' => $data['card_number'] ?? null,
             'residence' => $data['residence'] ?? null,

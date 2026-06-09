@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RegistrationController extends Controller
@@ -109,26 +110,27 @@ class RegistrationController extends Controller
             'birth_place' => ['bail', 'required', 'string', 'max:255', new ArabicOnly(allowNumbers: true)],
             'gender' => ['required', 'in:male,female'],
             'marital_status' => ['required', 'in:single,married,divorced,widowed'],
-            'nationality' => ['required', 'in:ليبية,أخرى'],
-            'nationality_other' => [
-                'nullable', 'required_if:nationality,أخرى',
-                'string', 'max:100',
-                new ArabicOnly,
-            ],
+            'nationality' => ['required', 'string', Rule::in(array_column(config('nationalities.list'), 'name'))],
             'national_id' => [
                 'bail', 'required',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    $v = (string) $value;
-                    if (! preg_match('/^\d+$/', $v)) {
-                        $fail('الرقم الوطني يتكون من أرقام فقط');
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    $v = trim((string) $value);
+                    $isLibyan = $request->input('nationality') === config('nationalities.default');
 
-                        return;
-                    }
-                    if (strlen($v) !== 12) {
-                        $fail('الرقم الوطني يتكون من 12 رقماً بالضبط');
+                    if ($isLibyan) {
+                        if (! preg_match('/^\d{12}$/', $v)) {
+                            $fail('الرقم الوطني يتكون من 12 رقماً بالضبط');
 
-                        return;
+                            return;
+                        }
+                    } else {
+                        if (! preg_match('/^[A-Za-z0-9]{4,20}$/', $v)) {
+                            $fail('يرجى إدخال رقم الهوية أو جواز السفر (4 إلى 20 حرفاً/رقماً)');
+
+                            return;
+                        }
                     }
+
                     $existing = Application::where('national_id', $v)
                         ->whereIn('status', ['pending', 'initially_approved', 'accepted'])
                         ->first();
@@ -141,8 +143,8 @@ class RegistrationController extends Controller
             ],
             'card_number' => ['nullable', 'string', 'max:50'],
             'residence' => ['bail', 'required', 'string', 'max:255', new ArabicOnly(allowNumbers: true)],
-            'profession' => ['nullable', 'string', 'max:255'],
-            'workplace' => ['nullable', 'string', 'max:255'],
+            'profession' => ['bail', 'nullable', 'string', 'max:255', new ArabicOnly],
+            'workplace' => ['bail', 'nullable', 'string', 'max:255', new ArabicOnly(allowNumbers: true)],
             'permanent_address' => ['bail', 'required', 'string', 'max:500', new ArabicOnly(allowNumbers: true)],
             'study_type' => ['required', 'in:self_funded,internally_delegated,faculty_assistant,public_delegation'],
             'delegation_number' => ['nullable', 'required_if:study_type,internally_delegated', 'string', 'max:100'],
@@ -168,7 +170,7 @@ class RegistrationController extends Controller
             'gender.required' => 'يرجى اختيار الجنس',
             'marital_status.required' => 'يرجى اختيار الحالة الاجتماعية',
             'nationality.required' => 'يرجى اختيار الجنسية',
-            'nationality_other.required_if' => 'يرجى كتابة الجنسية',
+            'nationality.in' => 'يرجى اختيار جنسية صحيحة من القائمة',
             'national_id.required' => 'يرجى إدخال الرقم الوطني',
             'residence.required' => 'يرجى إدخال مكان الإقامة',
             'permanent_address.required' => 'يرجى إدخال العنوان الدائم',
@@ -195,11 +197,7 @@ class RegistrationController extends Controller
             $nameParts = preg_split('/\s+/', trim($validated['name']));
             $data['last_name'] = end($nameParts);
 
-            // Resolve nationality
-            if ($validated['nationality'] === 'أخرى') {
-                $data['nationality'] = $validated['nationality_other'] ?? '';
-            }
-            unset($data['nationality_other'], $data['declaration']);
+            unset($data['declaration']);
 
             $data['password'] = Hash::make($validated['password']);
             if ($request->hasFile('bachelor_certificate')) {

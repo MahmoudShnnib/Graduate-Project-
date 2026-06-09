@@ -351,30 +351,65 @@
             <p class="mt-3 text-base text-slate-500">الإجازة العليا (الماجستير)</p>
         </div>
 
-        {{-- Success --}}
-        @if(session('success'))
-            <div class="mb-8 rounded-2xl border border-green-200 bg-green-50 px-5 py-4">
-                <div class="flex items-start gap-3">
-                    <svg class="mt-0.5 size-5 shrink-0 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="font-bold text-green-700">{{ session('success') }}</p>
-                </div>
-                @if(session('tracking_code'))
-                    <div class="mt-4 rounded-xl border border-green-300 bg-white px-5 py-4 text-center">
-                        <p class="text-sm text-slate-500">رقم التتبع الخاص بطلبك:</p>
-                        <p class="mt-1 text-2xl font-extrabold tracking-widest text-slate-900" dir="ltr">{{ session('tracking_code') }}</p>
-                        <p class="mt-2 text-xs text-slate-400">احتفظ بهذا الرقم لمتابعة حالة طلبك</p>
+        {{-- Success popup — appears only after the application is saved (session flash). --}}
+        @if(session('success') && session('tracking_code'))
+            <div x-data="{ open: true, code: @js(session('tracking_code')) }"
+                 x-show="open" x-cloak
+                 @keydown.escape.window="open = false"
+                 class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+
+                {{-- Backdrop --}}
+                <div x-show="open" x-transition.opacity.duration.200ms
+                     class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="open = false"></div>
+
+                {{-- Card --}}
+                <div x-show="open"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-90"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     class="relative w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl ring-1 ring-slate-200">
+
+                    {{-- Success checkmark --}}
+                    <div class="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-emerald-100">
+                        <svg class="size-11 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
                     </div>
-                    <a href="{{ route('application.track.show') }}" class="mt-3 inline-block text-sm font-medium text-green-600 underline hover:text-green-800">
+
+                    <h3 class="text-2xl font-extrabold text-slate-900">تم تقديم طلبك بنجاح</h3>
+                    <p class="mt-3 text-sm leading-relaxed text-slate-500">
+                        تم استلام طلبك بنجاح وسيتم مراجعته من قبل إدارة الدراسات العليا. يرجى الاحتفاظ برقم الطلب للمتابعة والاستفسار.
+                    </p>
+
+                    {{-- Application code (from the saved record) --}}
+                    <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+                        <p class="text-xs font-medium text-slate-500">رقم الطلب</p>
+                        <p class="mt-1 text-2xl font-extrabold tracking-widest text-slate-900" dir="ltr" x-text="code"></p>
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+                        <button type="button" @click="open = false"
+                            class="flex-1 rounded-xl bg-blue-800 px-6 py-3 text-base font-bold text-white shadow transition hover:bg-blue-900">
+                            حسناً
+                        </button>
+                        <button type="button"
+                            @click="navigator.clipboard?.writeText(code); $store.toast.notify('تم نسخ رقم الطلب', '', 'success')"
+                            class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 py-3 text-base font-bold text-slate-700 transition hover:bg-slate-50">
+                            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25"/></svg>
+                            نسخ رقم الطلب
+                        </button>
+                    </div>
+
+                    <a href="{{ route('application.track.show') }}" class="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline">
                         متابعة حالة الطلب ←
                     </a>
-                @endif
+                </div>
             </div>
         @endif
 
         <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8"
-              x-data="applyForm()" x-init="recalc()" @input="recalc()" @change="recalc()">
+              x-data="applyForm()" x-init="recalc()" @input="recalc()" @change="recalc()" @submit="onSubmit($event)">
             @csrf
 
             {{-- Live completion progress --}}
@@ -402,9 +437,10 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {{-- Full name --}}
                     <div class="md:col-span-2">
-                        <x-form.label for="name">الاسم الرباعي واللقب <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)" required />
+                        <x-form.label for="name">الاسم الرباعي (باللقب) <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="name" name="name" type="text" value="{{ old('name') }}" placeholder="الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)" required @input="arabicGuard($event, 'name')" />
                         <p class="mt-1 text-xs text-slate-400">يجب إدخال الاسم الرباعي كاملاً بما في ذلك اللقب (اسم العائلة) باللغة العربية — مثال: محمد أحمد علي الشنيب</p>
+                        <p x-show="arabicErrors.name" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="name" />
                     </div>
 
@@ -418,19 +454,21 @@
 
                     <div>
                         <x-form.label for="mother_name">اسم الأم <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="mother_name" name="mother_name" type="text" value="{{ old('mother_name') }}" placeholder="الاسم الأول والثاني على الأقل" required />
+                        <x-form.input id="mother_name" name="mother_name" type="text" value="{{ old('mother_name') }}" placeholder="الاسم الأول والثاني على الأقل" required @input="arabicGuard($event, 'mother_name')" />
+                        <p x-show="arabicErrors.mother_name" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="mother_name" />
                     </div>
 
                     <div>
-                        <x-form.label for="birth_date">تاريخ الميلاد <span class="text-red-500">*</span></x-form.label>
+                        <x-form.label for="birth_date">تاريخ ميلادك <span class="text-red-500">*</span></x-form.label>
                         <x-form.input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}" required />
                         <x-form.error name="birth_date" />
                     </div>
 
                     <div>
                         <x-form.label for="birth_place">مكان الميلاد <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="birth_place" name="birth_place" type="text" value="{{ old('birth_place') }}" required />
+                        <x-form.input id="birth_place" name="birth_place" type="text" value="{{ old('birth_place') }}" required @input="arabicGuard($event, 'birth_place', true)" />
+                        <p x-show="arabicErrors.birth_place" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="birth_place" />
                     </div>
 
@@ -456,28 +494,69 @@
                         <x-form.error name="marital_status" />
                     </div>
 
-                    {{-- Nationality combo --}}
-                    <div>
-                        <x-form.label for="nationality">الجنسية <span class="text-red-500">*</span></x-form.label>
-                        <x-form.select id="nationality" name="nationality" x-model="nationality" required>
-                            <option value="ليبية" @selected(old('nationality', 'ليبية') !== 'أخرى')>ليبية</option>
-                            <option value="أخرى" @selected(old('nationality') === 'أخرى')>أخرى</option>
-                        </x-form.select>
+                    {{-- Nationality — searchable country picker with flags (stores Arabic country name) --}}
+                    <div @click.outside="countryOpen = false" @keydown.escape.window="countryOpen = false">
+                        <x-form.label for="nationality_btn">الجنسية <span class="text-red-500">*</span></x-form.label>
+
+                        {{-- The actual submitted value --}}
+                        <input type="hidden" name="nationality" :value="nationality" />
+
+                        <button id="nationality_btn" type="button" @click="countryOpen = ! countryOpen; if (countryOpen) $nextTick(() => $refs.countrySearch.focus())"
+                            class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-right text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-200">
+                            <span class="flex items-center gap-2">
+                                <span class="text-xl leading-none" x-text="selectedCountry.flag"></span>
+                                <span class="font-medium" x-text="selectedCountry.name"></span>
+                            </span>
+                            <svg class="size-4 text-slate-400 transition" :class="countryOpen && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+                        </button>
+
+                        <div x-show="countryOpen" x-cloak x-transition.opacity.duration.150ms
+                            class="relative z-30">
+                            <div class="absolute inset-x-0 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                                <div class="border-b border-slate-100 p-2">
+                                    <input x-ref="countrySearch" type="text" x-model="countryQuery" placeholder="ابحث عن الدولة..."
+                                        class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200" />
+                                </div>
+                                <ul class="max-h-60 overflow-y-auto py-1">
+                                    <template x-for="country in filteredCountries" :key="country.name">
+                                        <li>
+                                            <button type="button" @click="selectCountry(country)"
+                                                class="flex w-full items-center gap-3 px-4 py-2.5 text-right text-sm transition hover:bg-blue-50"
+                                                :class="country.name === nationality ? 'bg-blue-50 font-bold text-blue-700' : 'text-slate-700'">
+                                                <span class="text-xl leading-none" x-text="country.flag"></span>
+                                                <span x-text="country.name"></span>
+                                                <svg x-show="country.name === nationality" class="ms-auto size-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                            </button>
+                                        </li>
+                                    </template>
+                                    <li x-show="filteredCountries.length === 0" class="px-4 py-3 text-center text-sm text-slate-400">
+                                        لا توجد نتائج
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                         <x-form.error name="nationality" />
                     </div>
 
-                    <div x-show="isOther" x-cloak x-transition>
-                        <x-form.label for="nationality_other">حدد الجنسية <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="nationality_other" name="nationality_other" type="text" value="{{ old('nationality_other') }}" placeholder="أدخل الجنسية بالعربية" ::required="isOther" />
-                        <x-form.error name="nationality_other" />
-                    </div>
-
+                    {{-- National number / passport — rule switches on nationality --}}
                     <div>
-                        <x-form.label for="national_id">الرقم الوطني <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" placeholder="12 رقماً" maxlength="12" required x-model="nationalId" dir="ltr" class="text-right" />
-                        <p class="mt-1 text-xs" :class="nationalId.length === 12 ? 'text-emerald-600 font-bold' : 'text-slate-400'">
+                        <x-form.label for="national_id">
+                            <span x-show="isLibyan">الرقم الوطني <span class="text-red-500">*</span></span>
+                            <span x-show="! isLibyan" x-cloak>رقم الهوية / جواز السفر <span class="text-red-500">*</span></span>
+                        </x-form.label>
+                        <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}"
+                            required x-model="nationalId" dir="ltr" class="text-right"
+                            ::maxlength="isLibyan ? 12 : 20"
+                            ::placeholder="isLibyan ? '12 رقماً' : 'رقم الهوية أو جواز السفر'"
+                            @input="nationalIdGuard($event)" />
+                        {{-- Libyan: live 12-digit counter --}}
+                        <p x-show="isLibyan" class="mt-1 text-xs" :class="nationalId.length === 12 ? 'text-emerald-600 font-bold' : 'text-slate-400'">
                             <span x-text="nationalId.length + '/12'">0/12</span>
                             <span x-show="nationalId.length === 12">✓</span>
+                        </p>
+                        {{-- Non-Libyan: hint --}}
+                        <p x-show="! isLibyan" x-cloak class="mt-1 text-xs text-slate-400">
+                            أدخل رقم الهوية الوطنية أو رقم جواز السفر (من 4 إلى 20 حرفاً/رقماً)
                         </p>
                         <x-form.error name="national_id" />
                     </div>
@@ -489,26 +568,30 @@
                     </div>
 
                     <div>
-                        <x-form.label for="residence">مكان الإقامة <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="residence" name="residence" type="text" value="{{ old('residence') }}" required />
+                        <x-form.label for="residence">محل الإقامة <span class="text-red-500">*</span></x-form.label>
+                        <x-form.input id="residence" name="residence" type="text" value="{{ old('residence') }}" required @input="arabicGuard($event, 'residence', true)" />
+                        <p x-show="arabicErrors.residence" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="residence" />
                     </div>
 
                     <div>
                         <x-form.label for="permanent_address">العنوان الدائم <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="permanent_address" name="permanent_address" type="text" value="{{ old('permanent_address') }}" required />
+                        <x-form.input id="permanent_address" name="permanent_address" type="text" value="{{ old('permanent_address') }}" required @input="arabicGuard($event, 'permanent_address', true)" />
+                        <p x-show="arabicErrors.permanent_address" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="permanent_address" />
                     </div>
 
                     <div>
                         <x-form.label for="profession">المهنة</x-form.label>
-                        <x-form.input id="profession" name="profession" type="text" value="{{ old('profession') }}" />
+                        <x-form.input id="profession" name="profession" type="text" value="{{ old('profession') }}" @input="arabicGuard($event, 'profession')" />
+                        <p x-show="arabicErrors.profession" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="profession" />
                     </div>
 
                     <div>
-                        <x-form.label for="workplace">مكان العمل</x-form.label>
-                        <x-form.input id="workplace" name="workplace" type="text" value="{{ old('workplace') }}" />
+                        <x-form.label for="workplace">جهة العمل</x-form.label>
+                        <x-form.input id="workplace" name="workplace" type="text" value="{{ old('workplace') }}" @input="arabicGuard($event, 'workplace', true)" />
+                        <p x-show="arabicErrors.workplace" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة العربية فقط</p>
                         <x-form.error name="workplace" />
                     </div>
                 </div>
@@ -551,10 +634,16 @@
                                     <span id="otp-send-label">إرسال رمز التحقق عبر واتساب</span>
                                 </button>
 
-                                <div id="otp-verify-row" class="mt-2 hidden items-center gap-2">
-                                    <input type="text" id="otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
-                                        placeholder="رمز التحقق"
-                                        class="w-32 rounded-lg border border-slate-300 px-3 py-1.5 text-sm tracking-widest" />
+                                <div id="otp-verify-row" class="mt-2 hidden flex-wrap items-center gap-2">
+                                    <input type="text" id="otp-code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                                        autocomplete="one-time-code" enterkeyhint="done" dir="ltr"
+                                        placeholder="• • • • • •"
+                                        class="w-32 rounded-lg border border-slate-300 px-3 py-1.5 text-center text-sm tracking-[0.35em] outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
+                                    <button type="button" id="otp-paste-btn" title="لصق الرمز من الحافظة"
+                                        class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-blue-700">
+                                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+                                        لصق
+                                    </button>
                                     <button type="button" id="otp-verify-btn"
                                         class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800 transition disabled:opacity-50">
                                         تأكيد الرمز
@@ -656,10 +745,11 @@
                     </div>
 
                     <div>
-                        <x-form.label for="remedial_statement">كشف المواد التكميلية</x-form.label>
+                        <x-form.label for="remedial_statement">كشف المواد التكميلية <span class="text-xs font-normal text-slate-400">(اختياري)</span></x-form.label>
                         <input id="remedial_statement" name="remedial_statement" type="file" accept=".pdf,.jpg,.jpeg,.png"
                             @change="checkFile($event)"
                             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
+                        <p class="mt-1 text-xs text-slate-400">يُرفق هذا الكشف عند الحاجة إليه — مثلاً إذا كان مؤهلك دبلوماً أو يتطلب تخصصك دراسة مواد تكميلية. إن لم يكن مطلوباً في حالتك فاتركه فارغاً.</p>
                         <x-form.error name="remedial_statement" />
                     </div>
                 </div>
@@ -691,7 +781,11 @@
                         <a href="{{ route('application.track.show') }}" class="font-medium text-blue-600 hover:underline">متابعة حالة الطلب</a>
                     </p>
                     <x-form.button type="submit" id="submit-btn">
-                        إرسال الطلب
+                        <span x-show="! submitting">إرسال الطلب</span>
+                        <span x-show="submitting" x-cloak class="inline-flex items-center gap-2">
+                            <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            جاري الإرسال...
+                        </span>
                     </x-form.button>
                 </div>
             </div>
@@ -703,12 +797,75 @@
         // and live phone/password validation.
         function applyForm() {
             return {
-                nationality: @js(old('nationality', 'ليبية')),
+                countries: @js(config('nationalities.list')),
+                libyaName: @js(config('nationalities.default')),
+                nationality: @js(old('nationality', config('nationalities.default'))),
+                countryQuery: '',
+                countryOpen: false,
                 studyType: @js(old('study_type', '')),
                 phone: @js(old('phone', '')),
                 nationalId: @js(old('national_id', '')),
                 password: '',
                 passwordConfirm: '',
+                submitting: false,
+
+                // Inline "Arabic only" flags per field (real-time validation).
+                arabicErrors: {
+                    name: false, mother_name: false, birth_place: false, residence: false,
+                    permanent_address: false, profession: false, workplace: false,
+                },
+                _arabicTimers: {},
+
+                // Strip any non-Arabic character as the user types and flash an
+                // inline message. Mirrors the server-side ArabicOnly rule.
+                arabicGuard(event, key, allowNumbers = false) {
+                    const pattern = allowNumbers
+                        ? /[^\p{Script=Arabic}\d\s،,\.\-]/gu
+                        : /[^\p{Script=Arabic}\s]/gu;
+                    const el = event.target;
+                    const cleaned = el.value.replace(pattern, '');
+                    if (cleaned !== el.value) {
+                        el.value = cleaned;
+                        this.arabicErrors[key] = true;
+                        clearTimeout(this._arabicTimers[key]);
+                        this._arabicTimers[key] = setTimeout(() => { this.arabicErrors[key] = false; }, 3000);
+                    }
+                },
+
+                // Keep the national number aligned with the selected nationality:
+                // Libyan → digits only (max 12); otherwise → alphanumeric passport/ID.
+                nationalIdGuard(event) {
+                    const raw = event.target.value;
+                    this.nationalId = this.isLibyan
+                        ? raw.replace(/\D/g, '').slice(0, 12)
+                        : raw.replace(/[^A-Za-z0-9]/g, '').slice(0, 20);
+                },
+
+                // Pick a country from the searchable list, re-sanitise the
+                // national number for the new rule, and close the dropdown.
+                selectCountry(country) {
+                    this.nationality = country.name;
+                    this.countryQuery = '';
+                    this.nationalId = this.isLibyan
+                        ? this.nationalId.replace(/\D/g, '').slice(0, 12)
+                        : this.nationalId.replace(/[^A-Za-z0-9]/g, '').slice(0, 20);
+                    this.countryOpen = false;
+                },
+
+                // Prevent duplicate submissions: lock the form after the first
+                // valid submit (this only fires once native validation passes).
+                onSubmit(event) {
+                    if (this.submitting) {
+                        event.preventDefault();
+                        return;
+                    }
+                    this.submitting = true;
+                    const btn = this.$root.querySelector('#submit-btn');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-60', 'cursor-not-allowed');
+                    }
+                },
 
                 progress: 0,
                 sections: {},
@@ -752,8 +909,18 @@
                     }
                 },
 
-                get isOther() {
-                    return this.nationality === 'أخرى';
+                get isLibyan() {
+                    return this.nationality === this.libyaName;
+                },
+                get selectedCountry() {
+                    return this.countries.find((c) => c.name === this.nationality) ?? this.countries[0];
+                },
+                get filteredCountries() {
+                    const q = this.countryQuery.trim();
+                    if (! q) {
+                        return this.countries;
+                    }
+                    return this.countries.filter((c) => c.name.includes(q));
                 },
                 get showDelegationNumber() {
                     return this.studyType === 'internally_delegated';
@@ -784,6 +951,7 @@
             const verifyRow = document.getElementById('otp-verify-row');
             const codeInput = document.getElementById('otp-code');
             const verifyBtn = document.getElementById('otp-verify-btn');
+            const pasteBtn = document.getElementById('otp-paste-btn');
             const status = document.getElementById('otp-status');
             const badge = document.getElementById('otp-verified-badge');
             const submitBtn = document.getElementById('submit-btn');
@@ -876,7 +1044,7 @@
                 }
             });
 
-            verifyBtn.addEventListener('click', async () => {
+            const verifyCode = async () => {
                 const phone = phoneInput.value.trim();
                 const code = codeInput.value.trim();
                 if (! code) {
@@ -902,6 +1070,63 @@
                     setStatus('حدث خطأ في الاتصال. حاول مرة أخرى.');
                 } finally {
                     verifyBtn.disabled = false;
+                }
+            };
+
+            verifyBtn.addEventListener('click', verifyCode);
+
+            // Keep only digits, and auto-verify the moment 6 are entered/pasted.
+            const normalizeCode = (raw) => (raw || '').replace(/\D/g, '').slice(0, 6);
+            codeInput.addEventListener('input', () => {
+                codeInput.value = normalizeCode(codeInput.value);
+                if (codeInput.value.length === 6 && ! verifyBtn.disabled) {
+                    verifyCode();
+                }
+            });
+
+            // Fill the field from a raw clipboard string and auto-verify if complete.
+            const applyPastedCode = (text) => {
+                const code = normalizeCode(text);
+                if (! code) {
+                    return false;
+                }
+                codeInput.value = code;
+                setStatus('');
+                if (code.length === 6) {
+                    verifyCode();
+                }
+                return true;
+            };
+
+            // Manual paste into the field (Ctrl/Cmd+V or long-press → Paste). This is
+            // the fallback path on insecure origins where clipboard.readText() is blocked.
+            codeInput.addEventListener('paste', (event) => {
+                const text = (event.clipboardData || window.clipboardData)?.getData('text');
+                if (text && applyPastedCode(text)) {
+                    event.preventDefault();
+                }
+            });
+
+            // One-tap paste from the clipboard (WhatsApp codes don't trigger the
+            // native iOS autofill bar, so give the applicant an explicit button).
+            const canReadClipboard = window.isSecureContext && !! navigator.clipboard?.readText;
+            pasteBtn.addEventListener('click', async () => {
+                // Insecure origin / unsupported: focus the field so the user can paste
+                // manually (the `paste` listener above then captures it).
+                if (! canReadClipboard) {
+                    codeInput.focus();
+                    setStatus('الصق الرمز في الحقل يدوياً (Ctrl+V أو الضغط المطوّل ← لصق).');
+                    return;
+                }
+                try {
+                    const text = await navigator.clipboard.readText();
+                    codeInput.focus();
+                    if (! applyPastedCode(text)) {
+                        setStatus('لا يوجد رمز في الحافظة. انسخ الرمز من رسالة واتساب أولاً.');
+                    }
+                } catch (e) {
+                    codeInput.focus();
+                    setStatus('الصق الرمز في الحقل يدوياً (Ctrl+V أو الضغط المطوّل ← لصق).');
                 }
             });
 
