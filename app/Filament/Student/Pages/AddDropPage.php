@@ -22,7 +22,7 @@ class AddDropPage extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'الأكاديمي';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
     public const int MAX_DROPS = 3;
 

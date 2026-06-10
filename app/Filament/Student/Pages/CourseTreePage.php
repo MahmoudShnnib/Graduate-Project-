@@ -20,7 +20,7 @@ class CourseTreePage extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'الأكاديمي';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $title = 'شجرة موادي';
 

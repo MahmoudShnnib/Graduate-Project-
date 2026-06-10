@@ -20,7 +20,7 @@ class CourseSurveyPage extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'الأكاديمي';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 5;
 
     /** @var array<int, int> course_id => priority */
     public array $selections = [];
