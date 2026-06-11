@@ -2,12 +2,15 @@
 
 use App\Models\Application;
 use App\Models\Specialization;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     // Disable the WhatsApp OTP gate so submissions are judged purely on the
     // validation rules under test (Qonvo may be configured in the dev env).
     config()->set('services.qonvo.api_token', null);
     config()->set('services.qonvo.sender_phone', null);
+    Storage::fake('public');
 });
 
 function nationalityPayload(array $overrides = []): array
@@ -33,6 +36,7 @@ function nationalityPayload(array $overrides = []): array
         'password' => 'password123',
         'password_confirmation' => 'password123',
         'declaration' => '1',
+        'bachelor_certificate' => UploadedFile::fake()->create('certificate.pdf', 100, 'application/pdf'),
     ], $overrides);
 }
 
@@ -43,6 +47,16 @@ it('accepts a Libyan applicant with a 12-digit national number and stores the Ar
         ->assertSessionHas('tracking_code');
 
     expect(Application::where('nationality', 'ليبيا')->where('national_id', '119900115001')->exists())->toBeTrue();
+});
+
+it('requires the academic certificate to be attached', function () {
+    $payload = nationalityPayload();
+    unset($payload['bachelor_certificate']);
+
+    $this->from(route('registration.create'))
+        ->post(route('registration.store'), $payload)
+        ->assertRedirect(route('registration.create'))
+        ->assertSessionHasErrors('bachelor_certificate');
 });
 
 it('rejects a Libyan applicant whose national number is not 12 digits', function () {

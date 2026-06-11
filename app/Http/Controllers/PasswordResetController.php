@@ -12,9 +12,12 @@ use Illuminate\View\View;
 /**
  * Public, unauthenticated forgot-password flow gated by a WhatsApp OTP.
  *
- * The requester identifies their account by national ID; the OTP is always sent to
- * the phone ALREADY on file for that account — never to a number the requester types
- * — so verifying the code proves possession of the registered phone.
+ * Two entry points identify the requester by the right key for their panel:
+ *   - students (/portal/forgot-password) by national ID — scoped to role = student;
+ *   - staff   (/admin/forgot-password)  by email       — scoped to role != student.
+ * The OTP is always sent to the phone ALREADY on file for the matched account — never
+ * to a number the requester types — so verifying the code proves possession of the
+ * registered phone.
  *
  * Mirrors the /apply OTP pattern (Blade + fetch for sending, normal POST for the
  * final submit). See _brain/project-context/password-management-guide.md.
@@ -25,25 +28,21 @@ class PasswordResetController extends Controller
 
     public function __construct(private WhatsAppOtpService $otpService) {}
 
-    public function show(): View
+    public function show(string $mode = 'student'): View
     {
-        return view('auth.forgot-password');
+        return view('auth.forgot-password', ['mode' => $mode === 'admin' ? 'admin' : 'student']);
     }
 
     /**
-     * Look up the account by national ID and send an OTP to its registered phone.
+     * Look up the account by its panel-appropriate identifier and send an OTP to the
+     * phone on file.
      */
     public function sendOtp(Request $request): JsonResponse
     {
-        $validated = $request->validate(
-            ['national_id' => ['bail', 'required', 'string']],
-            ['national_id.required' => 'يرجى إدخال الرقم الوطني'],
-        );
-
-        $user = User::where('national_id', $validated['national_id'])->first();
+        [$user, , $notFoundMessage] = $this->lookup($request);
 
         if (! $user) {
-            return response()->json(['sent' => false, 'message' => 'لا يوجد حساب بهذا الرقم الوطني.'], 422);
+            return response()->json(['sent' => false, 'message' => $notFoundMessage], 422);
         }
 
         if (blank($user->phone)) {
@@ -64,35 +63,68 @@ class PasswordResetController extends Controller
      */
     public function reset(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'national_id' => ['required', 'string'],
+        [$user, $identifierField, $notFoundMessage] = $this->lookup($request);
+
+        $request->validate([
             'code' => ['required', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ], [
-            'national_id.required' => 'يرجى إدخال الرقم الوطني',
             'code.required' => 'يرجى إدخال رمز التحقق',
             'password.required' => 'يرجى إدخال كلمة المرور',
             'password.min' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
             'password.confirmed' => 'كلمة المرور وتأكيدها غير متطابقتين',
         ]);
 
-        $user = User::where('national_id', $validated['national_id'])->first();
-
         if (! $user || blank($user->phone)) {
-            return back()->withErrors(['national_id' => 'تعذّر إعادة تعيين كلمة المرور لهذا الحساب.']);
+            return back()->withErrors([$identifierField => 'تعذّر إعادة تعيين كلمة المرور لهذا الحساب.']);
         }
 
-        $result = $this->otpService->verify($user->phone, $validated['code'], self::OTP_PURPOSE);
+        $result = $this->otpService->verify($user->phone, $request->input('code'), self::OTP_PURPOSE);
 
         if (! $result['verified']) {
             return back()->withErrors(['code' => $result['message']]);
         }
 
         // 'password' is cast to 'hashed' on the User model — assigning the plain value hashes it.
-        $user->update(['password' => $validated['password']]);
+        $user->update(['password' => $request->input('password')]);
 
         return redirect($this->loginUrlFor($user))
             ->with('status', 'تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.');
+    }
+
+    /**
+     * Resolve the target account from the request's identifier. The presence of an
+     * `email` field marks the staff path (role != student); otherwise the national-ID
+     * field marks the student path (role = student). Role scoping makes the boundary
+     * authoritative on the server regardless of which form the request came from.
+     *
+     * @return array{0: ?User, 1: string, 2: string} [user, identifierField, notFoundMessage]
+     */
+    private function lookup(Request $request): array
+    {
+        if ($request->has('email')) {
+            $validated = $request->validate(
+                ['email' => ['bail', 'required', 'email']],
+                ['email.required' => 'يرجى إدخال البريد الإلكتروني', 'email.email' => 'يرجى إدخال بريد إلكتروني صحيح'],
+            );
+
+            $user = User::where('email', $validated['email'])
+                ->where('role', '!=', 'student')
+                ->first();
+
+            return [$user, 'email', 'لا يوجد حساب موظّف بهذا البريد الإلكتروني.'];
+        }
+
+        $validated = $request->validate(
+            ['national_id' => ['bail', 'required', 'string']],
+            ['national_id.required' => 'يرجى إدخال الرقم الوطني'],
+        );
+
+        $user = User::where('national_id', $validated['national_id'])
+            ->where('role', 'student')
+            ->first();
+
+        return [$user, 'national_id', 'لا يوجد حساب طالب بهذا الرقم الوطني.'];
     }
 
     /**

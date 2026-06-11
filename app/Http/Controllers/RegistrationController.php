@@ -153,7 +153,7 @@ class RegistrationController extends Controller
             // Password
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             // Documents
-            'bachelor_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'bachelor_certificate' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'remedial_statement' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
             'name.required' => 'يرجى إدخال الاسم الرباعي واللقب',
@@ -182,6 +182,9 @@ class RegistrationController extends Controller
             'password.required' => 'يرجى إدخال كلمة المرور',
             'password.min' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
             'password.confirmed' => 'كلمة المرور وتأكيدها غير متطابقتين',
+            'bachelor_certificate.required' => 'يرجى إرفاق الشهادة العلمية',
+            'bachelor_certificate.mimes' => 'صيغة الشهادة العلمية يجب أن تكون PDF أو صورة',
+            'bachelor_certificate.max' => 'حجم الشهادة العلمية يجب ألا يتجاوز 5 ميجابايت',
         ]);
 
         try {
@@ -206,7 +209,7 @@ class RegistrationController extends Controller
                 if ($path === false) {
                     return back()
                         ->withInput()
-                        ->withErrors(['bachelor_certificate' => 'تعذّر رفع شهادة البكالوريوس. يرجى المحاولة مرة أخرى.']);
+                        ->withErrors(['bachelor_certificate' => 'تعذّر رفع الشهادة العلمية. يرجى المحاولة مرة أخرى.']);
                 }
 
                 $data['bachelor_certificate'] = $path;

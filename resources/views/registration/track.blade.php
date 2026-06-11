@@ -1,4 +1,4 @@
-<x-layout.app title="متابعة طلب القبول">
+<x-layout.app title="متابعة طلب القبول" :hide-hero="true">
     <div class="mx-auto max-w-2xl">
 
         {{-- Header --}}
@@ -9,10 +9,13 @@
             <h2 class="mt-4 text-3xl font-extrabold text-slate-900">
                 متابعة حالة طلب القبول
             </h2>
-            <p class="mt-3 text-base text-slate-500">أدخل رقم التتبع والرقم الوطني للاستعلام عن حالة طلبك</p>
+            @unless(isset($application))
+                <p class="mt-3 text-base text-slate-500">أدخل رقم التتبع والرقم الوطني للاستعلام عن حالة طلبك</p>
+            @endunless
         </div>
 
-        {{-- Search Form --}}
+        {{-- Search Form — hidden once a result is shown; the visitor just needs their status --}}
+        @unless(isset($application))
         <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
             <form method="POST" action="{{ route('application.track') }}" class="space-y-6">
                 @csrf
@@ -34,6 +37,7 @@
                 </button>
             </form>
         </div>
+        @endunless
 
         {{-- Result --}}
         @if(isset($application))
@@ -77,6 +81,89 @@
                         @if($application->status->value === 'rejected' && $application->rejection_reason)
                             <p class="mt-1 text-sm text-red-700">{{ $application->rejection_reason }}</p>
                         @endif
+                    </div>
+                </div>
+
+                {{-- 3-step status tracker (read-only) --}}
+                @php
+                    $st = $application->status->value;
+                    $isAccepted = $st === 'accepted';
+                    $isRejected = $st === 'rejected';
+                    $reviewed = in_array($st, ['initially_approved', 'accepted', 'rejected'], true);
+                    $decided = $isAccepted || $isRejected;
+
+                    $trackSteps = [
+                        [
+                            'title' => 'تقديم الطلب',
+                            'caption' => 'تم الاستلام',
+                            'state' => 'done',
+                        ],
+                        [
+                            'title' => 'مراجعة الطلب',
+                            'caption' => $reviewed ? 'تمت المراجعة' : 'قيد المراجعة',
+                            'state' => $reviewed ? 'done' : 'current',
+                        ],
+                        [
+                            'title' => 'القرار النهائي',
+                            'caption' => $isAccepted ? 'مقبول' : ($isRejected ? 'مرفوض' : 'بانتظار القرار'),
+                            'state' => $isAccepted ? 'done' : ($isRejected ? 'rejected' : 'pending'),
+                        ],
+                    ];
+                @endphp
+                <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
+                    <h3 class="mb-8 border-b border-slate-100 pb-4 text-lg font-bold text-slate-800">حالة الطلب</h3>
+
+                    <div class="relative px-2">
+                        {{-- background track line (passes through the circle centers) --}}
+                        <div class="absolute top-6 right-10 left-10 h-1 rounded-full bg-slate-200 sm:right-14 sm:left-14"></div>
+                        {{-- progress fill — from the start (right, RTL) up to the reached node --}}
+                        <div @class([
+                            'absolute top-6 right-10 h-1 rounded-full bg-emerald-400 sm:right-14',
+                            'left-10 sm:left-14' => $decided,
+                            'left-1/2' => ! $decided,
+                        ])></div>
+
+                        <div class="relative flex justify-between">
+                            @foreach($trackSteps as $i => $step)
+                                <div class="flex w-20 flex-col items-center text-center sm:w-28">
+                                    <span @class([
+                                        'relative z-10 flex size-12 items-center justify-center rounded-full ring-4 ring-white',
+                                        'bg-emerald-100 text-emerald-600' => $step['state'] === 'done',
+                                        'bg-amber-100 text-amber-600' => $step['state'] === 'current',
+                                        'bg-red-100 text-red-600' => $step['state'] === 'rejected',
+                                        'bg-slate-100 text-slate-400' => $step['state'] === 'pending',
+                                    ])>
+                                        @switch($step['state'])
+                                            @case('done')
+                                                <svg class="size-6" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                                @break
+                                            @case('current')
+                                                <svg class="size-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                @break
+                                            @case('rejected')
+                                                <svg class="size-6" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                @break
+                                            @default
+                                                <span class="text-base font-bold">{{ $i + 1 }}</span>
+                                        @endswitch
+                                    </span>
+                                    <h4 @class([
+                                        'mt-3 text-sm font-bold',
+                                        'text-slate-900' => $step['state'] === 'done',
+                                        'text-amber-700' => $step['state'] === 'current',
+                                        'text-red-700' => $step['state'] === 'rejected',
+                                        'text-slate-400' => $step['state'] === 'pending',
+                                    ])>{{ $step['title'] }}</h4>
+                                    <p @class([
+                                        'mt-0.5 text-xs',
+                                        'text-emerald-600' => $step['state'] === 'done',
+                                        'text-amber-600' => $step['state'] === 'current',
+                                        'text-red-600' => $step['state'] === 'rejected',
+                                        'text-slate-400' => $step['state'] === 'pending',
+                                    ])>{{ $step['caption'] }}</p>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
 

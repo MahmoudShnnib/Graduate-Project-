@@ -1,3 +1,4 @@
+@props(['title' => null, 'hideHero' => false])
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -174,6 +175,7 @@
     </div>
 </header>
 
+@unless($hideHero)
 <section id="home" data-spy class="relative overflow-hidden bg-slate-900">
 
     {{-- ===== Desktop (lg+): full-bleed photo with the copy over the right side ===== --}}
@@ -231,6 +233,7 @@
         </div>
     </div>
 </section>
+@endunless
 
 <main id="registration-form" class="max-w-7xl mx-auto px-6 py-16">
     {{ $slot }}

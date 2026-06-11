@@ -22,7 +22,39 @@ trait ChangesPasswordWithOtp
 
     public bool $otpSent = false;
 
+    public bool $otpVerified = false;
+
     private const OTP_PURPOSE = 'password_change';
+
+    /**
+     * Real-time verification: the moment a full 6-digit code is entered, check it
+     * against the active OTP and flip {@see $otpVerified} so the UI can show a
+     * "correct" indicator and enable the submit button — mirroring the public
+     * /apply auto-verify behaviour.
+     */
+    public function updatedOtpCode(): void
+    {
+        $this->otp_code = preg_replace('/\D/', '', (string) $this->otp_code) ?? '';
+
+        if ($this->otpVerified || strlen($this->otp_code) !== 6) {
+            return;
+        }
+
+        $phone = $this->phone();
+
+        if (blank($phone)) {
+            return;
+        }
+
+        $result = app(WhatsAppOtpService::class)->verify($phone, $this->otp_code, self::OTP_PURPOSE);
+        $this->otpVerified = $result['verified'];
+
+        if ($this->otpVerified) {
+            $this->resetErrorBag('otp_code');
+        } else {
+            $this->addError('otp_code', $result['message']);
+        }
+    }
 
     public function phone(): ?string
     {
@@ -52,6 +84,12 @@ trait ChangesPasswordWithOtp
 
         $result = app(WhatsAppOtpService::class)->request($phone, self::OTP_PURPOSE);
         $this->otpSent = $result['sent'];
+
+        if ($result['sent']) {
+            $this->otp_code = '';
+            $this->otpVerified = false;
+            $this->resetErrorBag('otp_code');
+        }
 
         Notification::make()
             ->title($result['message'])
@@ -84,12 +122,19 @@ trait ChangesPasswordWithOtp
             return;
         }
 
-        $result = app(WhatsAppOtpService::class)->verify($phone, $this->otp_code, self::OTP_PURPOSE);
+        $otpService = app(WhatsAppOtpService::class);
 
-        if (! $result['verified']) {
-            $this->addError('otp_code', $result['message']);
+        // The code may already be verified in real time (updatedOtpCode). If not,
+        // fall back to verifying the submitted code here so the page still works
+        // without live verification.
+        if (! $otpService->hasVerified($phone, self::OTP_PURPOSE)) {
+            $result = $otpService->verify($phone, $this->otp_code, self::OTP_PURPOSE);
 
-            return;
+            if (! $result['verified']) {
+                $this->addError('otp_code', $result['message']);
+
+                return;
+            }
         }
 
         // 'password' is cast to 'hashed' on the User model — assigning the plain value hashes it.
@@ -97,6 +142,7 @@ trait ChangesPasswordWithOtp
 
         $this->reset(['new_password', 'new_password_confirmation', 'otp_code']);
         $this->otpSent = false;
+        $this->otpVerified = false;
 
         Notification::make()->title('تم تغيير كلمة المرور بنجاح.')->success()->send();
     }

@@ -11,9 +11,9 @@ class WhatsAppOtpService
 {
     private const CODE_LENGTH = 6;
 
-    private const EXPIRES_MINUTES = 1;
+    private const EXPIRES_SECONDS = 120;
 
-    private const RESEND_COOLDOWN_SECONDS = 60;
+    private const RESEND_COOLDOWN_SECONDS = 120;
 
     private const MAX_SENDS_PER_WINDOW = 3;
 
@@ -74,12 +74,12 @@ class WhatsAppOtpService
             'phone' => $phone,
             'purpose' => $purpose,
             'code_hash' => Hash::make($code),
-            'expires_at' => now()->addMinutes(self::EXPIRES_MINUTES),
+            'expires_at' => now()->addSeconds(self::EXPIRES_SECONDS),
         ]);
 
         try {
             $this->whatsApp->sendText($phone, new WhatsAppMessage(
-                message: "رمز التحقق الخاص بك في مكتب الدراسات العليا هو: {$code}\nصالح لمدة دقيقة واحدة فقط. لا تشاركه مع أحد.",
+                message: "رمز التحقق الخاص بك في مكتب الدراسات العليا هو: {$code}\nصالح لمدة دقيقتين فقط. لا تشاركه مع أحد.",
             ));
         } catch (\Throwable $e) {
             Log::warning('WhatsApp OTP send failed for purpose '.$purpose.': '.$e->getMessage());

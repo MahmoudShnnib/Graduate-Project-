@@ -43,7 +43,7 @@ class StudentPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-                fn (): string => '<div style="margin-top:1rem;text-align:center;"><a href="'.e(route('password.forgot')).'" style="font-size:.875rem;font-weight:600;color:#1F4E79;">نسيت كلمة المرور؟</a></div>',
+                fn (): string => '<div style="margin-top:1rem;text-align:center;"><a href="'.e(route('password.forgot.student')).'" style="font-size:.875rem;font-weight:600;color:#1F4E79;">نسيت كلمة المرور؟</a></div>',
             )
             ->brandName('بوابة الطالب')
             ->colors([

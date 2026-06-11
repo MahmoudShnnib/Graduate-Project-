@@ -211,7 +211,7 @@ class ApplicationInfolist
                     ->columns(2)
                     ->components([
                         TextEntry::make('bachelor_certificate')
-                            ->label('شهادة البكالوريوس')
+                            ->label('الشهادة العلمية (بكالوريوس/دبلوم عالي)')
                             ->icon(Heroicon::DocumentText)
                             ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : '—')
                             ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)

@@ -163,7 +163,7 @@
                         $steps = [
                             [
                                 'n' => '1', 'tag' => 'قبل التقديم', 'title' => 'جهّز مستنداتك',
-                                'desc' => 'شهادة البكالوريوس وكشف المواد التكميلية بصيغة PDF أو صورة (حد أقصى 5 ميجابايت لكل ملف)، مع التأكد من صحة الاسم والرقم الوطني.',
+                                'desc' => 'الشهادة العلمية وكشف المواد التكميلية بصيغة PDF أو صورة (حد أقصى 5 ميجابايت لكل ملف)، مع التأكد من صحة الاسم والرقم الوطني.',
                                 'grad' => 'from-blue-600 to-sky-500',
                                 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 13.5l2.25 2.25 4.5-4.5"/>',
                                 'cta' => null,
@@ -823,8 +823,8 @@
 
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                        <x-form.label for="bachelor_certificate">شهادة البكالوريوس</x-form.label>
-                        <input id="bachelor_certificate" name="bachelor_certificate" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                        <x-form.label for="bachelor_certificate">الشهادة العلمية (بكالوريوس/دبلوم عالي) <span class="text-red-500">*</span></x-form.label>
+                        <input id="bachelor_certificate" name="bachelor_certificate" type="file" accept=".pdf,.jpg,.jpeg,.png" required
                             @change="checkFile($event)"
                             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-600 focus:ring-2 focus:ring-blue-200" />
                         <x-form.error name="bachelor_certificate" />
@@ -1167,7 +1167,7 @@
                         verifyRow.classList.remove('hidden');
                         verifyRow.classList.add('flex');
                         codeInput.focus();
-                        startCooldown(60);
+                        startCooldown(120);
                     } else {
                         sendBtn.disabled = false;
                         if (data.retry_after) startCooldown(data.retry_after);

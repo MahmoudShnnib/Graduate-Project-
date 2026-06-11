@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
+beforeEach(function (): void {
+    Storage::fake('public');
+});
+
 function configureQonvo(bool $enabled = true): void
 {
     config()->set('services.qonvo.api_token', $enabled ? 'test-token' : null);
@@ -40,6 +44,7 @@ function validApplicationPayload(array $overrides = []): array
         'password' => 'password123',
         'password_confirmation' => 'password123',
         'declaration' => '1',
+        'bachelor_certificate' => UploadedFile::fake()->create('certificate.pdf', 100, 'application/pdf'),
     ], $overrides);
 }
 

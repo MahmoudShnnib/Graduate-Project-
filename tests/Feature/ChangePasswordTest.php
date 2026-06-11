@@ -40,6 +40,30 @@ it('changes the password with a valid otp', function () {
     expect(Hash::check('newpass123', $user->fresh()->password))->toBeTrue();
 });
 
+it('verifies the otp in real time when a full valid code is entered', function () {
+    $user = User::factory()->withRole('super_admin')->create(['phone' => '0912345678']);
+    actingAs($user);
+    passwordChangeOtp('0912345678', '123456');
+
+    Livewire::test(\App\Filament\Pages\ChangePassword::class)
+        ->set('otpSent', true)
+        ->set('otp_code', '123456')
+        ->assertSet('otpVerified', true)
+        ->assertHasNoErrors();
+});
+
+it('does not mark the otp verified in real time for a wrong code', function () {
+    $user = User::factory()->withRole('super_admin')->create(['phone' => '0912345678']);
+    actingAs($user);
+    passwordChangeOtp('0912345678', '123456');
+
+    Livewire::test(\App\Filament\Pages\ChangePassword::class)
+        ->set('otpSent', true)
+        ->set('otp_code', '999999')
+        ->assertSet('otpVerified', false)
+        ->assertHasErrors('otp_code');
+});
+
 it('rejects an invalid otp code', function () {
     $user = User::factory()->withRole('secretary')->create(['phone' => '0912345678']);
     actingAs($user);

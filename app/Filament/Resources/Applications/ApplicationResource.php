@@ -11,6 +11,7 @@ use App\Filament\Resources\Applications\Schemas\ApplicationInfolist;
 use App\Models\Application;
 use App\Models\Semester;
 use App\Services\AuditService;
+use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -198,6 +199,12 @@ class ApplicationResource extends Resource
 
                     DateTimePicker::make('exam_date')
                         ->label('تاريخ الامتحان')
+                        ->native(false)
+                        ->seconds(false)
+                        ->minutesStep(5)
+                        ->displayFormat('d/m/Y - H:i')
+                        ->prefixIcon('heroicon-m-calendar-days')
+                        ->placeholder('اختر التاريخ والوقت')
                         ->visible(fn ($get): bool => $get('status') === ApplicationStatus::InitiallyApproved->value),
 
                     Textarea::make('notes')
@@ -216,7 +223,7 @@ class ApplicationResource extends Resource
                 ->columns(2)
                 ->components([
                     FileUpload::make('bachelor_certificate')
-                        ->label('شهادة البكالوريوس')
+                        ->label('الشهادة العلمية (بكالوريوس/دبلوم عالي)')
                         ->directory('applications')
                         ->acceptedFileTypes(['application/pdf', 'image/*']),
 
@@ -366,7 +373,7 @@ class ApplicationResource extends Resource
                     ->tooltip(fn (\Livewire\Component $livewire): ?string => ($livewire->scheduledExamDate ?? null)
                         ? null
                         : 'حدد موعد الامتحان أولاً')
-                    ->action(function (\Illuminate\Database\Eloquent\Collection $records, \Livewire\Component $livewire) {
+                    ->action(function (\Illuminate\Database\Eloquent\Collection $records, \Livewire\Component $livewire, NotificationService $notifications) {
                         $examDate = $livewire->scheduledExamDate ?? null;
 
                         if (! $examDate) {
@@ -386,6 +393,8 @@ class ApplicationResource extends Resource
                                 'status' => ApplicationStatus::InitiallyApproved,
                                 'exam_date' => $examDate,
                             ]);
+
+                            $notifications->notifyApplicationInitiallyApproved($application);
 
                             $count++;
                         }
@@ -440,6 +449,12 @@ class ApplicationResource extends Resource
             ->form([
                 DateTimePicker::make('exam_date')
                     ->label('تاريخ الامتحان')
+                    ->native(false)
+                    ->seconds(false)
+                    ->minutesStep(5)
+                    ->displayFormat('d/m/Y - H:i')
+                    ->prefixIcon('heroicon-m-calendar-days')
+                    ->placeholder('اختر التاريخ والوقت')
                     ->required(),
             ])
             ->action(function (array $data, \Livewire\Component $livewire): void {
@@ -479,7 +494,7 @@ class ApplicationResource extends Resource
             ->tooltip(fn (\Livewire\Component $livewire): ?string => ($livewire->scheduledExamDate ?? null)
                 ? null
                 : 'حدد موعد الامتحان أولاً')
-            ->action(function (Application $application, AuditService $audit, \Livewire\Component $livewire): void {
+            ->action(function (Application $application, AuditService $audit, NotificationService $notifications, \Livewire\Component $livewire): void {
                 $examDate = $livewire->scheduledExamDate ?? null;
 
                 if (! $examDate) {
@@ -494,6 +509,8 @@ class ApplicationResource extends Resource
                 ]);
 
                 $audit->log('application_initial_approval', $application);
+
+                $notifications->notifyApplicationInitiallyApproved($application);
 
                 Notification::make()->title('تم القبول المبدئي بنجاح')->success()->send();
             })

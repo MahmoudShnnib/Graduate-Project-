@@ -13,6 +13,7 @@ use App\Models\SuspensionRequest;
 use App\Models\ThesisRegistration;
 use App\Notifications\AddDropDecisionNotification;
 use App\Notifications\ApplicationExamPassedNotification;
+use App\Notifications\ApplicationInitiallyApprovedNotification;
 use App\Notifications\ApplicationReceivedNotification;
 use App\Notifications\ClearanceIssuedNotification;
 use App\Notifications\GradePublishedNotification;
@@ -32,6 +33,17 @@ class NotificationService
             $application->user?->student,
             'application_received',
             'تم استلام طلب القبول بنجاح'
+        );
+    }
+
+    public function notifyApplicationInitiallyApproved(Application $application): void
+    {
+        $this->dispatch(
+            $application,
+            new ApplicationInitiallyApprovedNotification($application),
+            $application->user?->student,
+            'application_initially_approved',
+            'تم قبولك مبدئياً — موعد الامتحان التفاضلي'
         );
     }
 

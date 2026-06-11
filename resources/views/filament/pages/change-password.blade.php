@@ -49,8 +49,31 @@
                         <div class="space-y-1">
                             <label for="otp_code" class="text-sm font-medium text-gray-950 dark:text-white">رمز التحقق</label>
                             <x-filament::input.wrapper>
-                                <x-filament::input type="text" id="otp_code" inputmode="numeric" maxlength="6" wire:model="otp_code" />
+                                <x-filament::input
+                                    type="text"
+                                    id="otp_code"
+                                    inputmode="numeric"
+                                    maxlength="6"
+                                    autocomplete="one-time-code"
+                                    :disabled="$otpVerified"
+                                    wire:model.live.debounce.400ms="otp_code"
+                                />
+                                @if ($otpVerified)
+                                    <x-slot name="suffix">
+                                        <x-filament::icon icon="heroicon-m-check-circle" class="h-5 w-5 text-success-600" />
+                                    </x-slot>
+                                @endif
                             </x-filament::input.wrapper>
+
+                            @if ($otpVerified)
+                                <p class="flex items-center gap-1 text-sm font-semibold text-success-600">
+                                    <x-filament::icon icon="heroicon-m-check-circle" class="h-4 w-4" />
+                                    تم التحقق من الرمز بنجاح
+                                </p>
+                            @else
+                                <p class="text-xs text-gray-500 dark:text-gray-400">أدخل الرمز المكوّن من 6 أرقام وسيتم التحقق تلقائياً.</p>
+                            @endif
+
                             @error('otp_code')
                                 <p class="text-sm text-danger-600">{{ $message }}</p>
                             @enderror
@@ -62,7 +85,7 @@
             <x-filament::button
                 type="submit"
                 icon="heroicon-o-key"
-                :disabled="! $otpSent"
+                :disabled="! $otpVerified"
                 wire:confirm="هل أنت متأكد من تغيير كلمة المرور؟"
             >
                 تغيير كلمة المرور

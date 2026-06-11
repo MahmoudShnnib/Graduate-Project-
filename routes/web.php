@@ -20,9 +20,16 @@ Route::post('/apply/otp/send', [RegistrationController::class, 'sendOtp'])
 Route::post('/apply/otp/verify', [RegistrationController::class, 'verifyOtp'])
     ->middleware('throttle:10,1')
     ->name('registration.otp.verify');
-// Public WhatsApp-OTP password reset (identify by national ID → OTP to the phone on file).
-// See _brain/project-context/password-management-guide.md.
-Route::get('/forgot-password', [PasswordResetController::class, 'show'])->name('password.forgot');
+// Public WhatsApp-OTP password reset. Two entry points so each panel asks for the
+// right identifier: students by national ID (/portal), staff by email (/admin). The
+// OTP always goes to the phone ALREADY on file for the matched account — never a typed
+// number. See _brain/project-context/password-management-guide.md.
+Route::get('/portal/forgot-password', [PasswordResetController::class, 'show'])
+    ->defaults('mode', 'student')
+    ->name('password.forgot.student');
+Route::get('/admin/forgot-password', [PasswordResetController::class, 'show'])
+    ->defaults('mode', 'admin')
+    ->name('password.forgot.admin');
 Route::post('/forgot-password/send-otp', [PasswordResetController::class, 'sendOtp'])
     ->middleware('throttle:6,1')
     ->name('password.otp.send');
