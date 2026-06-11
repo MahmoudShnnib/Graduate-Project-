@@ -47,7 +47,7 @@
                     <p class="text-sm text-success-700 dark:text-success-400 mt-0.5">أتممت جميع الشروط المطلوبة للتسجيل</p>
                 @else
                     <p class="font-semibold text-danger-800 dark:text-danger-300 text-sm">غير مؤهل حالياً</p>
-                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">يُشترط إتمام جميع المقررات العامة والتخصصية ومقررتين اختياريتين بمعدل 3.0 أو أعلى</p>
+                    <p class="text-sm text-danger-700 dark:text-danger-400 mt-0.5">يُشترط إتمام جميع المقررات العامة والتخصصية ومقررتين اختياريتين باجمالي معدل 3.0 أو أعلى</p>
                 @endif
 
                 @if($student)
