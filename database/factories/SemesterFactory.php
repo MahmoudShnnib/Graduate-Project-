@@ -19,6 +19,8 @@ class SemesterFactory extends Factory
             'start_date' => now()->startOfMonth(),
             'end_date' => now()->addMonths(4)->endOfMonth(),
             'is_active' => false,
+            'applications_open' => true,
+            'application_deadline' => null,
         ];
     }
 
@@ -26,6 +28,13 @@ class SemesterFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => true,
+        ]);
+    }
+
+    public function applicationsClosed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'applications_open' => false,
         ]);
     }
 

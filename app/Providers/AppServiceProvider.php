@@ -17,6 +17,8 @@ use App\Observers\GradeObserver;
 use App\Observers\SemesterObserver;
 use App\Observers\StudentObserver;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -38,6 +40,15 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole('super_admin') ? true : null;
         });
 
+        // Lock every Edit page's "Save changes" button until the user actually changes
+        // something, then unlock on the first real input/change and re-lock after a
+        // submit. We avoid the button's `disabled` attribute (Filament's own Alpine
+        // `filamentFormButton` already owns it for the loading state) and instead toggle
+        // a CSS class — driven by DOM events, which survive Filament's reactive field
+        // syncs (so it never "flashes"), and re-applied after every Livewire morph.
+        // Applies to all resources, including Shield's Roles edit page.
+        FilamentView::registerRenderHook(PanelsRenderHook::BODY_END, fn (): string => $this->saveButtonGuard());
+
         Grade::observe(GradeObserver::class);
         Student::observe(StudentObserver::class);
         CourseOffering::observe(CourseOfferingObserver::class);
@@ -49,5 +60,39 @@ class AppServiceProvider extends ServiceProvider
         Student::observe(AuditObserver::class);
         ThesisRegistration::observe(AuditObserver::class);
         StudentEnrollment::observe(AuditObserver::class);
+    }
+
+    /**
+     * Inline style + script that greys/locks the Edit-page save button until the form
+     * is changed. Targets edit forms only (`wire:submit="save"`); the lock state is kept
+     * per-form and re-applied on Livewire morphs so reactive fields don't unlock it.
+     */
+    private function saveButtonGuard(): string
+    {
+        return <<<'HTML'
+        <style>[data-save-locked]{opacity:.55!important;pointer-events:none!important;}</style>
+        <script>
+        (function(){
+            function submitBtn(form){return form.querySelector('button[type="submit"]');}
+            function refresh(form){
+                var b=submitBtn(form); if(!b){return;}
+                if(form.__saveChanged){b.removeAttribute('data-save-locked');}
+                else{b.setAttribute('data-save-locked','');}
+            }
+            function guard(form){
+                if(form.__saveGuard){return;} form.__saveGuard=true; form.__saveChanged=false;
+                form.addEventListener('input',function(){form.__saveChanged=true;refresh(form);});
+                form.addEventListener('change',function(){form.__saveChanged=true;refresh(form);});
+                form.addEventListener('submit',function(){form.__saveChanged=false;setTimeout(function(){refresh(form);},50);});
+            }
+            function scan(){document.querySelectorAll('form[wire\\:submit="save"]').forEach(function(f){guard(f);refresh(f);});}
+            document.addEventListener('DOMContentLoaded',scan);
+            document.addEventListener('livewire:navigated',scan);
+            document.addEventListener('livewire:init',function(){
+                if(window.Livewire&&Livewire.hook){Livewire.hook('morphed',scan);}
+            });
+        })();
+        </script>
+        HTML;
     }
 }

@@ -460,6 +460,7 @@ class ApplicationResource extends Resource
             ->action(function (array $data, \Livewire\Component $livewire): void {
                 $wasSet = ($livewire->scheduledExamDate ?? null) !== null;
                 $livewire->scheduledExamDate = $data['exam_date'];
+                $livewire->scheduledExamSemesterId = Semester::activeId();
 
                 Notification::make()
                     ->title($wasSet ? 'تم تحديث موعد الامتحان' : 'تم تحديد موعد الامتحان')
@@ -478,6 +479,7 @@ class ApplicationResource extends Resource
             ->visible(fn (\Livewire\Component $livewire): bool => ($livewire->scheduledExamDate ?? null) !== null)
             ->action(function (\Livewire\Component $livewire): void {
                 $livewire->scheduledExamDate = null;
+                $livewire->scheduledExamSemesterId = Semester::activeId();
             });
     }
 

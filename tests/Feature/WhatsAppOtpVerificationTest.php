@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
     Storage::fake('public');
+    // An open active semester so the admissions window gate lets submissions through.
+    \App\Models\Semester::factory()->active()->create();
 });
 
 function configureQonvo(bool $enabled = true): void

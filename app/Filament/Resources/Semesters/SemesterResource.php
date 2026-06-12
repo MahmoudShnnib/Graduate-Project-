@@ -21,6 +21,7 @@ use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -152,17 +153,41 @@ class SemesterResource extends Resource
 
                 DatePicker::make('start_date')
                     ->label('تاريخ البداية')
+                    ->native(false)
+                    ->displayFormat('d/m/Y')
+                    ->prefixIcon('heroicon-m-calendar-days')
                     ->required(),
 
                 DatePicker::make('end_date')
                     ->label('تاريخ النهاية')
+                    ->native(false)
+                    ->displayFormat('d/m/Y')
+                    ->prefixIcon('heroicon-m-calendar-days')
                     ->required(),
 
                 DatePicker::make('add_drop_start')
-                    ->label('بداية فترة الإضافة والحذف'),
+                    ->label('بداية فترة الإضافة والحذف')
+                    ->native(false)
+                    ->displayFormat('d/m/Y')
+                    ->prefixIcon('heroicon-m-calendar-days'),
 
                 DatePicker::make('add_drop_end')
-                    ->label('نهاية فترة الإضافة والحذف'),
+                    ->label('نهاية فترة الإضافة والحذف')
+                    ->native(false)
+                    ->displayFormat('d/m/Y')
+                    ->prefixIcon('heroicon-m-calendar-days'),
+
+                Toggle::make('applications_open')
+                    ->label('فتح التقديم للطلبات الجديدة')
+                    ->helperText('عند الإيقاف، لا يمكن للمتقدمين الجدد إرسال طلبات عبر صفحة التقديم.')
+                    ->default(true),
+
+                DatePicker::make('application_deadline')
+                    ->label('آخر موعد للتقديم')
+                    ->native(false)
+                    ->displayFormat('d/m/Y')
+                    ->helperText('اختياري — يُغلق التقديم تلقائياً بعد هذا التاريخ حتى لو كان مفعّلاً.')
+                    ->prefixIcon('heroicon-m-calendar-days'),
 
                 Actions::make([
                     self::openSurveyAction(),

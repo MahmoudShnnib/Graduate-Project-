@@ -466,6 +466,7 @@
             </div>
         @endif
 
+        @if($applicationsOpen)
         <form method="POST" action="{{ route('registration.store') }}" enctype="multipart/form-data" class="space-y-8"
               x-data="applyForm()" x-init="recalc()" @input="recalc()" @change="recalc()" @submit="onSubmit($event)">
             @csrf
@@ -876,6 +877,22 @@
                 </div>
             </div>
         </form>
+        @else
+        {{-- Admissions closed: the active semester has applications off or its deadline passed. --}}
+        <div class="mx-auto max-w-2xl rounded-3xl border border-amber-200 bg-amber-50 p-10 text-center shadow-sm">
+            <div class="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-amber-100">
+                <svg class="size-9 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+            </div>
+            <h3 class="text-2xl font-extrabold text-slate-900">باب التقديم مغلق حالياً</h3>
+            <p class="mt-3 text-base leading-relaxed text-slate-600">
+                انتهت فترة استقبال طلبات الالتحاق بالدراسات العليا. يرجى متابعة إعلانات الكلية أو التواصل مع مكتب الدراسات العليا لمعرفة موعد فتح التقديم القادم.
+            </p>
+            <a href="{{ route('application.track.show') }}"
+               class="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 py-3 text-sm font-bold text-white shadow transition hover:bg-blue-800">
+                متابعة طلب سابق
+            </a>
+        </div>
+        @endif
     </div>
 
     @php

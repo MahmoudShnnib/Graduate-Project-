@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateApplication;
 use App\Models\Application;
+use App\Models\Semester;
 use App\Models\Specialization;
 use App\Models\User;
 use App\Rules\ArabicOnly;
@@ -30,8 +31,9 @@ class RegistrationController extends Controller
     {
         $specializations = Specialization::orderBy('name')->get();
         $whatsappEnabled = $whatsApp->isConfigured();
+        $applicationsOpen = Semester::active()?->acceptsApplications() ?? false;
 
-        return view('registration.create', compact('specializations', 'whatsappEnabled'));
+        return view('registration.create', compact('specializations', 'whatsappEnabled', 'applicationsOpen'));
     }
 
     /**
@@ -69,6 +71,14 @@ class RegistrationController extends Controller
 
     public function store(Request $request, WhatsAppService $whatsApp): RedirectResponse
     {
+        // Hard gate: refuse new submissions once admissions are closed, even on a
+        // stale page or a direct POST. The UI also hides the form (see create()).
+        if (! (Semester::active()?->acceptsApplications() ?? false)) {
+            return back()->withErrors([
+                'name' => 'باب التقديم مغلق حالياً. يرجى المحاولة لاحقاً أو التواصل مع مكتب الدراسات العليا.',
+            ])->withInput();
+        }
+
         $validated = $request->validate([
             // Contact
             'name' => [

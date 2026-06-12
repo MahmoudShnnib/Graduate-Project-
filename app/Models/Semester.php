@@ -26,6 +26,8 @@ class Semester extends Model
         'add_drop_end',
         'is_active',
         'survey_open',
+        'applications_open',
+        'application_deadline',
         'archived_at',
     ];
 
@@ -53,15 +55,21 @@ class Semester extends Model
         return static::active()?->id;
     }
 
+    /**
+     * Clear the memoized active-semester lookup. Fired on any save/delete so reads
+     * stay correct within a request; also called between tests, where the static
+     * would otherwise leak across cases in the same process.
+     */
+    public static function flushActiveCache(): void
+    {
+        static::$activeMemo = null;
+        static::$activeResolved = false;
+    }
+
     protected static function booted(): void
     {
-        $forgetActive = static function (): void {
-            static::$activeMemo = null;
-            static::$activeResolved = false;
-        };
-
-        static::saved($forgetActive);
-        static::deleted($forgetActive);
+        static::saved(static fn () => static::flushActiveCache());
+        static::deleted(static fn () => static::flushActiveCache());
     }
 
     protected function casts(): array
@@ -75,8 +83,27 @@ class Semester extends Model
             'add_drop_end' => 'date',
             'is_active' => 'boolean',
             'survey_open' => 'boolean',
+            'applications_open' => 'boolean',
+            'application_deadline' => 'date',
             'archived_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether this semester currently accepts new public applications: the master
+     * switch is on AND no deadline has passed (a null deadline means no auto-close).
+     */
+    public function acceptsApplications(): bool
+    {
+        if (! $this->applications_open) {
+            return false;
+        }
+
+        if ($this->application_deadline === null) {
+            return true;
+        }
+
+        return now()->toDateString() <= $this->application_deadline->toDateString();
     }
 
     public function courses(): BelongsToMany
@@ -141,6 +168,7 @@ class Semester extends Model
                 'archived_at' => now(),
                 'is_active' => false,
                 'survey_open' => false,
+                'applications_open' => false,
             ]);
 
             $this->courseOfferings()

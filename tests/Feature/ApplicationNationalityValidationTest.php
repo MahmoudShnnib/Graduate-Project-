@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Application;
+use App\Models\Semester;
 use App\Models\Specialization;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +12,8 @@ beforeEach(function () {
     config()->set('services.qonvo.api_token', null);
     config()->set('services.qonvo.sender_phone', null);
     Storage::fake('public');
+    // An open active semester so the admissions window gate lets submissions through.
+    Semester::factory()->active()->create();
 });
 
 function nationalityPayload(array $overrides = []): array

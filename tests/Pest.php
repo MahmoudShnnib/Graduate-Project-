@@ -4,10 +4,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 pest()->extend(Tests\TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => \App\Models\Semester::flushActiveCache())
     ->in('Feature');
 
 pest()->extend(Tests\TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => \App\Models\Semester::flushActiveCache())
     ->in('Unit');
 
 expect()->extend('toBeOne', function () {
