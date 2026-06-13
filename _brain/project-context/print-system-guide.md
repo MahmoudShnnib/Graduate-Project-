@@ -53,10 +53,16 @@ Mandatory config flags:
 'backupSubsFont'   => ['dejavusans'],
 'default_font'     => 'noto-naskh',
 'default_font_size'=> 16,
-'fontDir'          => array_merge($fontDirs, [storage_path('app/print-fonts')]),
+'fontDir'          => array_merge($fontDirs, [resource_path('fonts/print')]),
 ```
 
 Why each font, and which fonts were rejected (Aref Ruqaa, Noto Kufi, Scheherazade) — [[../decisions/2026-05-19-print-template-fonts]].
+
+> **Font location (changed 2026-06-12).** The 7 TTFs are committed at `resources/fonts/print/` and
+> registered from `resource_path('fonts/print')` in **both** `PrintController` and
+> `PrintCourseStudentsController`. They are in version control, so a clean checkout has them — no
+> manual font copy on deploy. (They used to live in the git-ignored `storage/app/print-fonts/`, which
+> silently broke clean deploys.) `dejavusans` ships bundled with mPDF — nothing to add.
 
 ## Blade template skeleton
 
@@ -214,7 +220,7 @@ Full bug list — [[../bugs-and-fixes/2026-05-19-mpdf-arabic-font-incompatibilit
 
 If you ever need to evaluate a candidate font:
 
-1. Drop the TTF into `storage/app/print-fonts/test/`.
+1. Drop the candidate TTF into `resources/fonts/print/` (the loaded directory). Old rejected candidates are kept for re-evaluation in the git-ignored `storage/app/print-fonts/test/`, which is **not** loaded — move one out of there into `resources/fonts/print/` to test it.
 2. Temporarily register it in `makeMpdf()` under a temp key, e.g. `'tmp-font' => ['R' => 'CandidateFont.ttf', 'useOTL' => 0xFF, 'useKashida' => 75]`.
 3. Add a temporary route like `Route::get('/admin/font-test/{font}', [PrintController::class, 'fontTestSingle'])` that wraps **one font per Mpdf instance** (so a crash on one doesn't poison others).
 4. Hit the URL in the browser. Either it renders a clean sample of Arabic + digits, or mPDF throws — note the error class and bail.

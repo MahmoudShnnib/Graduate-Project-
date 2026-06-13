@@ -22,6 +22,10 @@ What remains is environment, secrets, and the merge — actions that are inheren
 - Opportunistic OTP-row pruning (no scheduler needed).
 - Notifications remain **synchronous by design** — see
   [[../decisions/2026-06-04-synchronous-notifications-and-timeouts]].
+- **Print (mPDF) fonts are now in version control** at `resources/fonts/print/` (7 TTFs: Noto Naskh
+  R+B, Markazi, Amiri R+B+I+BI). Both `PrintController` and `PrintCourseStudentsController` read them
+  via `resource_path('fonts/print')`, so a clean checkout has them — **no manual font copy on deploy.**
+  (They previously lived in the git-ignored `storage/app/print-fonts/`, which broke clean deploys.)
 
 ## 🔓 Operator actions before go-live (NOT code)
 
@@ -57,6 +61,10 @@ What remains is environment, secrets, and the merge — actions that are inheren
 - [ ] Approve a test application — confirm the welcome email/WhatsApp fires and the staff action
       returns promptly (timeouts bound it to ~10s worst case).
 - [ ] Generate a transcript PDF — confirm it renders within the time budget.
+- [ ] Open an Arabic print, e.g. `/admin/students/{id}/print-student-letter` — Arabic must render in
+      Noto Naskh with numbers in Markazi. Tofu boxes / "font not found" text above the PDF = the
+      `resources/fonts/print/` TTFs didn't deploy or `vendor/mpdf/mpdf/tmp/` isn't writable
+      (`chmod -R ug+rw vendor/mpdf/mpdf/tmp`).
 
 ## 🛡️ Production hardening backlog
 A full audited security/perf/ops backlog (beyond this checklist's scope) lives at

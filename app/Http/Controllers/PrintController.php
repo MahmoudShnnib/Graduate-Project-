@@ -305,7 +305,7 @@ class PrintController extends Controller
             'autoLangToFont' => false,
             'useSubstitutions' => true,
             'backupSubsFont' => ['dejavusans'],
-            'fontDir' => array_merge($fontDirs, [storage_path('app/print-fonts')]),
+            'fontDir' => array_merge($fontDirs, [resource_path('fonts/print')]),
             'fontdata' => $fontData + [
                 'amiri' => [
                     'R' => 'amiri-regular.ttf',
