@@ -44,6 +44,42 @@ class ViewAuditLog extends ViewRecord
         return AuditService::actionLabel($this->record->action);
     }
 
+    public function getActionDescription(): string
+    {
+        return AuditService::actionDescription($this->record->action);
+    }
+
+    /**
+     * The other audit rows written by the same operation (same batch), so the full
+     * fan-out of one action (e.g. accepting a student) is visible in one place.
+     *
+     * @return \Illuminate\Support\Collection<int, AuditLog>
+     */
+    public function getBatchSiblings(): \Illuminate\Support\Collection
+    {
+        if (! $this->record->batch_id) {
+            return collect();
+        }
+
+        return AuditLog::query()
+            ->where('batch_id', $this->record->batch_id)
+            ->whereKeyNot($this->record->getKey())
+            ->orderBy('id')
+            ->get();
+    }
+
+    public function describeSibling(AuditLog $log): string
+    {
+        $label = AuditService::actionLabel($log->action);
+
+        return $log->subject_label ? $label.' — '.$log->subject_label : $label;
+    }
+
+    public function siblingUrl(AuditLog $log): string
+    {
+        return AuditLogResource::getUrl('view', ['record' => $log->getKey()]);
+    }
+
     public function getRoleLabel(): string
     {
         $role = $this->record->user?->role;

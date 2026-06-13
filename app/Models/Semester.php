@@ -174,6 +174,9 @@ class Semester extends Model
             $this->courseOfferings()
                 ->where('is_open', true)
                 ->update(['is_open' => false]);
+
+            // Move this semester's audit logs into cold storage so the live log stays lean.
+            \App\Services\AuditService::archiveSemesterLogs($this->id);
         });
     }
 }

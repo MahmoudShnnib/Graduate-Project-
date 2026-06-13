@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // cookies and route()/url() https generation break. `at: '*'` is appropriate when
         // the only ingress is our own reverse proxy (the container isn't directly exposed).
         $middleware->trustProxies(at: '*');
+
+        // Start a fresh audit batch per request (see AuditService::resetBatch).
+        $middleware->append(\App\Http\Middleware\ResetAuditBatch::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Authenticated user on the wrong Filament panel (e.g. student hitting /admin/*).

@@ -13,6 +13,8 @@ class WelcomeStudentNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'welcome_student';
+
     public function __construct(
         public readonly Student $student,
         public readonly ?string $plainPassword = null,

@@ -8,7 +8,6 @@ use App\Models\Application;
 use App\Models\Semester;
 use App\Models\Specialization;
 use App\Services\AuditService;
-use App\Services\NotificationService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -77,7 +76,6 @@ class ExamListPage extends Page
         }
 
         $approve = app(ApproveApplication::class);
-        $notifier = app(NotificationService::class);
         $audit = app(AuditService::class);
         $successCount = 0;
         $errors = [];
@@ -96,7 +94,6 @@ class ExamListPage extends Page
 
                 $approve->handle($application);
                 $audit->log('exam_passed', $application, newValues: ['exam_score' => $application->exam_score]);
-                $notifier->notifyApplicationExamPassed($application);
                 $successCount++;
             } catch (\Throwable $e) {
                 $errors[] = $application->name.': '.$e->getMessage();

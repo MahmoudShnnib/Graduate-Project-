@@ -2,12 +2,10 @@
 
 namespace App\Services;
 
-use App\Enums\NotificationChannel;
 use App\Models\AddDropRequest;
 use App\Models\Application;
 use App\Models\ClearanceRequest;
 use App\Models\Grade;
-use App\Models\NotificationLog;
 use App\Models\Student;
 use App\Models\SuspensionRequest;
 use App\Models\ThesisRegistration;
@@ -27,46 +25,22 @@ class NotificationService
 {
     public function notifyApplicationReceived(Application $application): void
     {
-        $this->dispatch(
-            $application,
-            new ApplicationReceivedNotification($application),
-            $application->user?->student,
-            'application_received',
-            'تم استلام طلب القبول بنجاح'
-        );
+        $this->dispatch($application, new ApplicationReceivedNotification($application));
     }
 
     public function notifyApplicationInitiallyApproved(Application $application): void
     {
-        $this->dispatch(
-            $application,
-            new ApplicationInitiallyApprovedNotification($application),
-            $application->user?->student,
-            'application_initially_approved',
-            'تم قبولك مبدئياً — موعد الامتحان التفاضلي'
-        );
+        $this->dispatch($application, new ApplicationInitiallyApprovedNotification($application));
     }
 
     public function notifyApplicationExamPassed(Application $application): void
     {
-        $this->dispatch(
-            $application,
-            new ApplicationExamPassedNotification($application),
-            $application->user?->student,
-            'application_exam_passed',
-            'اجتزت اختبار القبول — تم قبولك نهائياً'
-        );
+        $this->dispatch($application, new ApplicationExamPassedNotification($application));
     }
 
     public function notifyWelcomeStudent(Student $student, ?string $plainPassword = null): void
     {
-        $this->dispatch(
-            $student->user,
-            new WelcomeStudentNotification($student, $plainPassword),
-            $student,
-            'welcome_student',
-            'مرحباً بك في برنامج الدراسات العليا'
-        );
+        $this->dispatch($student->user, new WelcomeStudentNotification($student, $plainPassword));
     }
 
     public function notifyGradePublished(Grade $grade): void
@@ -77,110 +51,40 @@ class NotificationService
             return;
         }
 
-        $this->dispatch(
-            $student->user,
-            new GradePublishedNotification($grade),
-            $student,
-            'grade_published',
-            'تم اعتماد درجاتك في مقرر'
-        );
+        $this->dispatch($student->user, new GradePublishedNotification($grade));
     }
 
     public function notifyThesisDecision(ThesisRegistration $registration): void
     {
-        $student = $registration->student;
-
-        $this->dispatch(
-            $student?->user,
-            new ThesisDecisionNotification($registration),
-            $student,
-            'thesis_decision',
-            $registration->status === 'approved' ? 'تم قبول تسجيل رسالتك' : 'تم رفض تسجيل رسالتك'
-        );
+        $this->dispatch($registration->student?->user, new ThesisDecisionNotification($registration));
     }
 
     public function notifySuspensionDecision(SuspensionRequest $request): void
     {
-        $student = $request->student;
-
-        $this->dispatch(
-            $student?->user,
-            new SuspensionDecisionNotification($request),
-            $student,
-            'suspension_decision',
-            $request->status?->value === 'approved' ? 'تم قبول طلب الانقطاع' : 'تم رفض طلب الانقطاع'
-        );
+        $this->dispatch($request->student?->user, new SuspensionDecisionNotification($request));
     }
 
     public function notifyAddDropDecision(AddDropRequest $request): void
     {
-        $student = $request->student;
-
-        $this->dispatch(
-            $student?->user,
-            new AddDropDecisionNotification($request),
-            $student,
-            'add_drop_decision',
-            'تم البت في طلب الإضافة/الحذف'
-        );
+        $this->dispatch($request->student?->user, new AddDropDecisionNotification($request));
     }
 
     public function notifyClearanceIssued(ClearanceRequest $clearance): void
     {
-        $student = $clearance->student;
-
-        $this->dispatch(
-            $student?->user,
-            new ClearanceIssuedNotification($clearance),
-            $student,
-            'clearance_issued',
-            'تم اعتماد استماحتك'
-        );
+        $this->dispatch($clearance->student?->user, new ClearanceIssuedNotification($clearance));
     }
 
-    private function dispatch(?object $notifiable, Notification $notification, ?Student $student, string $event, string $message): void
+    private function dispatch(?object $notifiable, Notification $notification): void
     {
         if (! $notifiable) {
             return;
         }
 
-        $emailStatus = 'failed';
-        $whatsappStatus = 'skipped';
-
         try {
             $notifiable->notify($notification);
-            $emailStatus = 'sent';
-
-            if (! empty($notifiable->phone) && ! empty(config('services.qonvo.api_token'))) {
-                $whatsappStatus = 'sent';
-            }
         } catch (\Throwable $e) {
+            $event = $notification->logEvent ?? class_basename($notification);
             Log::warning("Notification {$event} failed: {$e->getMessage()}");
-        }
-
-        if ($student) {
-            $this->logChannel($student, NotificationChannel::Email, $event, $message, $emailStatus);
-
-            if ($whatsappStatus !== 'skipped') {
-                $this->logChannel($student, NotificationChannel::Whatsapp, $event, $message, $whatsappStatus);
-            }
-        }
-    }
-
-    private function logChannel(Student $student, NotificationChannel $channel, string $event, string $message, string $status): void
-    {
-        try {
-            NotificationLog::create([
-                'student_id' => $student->id,
-                'channel' => $channel,
-                'event' => $event,
-                'message' => $message,
-                'status' => $status,
-                'sent_at' => now(),
-                'created_at' => now(),
-            ]);
-        } catch (\Throwable) {
-            // Logging must never interrupt the main flow
         }
     }
 }

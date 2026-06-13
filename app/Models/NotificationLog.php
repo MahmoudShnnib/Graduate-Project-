@@ -16,6 +16,7 @@ class NotificationLog extends Model
         'event',
         'message',
         'status',
+        'error_message',
         'sent_at',
         'created_at',
     ];

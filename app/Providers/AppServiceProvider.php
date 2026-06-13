@@ -8,8 +8,6 @@ use App\Models\CourseOffering;
 use App\Models\Grade;
 use App\Models\Semester;
 use App\Models\Student;
-use App\Models\StudentEnrollment;
-use App\Models\ThesisRegistration;
 use App\Observers\ApplicationObserver;
 use App\Observers\AuditObserver;
 use App\Observers\CourseOfferingObserver;
@@ -19,6 +17,7 @@ use App\Observers\StudentObserver;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -40,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole('super_admin') ? true : null;
         });
 
+        // Give each unit of work (queued job / console command) its own audit batch id,
+        // mirroring the per-request reset done by the ResetAuditBatch middleware.
+        Event::listen(\Illuminate\Queue\Events\JobProcessing::class, fn () => \App\Services\AuditService::resetBatch());
+        Event::listen(\Illuminate\Console\Events\CommandStarting::class, fn () => \App\Services\AuditService::resetBatch());
+
         // Lock every Edit page's "Save changes" button until the user actually changes
         // something, then unlock on the first real input/change and re-lock after a
         // submit. We avoid the button's `disabled` attribute (Filament's own Alpine
@@ -55,11 +59,33 @@ class AppServiceProvider extends ServiceProvider
         Semester::observe(SemesterObserver::class);
         Application::observe(ApplicationObserver::class);
 
-        Grade::observe(AuditObserver::class);
-        Application::observe(AuditObserver::class);
-        Student::observe(AuditObserver::class);
-        ThesisRegistration::observe(AuditObserver::class);
-        StudentEnrollment::observe(AuditObserver::class);
+        // Full create/update/delete audit trail across every admin-managed record.
+        // (AuditLog/NotificationLog/WhatsAppOtp are intentionally excluded — logging
+        // those would recurse or just record transient noise.)
+        foreach ([
+            \App\Models\Application::class,
+            \App\Models\Student::class,
+            \App\Models\User::class,
+            \App\Models\Grade::class,
+            \App\Models\StudentEnrollment::class,
+            \App\Models\ThesisRegistration::class,
+            \App\Models\SuspensionRequest::class,
+            \App\Models\AddDropRequest::class,
+            \App\Models\DiscussionRequest::class,
+            \App\Models\ExceptionalRequest::class,
+            \App\Models\ClearanceRequest::class,
+            \App\Models\CourseSurvey::class,
+            \App\Models\Course::class,
+            \App\Models\CourseOffering::class,
+            \App\Models\Semester::class,
+            \App\Models\Specialization::class,
+            \App\Models\TransferCourse::class,
+            \App\Models\StudentWarning::class,
+            \App\Models\Supervisor::class,
+            \App\Models\Setting::class,
+        ] as $auditedModel) {
+            $auditedModel::observe(AuditObserver::class);
+        }
     }
 
     /**

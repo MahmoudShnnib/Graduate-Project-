@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser
         'institution',
         'role',
         'is_active',
+        'last_seen_activity_id',
     ];
 
     protected $hidden = [
@@ -50,6 +51,7 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'is_active' => 'boolean',
             'birth_date' => 'date',
+            'last_seen_activity_id' => 'integer',
         ];
     }
 

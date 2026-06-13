@@ -13,6 +13,8 @@ class ApplicationExamPassedNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'application_exam_passed';
+
     public function __construct(public readonly Application $application) {}
 
     public function toMail(object $notifiable): MailMessage
