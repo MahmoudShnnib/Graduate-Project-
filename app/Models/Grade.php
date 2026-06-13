@@ -45,6 +45,24 @@ class Grade extends Model
         return $this->belongsTo(StudentEnrollment::class, 'enrollment_id');
     }
 
+    /**
+     * Human label for the audit trail: "student name - course name", so a grade
+     * row reads meaningfully instead of falling back to a bare record id.
+     */
+    public function auditSubjectLabel(): ?string
+    {
+        $student = $this->enrollment?->student?->user?->name
+            ?? $this->enrollment?->student?->enrollment_no;
+        $course = $this->enrollment?->courseOffering?->course?->name;
+
+        return match (true) {
+            $student && $course => $student.' - '.$course,
+            (bool) $student => $student,
+            (bool) $course => $course,
+            default => null,
+        };
+    }
+
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');

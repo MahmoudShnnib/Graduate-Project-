@@ -8,6 +8,7 @@ use App\Models\Application;
 use App\Models\Semester;
 use App\Models\Specialization;
 use App\Services\AuditService;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -26,6 +27,16 @@ class ExamListPage extends Page
     protected static string|\UnitEnum|null $navigationGroup = 'القبول والتسجيل';
 
     protected static ?int $navigationSort = 2;
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== 'faculty';
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->role !== 'faculty';
+    }
 
     /** @var array<int, string> */
     public array $selected = [];
@@ -65,6 +76,37 @@ class ExamListPage extends Page
             ->when($this->activeSpecialization, fn ($q) => $q->where('specialization_id', $this->activeSpecialization))
             ->orderBy('exam_date')
             ->get();
+    }
+
+    public function markPassedAction(): Action
+    {
+        return Action::make('markPassed')
+            ->label('مقبول')
+            ->icon(Heroicon::OutlinedCheck)
+            ->color('success')
+            ->size('sm')
+            ->disabled(fn (): bool => empty($this->selected))
+            ->requiresConfirmation()
+            ->modalIcon(Heroicon::OutlinedCheckBadge)
+            ->modalHeading('قبول الطلاب المحددين')
+            ->modalDescription('سيتم قبول الطلاب المحددين نهائياً وإنشاء حساباتهم الطلابية وإشعارهم. لا يمكن التراجع عن هذا الإجراء.')
+            ->modalSubmitActionLabel('قبول نهائي')
+            ->action(fn () => $this->markPassed());
+    }
+
+    public function markFailedAction(): Action
+    {
+        return Action::make('markFailed')
+            ->label('مرفوض')
+            ->icon(Heroicon::OutlinedXMark)
+            ->color('danger')
+            ->size('sm')
+            ->disabled(fn (): bool => empty($this->selected))
+            ->requiresConfirmation()
+            ->modalHeading('رفض الطلاب المحددين')
+            ->modalDescription('سيتم تسجيل رسوب الطلاب المحددين في الامتحان التفاضلي ورفض طلباتهم.')
+            ->modalSubmitActionLabel('تأكيد الرفض')
+            ->action(fn () => $this->markFailed());
     }
 
     public function markPassed(): void

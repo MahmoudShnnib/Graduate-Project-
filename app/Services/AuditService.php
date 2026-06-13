@@ -193,6 +193,14 @@ class AuditService
      */
     public static function subjectLabel(Model $model): ?string
     {
+        if (method_exists($model, 'auditSubjectLabel')) {
+            $label = $model->auditSubjectLabel();
+
+            if (! empty($label)) {
+                return $label;
+            }
+        }
+
         foreach (['name', 'name_ar', 'title', 'enrollment_no'] as $attribute) {
             $value = $model->getAttribute($attribute);
 

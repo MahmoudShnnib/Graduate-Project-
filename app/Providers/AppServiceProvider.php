@@ -109,6 +109,14 @@ class AppServiceProvider extends ServiceProvider
                 if(form.__saveGuard){return;} form.__saveGuard=true; form.__saveChanged=false;
                 form.addEventListener('input',function(){form.__saveChanged=true;refresh(form);});
                 form.addEventListener('change',function(){form.__saveChanged=true;refresh(form);});
+                // Filament's Toggle and Select render as buttons, not native
+                // inputs, so they never emit input/change on the form. Treat any
+                // click on a form control (but not the submit button itself) as an
+                // edit, so select/toggle-only forms can't deadlock the Save button.
+                form.addEventListener('click',function(e){
+                    if(e.target.closest('button[type="submit"]')){return;}
+                    form.__saveChanged=true;refresh(form);
+                });
                 form.addEventListener('submit',function(){form.__saveChanged=false;setTimeout(function(){refresh(form);},50);});
             }
             function scan(){document.querySelectorAll('form[wire\\:submit="save"]').forEach(function(f){guard(f);refresh(f);});}

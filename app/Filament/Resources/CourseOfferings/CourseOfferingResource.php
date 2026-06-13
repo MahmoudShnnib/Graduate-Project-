@@ -38,6 +38,22 @@ class CourseOfferingResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    /**
+     * Faculty hold ViewAny/View:CourseOffering only so their "موادي" page works.
+     * That permission would otherwise surface this admin resource in their
+     * sidebar, so exclude faculty explicitly — they manage their courses via
+     * MyCourseResource, not here.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->role !== 'faculty' && parent::shouldRegisterNavigation();
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== 'faculty' && parent::canAccess();
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -81,7 +97,7 @@ class CourseOfferingResource extends Resource
                     ->disabled(fn (string $operation): bool => $operation === 'create')
                     ->dehydrated(true)
                     ->rules([
-                        fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                        fn (Get $get, ?Model $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($get, $record) {
                             $courseId = $get('course_id');
                             if (! $courseId || ! $value) {
                                 return;
@@ -89,6 +105,9 @@ class CourseOfferingResource extends Resource
                             $exists = CourseOffering::where('course_id', $courseId)
                                 ->where('semester_id', $value)
                                 ->where('is_open', true)
+                                // Exclude the record being edited so an existing open
+                                // offering doesn't fail validation by matching itself.
+                                ->when($record, fn (Builder $q): Builder => $q->where('id', '!=', $record->id))
                                 ->exists();
                             if ($exists) {
                                 $fail('يوجد مقرر مفتوح بالفعل لهذا الفصل الدراسي.');

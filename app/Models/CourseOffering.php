@@ -36,6 +36,22 @@ class CourseOffering extends Model
         return $this->belongsTo(Course::class);
     }
 
+    /**
+     * Human label for the audit trail: "course name - semester", so grade
+     * submission/publish rows (logged against the offering) read meaningfully.
+     */
+    public function auditSubjectLabel(): ?string
+    {
+        $course = $this->course?->name;
+        $semester = $this->semester?->name;
+
+        return match (true) {
+            $course && $semester => $course.' - '.$semester,
+            (bool) $course => $course,
+            default => null,
+        };
+    }
+
     public function semester(): BelongsTo
     {
         return $this->belongsTo(Semester::class);
