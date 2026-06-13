@@ -97,20 +97,37 @@ class ViewCourseGrades extends Page implements HasTable
                 ->modalHeading('نشر درجات أعمال الفصل')
                 ->modalDescription(
                     "سيتم نشر درجات أعمال الفصل لـ {$readyMidterm} طالب من أصل {$totalEnrolled} مسجل."
-                    ."\nسيتمكن الطلاب من رؤية درجات أعمال الفصل فقط."
+                    ."\nسيتمكن الطلاب من رؤية درجات أعمال الفصل وسيتم إشعارهم بذلك."
                     .$midtermWarning
                 )
-                ->action(function (AuditService $audit): void {
-                    $count = Grade::whereHas('enrollment', fn ($q) => $q->where('course_offering_id', $this->record->id)
+                ->action(function (NotificationService $notifier, AuditService $audit): void {
+                    $grades = Grade::whereHas('enrollment', fn ($q) => $q->where('course_offering_id', $this->record->id)
                         ->where('status', \App\Enums\EnrollmentStatus::Enrolled))
                         ->where('status', GradeStatus::Approved)
                         ->whereNull('midterm_published_at')
                         ->whereNotNull('coursework_grade')
-                        ->update(['midterm_published_at' => now()]);
+                        ->with(['enrollment.student.user', 'enrollment.courseOffering.course'])
+                        ->get();
 
-                    $audit->log('grades_midterm_published', $this->record, newValues: ['count' => $count]);
+                    if ($grades->isEmpty()) {
+                        Notification::make()->title('لا توجد درجات جاهزة للنشر')->warning()->send();
 
-                    Notification::make()->title("تم نشر درجات أعمال الفصل لـ {$count} طالب")->success()->send();
+                        return;
+                    }
+
+                    Grade::withoutEvents(function () use ($grades): void {
+                        foreach ($grades as $grade) {
+                            $grade->updateQuietly(['midterm_published_at' => now()]);
+                        }
+                    });
+
+                    foreach ($grades as $grade) {
+                        $notifier->notifyCourseworkPublished($grade);
+                    }
+
+                    $audit->log('grades_midterm_published', $this->record, newValues: ['count' => $grades->count()]);
+
+                    Notification::make()->title("تم نشر درجات أعمال الفصل لـ {$grades->count()} طالب")->success()->send();
                 }),
 
             Action::make('publish_finals')

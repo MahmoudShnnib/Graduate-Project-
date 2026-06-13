@@ -237,8 +237,27 @@ class ViewMyCourse extends Page implements HasTable
                     ->label('إدخال الدرجة')
                     ->icon(Heroicon::PencilSquare)
                     ->color('primary')
-                    ->visible(fn (StudentEnrollment $record): bool => $record->grade?->status !== GradeStatus::Approved
-                        && $record->grade?->status !== GradeStatus::PendingApproval)
+                    ->visible(function (StudentEnrollment $record): bool {
+                        $grade = $record->grade;
+
+                        if (! $grade) {
+                            return true;
+                        }
+
+                        // Locked while the admin reviews a submitted grade.
+                        if ($grade->status === GradeStatus::PendingApproval) {
+                            return false;
+                        }
+
+                        // After coursework was approved, re-open only to add the
+                        // still-missing final exam grade.
+                        if ($grade->status === GradeStatus::Approved) {
+                            return $grade->final_grade === null;
+                        }
+
+                        // Draft: freely editable.
+                        return true;
+                    })
                     ->modalHeading(fn (StudentEnrollment $record): string => 'إدخال درجة — '.$record->student->user->name)
                     ->form([
                         TextInput::make('coursework_grade')
@@ -251,22 +270,27 @@ class ViewMyCourse extends Page implements HasTable
 
                         TextInput::make('final_grade')
                             ->label('الامتحان النهائي (من '.$this->record->final_max.')')
+                            ->placeholder('اتركه فارغاً إذا لم يُجر الامتحان بعد')
+                            ->helperText('يمكن إدخال أعمال الفصل وحدها الآن وإضافة درجة الامتحان النهائي لاحقاً.')
                             ->numeric()
                             ->minValue(0)
                             ->maxValue($this->record->final_max)
-                            ->step(0.5)
-                            ->required(),
+                            ->step(0.5),
                     ])
                     ->fillForm(fn (StudentEnrollment $record): array => [
                         'coursework_grade' => $record->grade?->coursework_grade,
                         'final_grade' => $record->grade?->final_grade,
                     ])
                     ->action(function (StudentEnrollment $record, array $data): void {
+                        $finalGrade = ($data['final_grade'] !== null && $data['final_grade'] !== '')
+                            ? $data['final_grade']
+                            : null;
+
                         Grade::updateOrCreate(
                             ['enrollment_id' => $record->id],
                             [
                                 'coursework_grade' => $data['coursework_grade'],
-                                'final_grade' => $data['final_grade'],
+                                'final_grade' => $finalGrade,
                                 'status' => GradeStatus::Draft,
                             ]
                         );

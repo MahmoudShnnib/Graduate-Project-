@@ -31,6 +31,23 @@ class GradeResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = Grade::where('status', GradeStatus::PendingApproval)->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'درجات بانتظار الاعتماد';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([]);

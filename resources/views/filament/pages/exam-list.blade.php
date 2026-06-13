@@ -99,14 +99,8 @@
                     @endif
                 </p>
                 <div class="flex gap-2">
-                    <x-filament::button wire:click="markFailed" wire:confirm="هل أنت متأكد من رفض الطلاب المحددين؟"
-                        color="danger" icon="heroicon-o-x-mark" size="sm">
-                        مرفوض
-                    </x-filament::button>
-                    <x-filament::button wire:click="markPassed" wire:confirm="هل أنت متأكد من قبول الطلاب المحددين نهائياً؟"
-                        color="success" icon="heroicon-o-check" size="sm">
-                        مقبول
-                    </x-filament::button>
+                    {{ $this->markFailedAction }}
+                    {{ $this->markPassedAction }}
                 </div>
             </div>
         </div>

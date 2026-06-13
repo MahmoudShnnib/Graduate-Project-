@@ -14,6 +14,7 @@ use App\Notifications\ApplicationExamPassedNotification;
 use App\Notifications\ApplicationInitiallyApprovedNotification;
 use App\Notifications\ApplicationReceivedNotification;
 use App\Notifications\ClearanceIssuedNotification;
+use App\Notifications\CourseworkGradePublishedNotification;
 use App\Notifications\GradePublishedNotification;
 use App\Notifications\SuspensionDecisionNotification;
 use App\Notifications\ThesisDecisionNotification;
@@ -52,6 +53,17 @@ class NotificationService
         }
 
         $this->dispatch($student->user, new GradePublishedNotification($grade));
+    }
+
+    public function notifyCourseworkPublished(Grade $grade): void
+    {
+        $student = $grade->enrollment?->student;
+
+        if (! $student) {
+            return;
+        }
+
+        $this->dispatch($student->user, new CourseworkGradePublishedNotification($grade));
     }
 
     public function notifyThesisDecision(ThesisRegistration $registration): void

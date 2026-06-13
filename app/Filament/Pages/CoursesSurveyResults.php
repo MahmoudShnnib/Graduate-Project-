@@ -31,6 +31,16 @@ class CoursesSurveyResults extends Page
 
     protected static ?int $navigationSort = 5;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->role !== 'faculty';
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->role !== 'faculty';
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $activeSemester = Semester::activeId();

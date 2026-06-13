@@ -89,11 +89,14 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $secretary->syncPermissions($secretaryPermissions);
 
-        // Faculty: read students + course offerings, grade entry on own courses
-        // (row-level ownership is enforced in the resource, not Shield).
+        // Faculty: only their own courses ("موادي"). Grade entry there uses plain
+        // Eloquent (no Grade policy check), so faculty need NO Grade/Student
+        // permissions — granting them only made the admin Grades list, full
+        // Student directory, etc. leak into the faculty sidebar. Row-level
+        // ownership of the offering is enforced in MyCourseResource, not Shield.
+        // CourseOfferingResource shares these perms, so it carries an explicit
+        // faculty-exclusion override to stay hidden.
         $faculty->syncPermissions(Permission::whereIn('name', [
-            'ViewAny:Grade', 'View:Grade', 'Create:Grade', 'Update:Grade',
-            'ViewAny:Student', 'View:Student',
             'ViewAny:CourseOffering', 'View:CourseOffering',
         ])->get());
 
