@@ -48,6 +48,13 @@ class AuditLogResource extends Resource
         'App\\Models\\ClearanceRequest' => 'استماحة',
         'App\\Models\\Semester' => 'فصل دراسي',
         'App\\Models\\CourseSurvey' => 'استطلاع مقررات',
+        'App\\Models\\User' => 'مستخدم',
+        'App\\Models\\Course' => 'مقرر',
+        'App\\Models\\Specialization' => 'تخصص',
+        'App\\Models\\TransferCourse' => 'مادة محوّلة',
+        'App\\Models\\StudentWarning' => 'إنذار طالب',
+        'App\\Models\\Supervisor' => 'مشرف',
+        'App\\Models\\Setting' => 'إعداد',
     ];
 
     /**
@@ -114,14 +121,16 @@ class AuditLogResource extends Resource
         return $schema->components([]);
     }
 
+    /**
+     * NOTE: the audit-log LIST does NOT render this table — `ListAuditLogs` overrides the
+     * page view with a custom Blade driven by its own `getAuditLogs()` (which reuses
+     * `collapsedQuery()` + `applyActionFilter()`). Edit THOSE to change the list. This
+     * schema is kept only as a sane fallback if the custom view is ever removed.
+     */
     public static function table(Table $table): Table
     {
         return $table
-            ->query(
-                AuditLog::query()
-                    ->whereNotNull('user_id')
-                    ->with('user')
-            )
+            ->query(self::collapsedQuery())
             ->columns([
                 TextColumn::make('user.name')
                     ->label('المستخدم')
@@ -165,7 +174,11 @@ class AuditLogResource extends Resource
                     ->options(fn () => AuditLog::distinct()
                         ->pluck('action', 'action')
                         ->mapWithKeys(fn ($val, $key) => [$key => AuditService::actionLabel($key)])
-                        ->toArray()),
+                        ->toArray())
+                    // Batch-aware: a generic action (e.g. Student_updated) is rarely the
+                    // representative shown, so match any operation that *contains* it and
+                    // surface its representative row.
+                    ->query(fn (Builder $query, array $data): Builder => self::applyActionFilter($query, $data['values'] ?? [])),
 
                 SelectFilter::make('user_id')
                     ->label('المستخدم')
@@ -218,9 +231,93 @@ class AuditLogResource extends Resource
             ]);
     }
 
+    /**
+     * The audit-log list query, collapsed so one operation (batch) shows as a single
+     * "representative" row. Storage keeps every row — this only shapes the display.
+     * Each representative carries a `batch_size` (total rows in its operation) so the
+     * UI can show a "+N" badge. Portable SQL (no REGEXP / window funcs) for SQLite + MySQL.
+     */
+    public static function collapsedQuery(): Builder
+    {
+        return AuditLog::query()
+            ->whereNotNull('user_id')
+            ->whereRaw(self::representativeCondition())
+            ->select('audit_logs.*')
+            ->selectSub(
+                AuditLog::query()
+                    ->from('audit_logs as sub')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('sub.batch_id', 'audit_logs.batch_id'),
+                'batch_size'
+            )
+            // How many of the folded-in rows are real decisions (not generic CRUD), so a
+            // bulk approval reads as "30 قرار" instead of a misleading "+59".
+            ->selectSub(
+                AuditLog::query()
+                    ->from('audit_logs as dec')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('dec.batch_id', 'audit_logs.batch_id')
+                    ->whereRaw("substr(dec.action, -8) NOT IN ('_created', '_updated', '_deleted')"),
+                'batch_decision_count'
+            )
+            ->with('user');
+    }
+
+    /**
+     * Batch-aware action filter: keep representatives whose own action matches, OR whose
+     * operation (batch) contains any of the selected actions. Single source of truth so it
+     * can be unit-tested without Filament's deferred-filter harness.
+     *
+     * @param  array<int, string>  $values
+     */
+    public static function applyActionFilter(Builder $query, array $values): Builder
+    {
+        if (empty($values)) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $q): Builder => $q
+            ->whereIn('action', $values)
+            ->orWhereIn('batch_id', AuditLog::query()
+                ->whereIn('action', $values)
+                ->whereNotNull('batch_id')
+                ->select('batch_id')));
+    }
+
+    /**
+     * A row is its batch's representative when no other row in the same operation
+     * outranks it — preferring decision rows over generic create/update/delete, then
+     * the lowest id. Rows with no batch (legacy/manual) always stand alone.
+     */
+    private static function representativeCondition(): string
+    {
+        $outer = self::priorityExpression('audit_logs');
+        $inner = self::priorityExpression('a2');
+
+        return "(audit_logs.batch_id IS NULL OR NOT EXISTS (
+            SELECT 1 FROM audit_logs a2
+            WHERE a2.batch_id = audit_logs.batch_id
+              AND a2.user_id IS NOT NULL
+              AND a2.id <> audit_logs.id
+              AND ({$inner} < {$outer} OR ({$inner} = {$outer} AND a2.id < audit_logs.id))
+        ))";
+    }
+
+    /**
+     * 0 for semantic "decision" actions, 1 for generic create/update/delete — so
+     * decisions sort first when picking a batch's representative.
+     */
+    private static function priorityExpression(string $alias): string
+    {
+        return "(CASE WHEN substr({$alias}.action, -8) IN ('_created', '_updated', '_deleted') THEN 1 ELSE 0 END)";
+    }
+
     private static function actionColor(string $action): string
     {
         return match (true) {
+            str_ends_with($action, '_created') => 'success',
+            str_ends_with($action, '_deleted') => 'danger',
+            str_ends_with($action, '_updated') => 'gray',
             str_contains($action, 'grade') || str_contains($action, 'Grade') => 'warning',
             str_contains($action, 'application') => 'success',
             str_contains($action, 'status') || str_contains($action, 'suspension') => 'danger',

@@ -13,6 +13,8 @@ class ThesisDecisionNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'thesis_decision';
+
     public function __construct(public readonly ThesisRegistration $registration) {}
 
     public function toMail(object $notifiable): MailMessage

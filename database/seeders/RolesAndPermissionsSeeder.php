@@ -54,7 +54,7 @@ class RolesAndPermissionsSeeder extends Seeder
     private function syncRolePermissions(Role $superAdmin, Role $secretary, Role $faculty, Role $student): void
     {
         // Models off-limits to every non-super-admin role.
-        $adminOnlyModels = ['Role', 'User', 'AuditLog'];
+        $adminOnlyModels = ['Role', 'User', 'AuditLog', 'NotificationLog'];
 
         // Super admin: every permission. Redundant with Gate::before bypass,
         // but keeps Shield UI accurate.

@@ -13,6 +13,8 @@ class ApplicationReceivedNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'application_received';
+
     public function __construct(public readonly Application $application) {}
 
     public function toMail(object $notifiable): MailMessage

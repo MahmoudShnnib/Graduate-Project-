@@ -13,6 +13,8 @@ class AddDropDecisionNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'add_drop_decision';
+
     public function __construct(public readonly AddDropRequest $request) {}
 
     public function toMail(object $notifiable): MailMessage

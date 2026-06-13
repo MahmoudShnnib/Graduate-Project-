@@ -3,6 +3,8 @@
 @source "../../../views/filament/pages/**/*.blade.php";
 @source "../../../views/filament/resources/**/*.blade.php";
 @source "../../../views/filament/widgets/**/*.blade.php";
+@source "../../../views/filament/*.blade.php";
+@source "../../../views/livewire/*.blade.php";
 @source "../../../views/components/admin/**/*.blade.php";
 
 /*

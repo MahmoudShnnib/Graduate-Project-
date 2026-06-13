@@ -14,3 +14,7 @@ File names use `YYYY-MM-DD-bug-title.md`. Link to the related [[decisions]] or [
 
 ### 2026-05-09
 - [[2026-05-09-noto-kufi-arabic-font-not-applying]] — Filament ignored `--font-sans` Tailwind override; fixed via `LocalFontProvider`
+
+### 2026-06-12
+- [[2026-06-12-redundant-whatsapp-notifications-on-approval]] — ExamListPage fired `notifyApplicationExamPassed` + `notifyWelcomeStudent` back-to-back; removed redundant call
+- [[2026-06-12-bell-badge-not-clearing]] — Badge didn't clear on close via click-outside; fixed with `$watch('open')` Alpine watcher instead of button click handler

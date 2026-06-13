@@ -39,11 +39,15 @@ class ListAuditLogs extends ListRecords
      */
     public function getAuditLogs(): array
     {
-        $query = AuditLog::query()
-            ->with('user')
-            ->when(! $this->filterShowSystem, fn ($q) => $q->whereNotNull('user_id'))
+        // Default view collapses each operation (batch) into a single representative row
+        // (carrying a `batch_size`); "show system" is the raw, uncollapsed escape hatch.
+        $query = $this->filterShowSystem
+            ? AuditLog::query()->with('user')
+            : AuditLogResource::collapsedQuery();
+
+        $query
             ->when($this->search, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$this->search}%")))
-            ->when(! empty($this->filterActions), fn ($q) => $q->whereIn('action', $this->filterActions))
+            ->when(! empty($this->filterActions), fn ($q) => AuditLogResource::applyActionFilter($q, $this->filterActions))
             ->when($this->filterUserId, fn ($q) => $q->where('user_id', $this->filterUserId))
             ->when($this->filterRole, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('role', $this->filterRole)))
             ->when($this->filterModelType, fn ($q) => $q->where('model_type', $this->filterModelType))

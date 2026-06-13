@@ -13,6 +13,8 @@ class GradePublishedNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'grade_published';
+
     public function __construct(public readonly Grade $grade) {}
 
     public function toMail(object $notifiable): MailMessage

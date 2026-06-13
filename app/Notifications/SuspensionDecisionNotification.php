@@ -13,6 +13,8 @@ class SuspensionDecisionNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'suspension_decision';
+
     public function __construct(public readonly SuspensionRequest $request) {}
 
     public function toMail(object $notifiable): MailMessage

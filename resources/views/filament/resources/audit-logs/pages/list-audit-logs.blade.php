@@ -242,11 +242,30 @@
                                 @endif
                             </td>
 
-                            {{-- Action badge --}}
+                            {{-- Action badge (+ count of other actions folded in from the same operation) --}}
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $badgeClass }}">
-                                    {{ \App\Services\AuditService::actionLabel($log->action) }}
-                                </span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $badgeClass }}">
+                                        {{ \App\Services\AuditService::actionLabel($log->action) }}
+                                    </span>
+                                    @php
+                                        $batchSize = (int) ($log->batch_size ?? 1);
+                                        $decisionCount = (int) ($log->batch_decision_count ?? 0);
+                                    @endphp
+                                    @if($decisionCount > 1)
+                                        {{-- Bulk: several real decisions in one operation --}}
+                                        <span
+                                            title="عدد القرارات ضمن هذه العملية"
+                                            class="inline-flex items-center rounded-full bg-green-100 px-2 h-5 text-xs font-semibold text-green-700 dark:bg-green-500/20 dark:text-green-400"
+                                        >{{ $decisionCount }} قرار</span>
+                                    @elseif($batchSize > 1)
+                                        {{-- One decision + its automatic edits --}}
+                                        <span
+                                            title="‏+{{ $batchSize - 1 }} إجراء ضمن نفس العملية"
+                                            class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-100 text-xs font-semibold text-gray-500 dark:bg-white/10 dark:text-gray-400"
+                                        >+{{ $batchSize - 1 }}</span>
+                                    @endif
+                                </div>
                             </td>
 
                             {{-- Date --}}

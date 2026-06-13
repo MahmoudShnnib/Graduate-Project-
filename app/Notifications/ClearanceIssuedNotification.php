@@ -13,6 +13,8 @@ class ClearanceIssuedNotification extends Notification
 {
     use HasWhatsAppChannel, Queueable;
 
+    public string $logEvent = 'clearance_issued';
+
     public function __construct(public readonly ClearanceRequest $clearance) {}
 
     public function toMail(object $notifiable): MailMessage
