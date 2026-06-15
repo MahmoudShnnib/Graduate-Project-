@@ -6,7 +6,6 @@ use App\Channels\WhatsAppMessage;
 use App\Models\Grade;
 use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class GradePublishedNotification extends Notification
@@ -16,21 +15,6 @@ class GradePublishedNotification extends Notification
     public string $logEvent = 'grade_published';
 
     public function __construct(public readonly Grade $grade) {}
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        $course = $this->grade->enrollment?->courseOffering?->course;
-
-        return (new MailMessage)
-            ->subject('إعلان نتيجة مقرر')
-            ->greeting('عزيزي الطالب،')
-            ->line('تم اعتماد درجاتك في المقرر التالي:')
-            ->line('**المقرر:** '.($course?->name ?? '—'))
-            ->line('**المجموع:** '.number_format((float) $this->grade->total, 1).' / 100')
-            ->line('**التقدير:** '.($this->grade->letter ?? '—'))
-            ->action('عرض الدرجات', url('/portal/grades-page'))
-            ->salutation('مع تحيات مكتب الدراسات العليا');
-    }
 
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {

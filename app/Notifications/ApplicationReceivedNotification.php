@@ -6,7 +6,6 @@ use App\Channels\WhatsAppMessage;
 use App\Models\Application;
 use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class ApplicationReceivedNotification extends Notification
@@ -16,17 +15,6 @@ class ApplicationReceivedNotification extends Notification
     public string $logEvent = 'application_received';
 
     public function __construct(public readonly Application $application) {}
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->subject('استلام طلب القبول')
-            ->greeting('عزيزي المتقدم،')
-            ->line('تم استلام طلب قبولك في برنامج الدراسات العليا بنجاح.')
-            ->line('سيتم مراجعة طلبك من قِبَل لجنة القبول والتواصل معك في أقرب وقت ممكن.')
-            ->action('متابعة الطلب', url('/portal'))
-            ->salutation('مع تحيات مكتب الدراسات العليا');
-    }
 
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {

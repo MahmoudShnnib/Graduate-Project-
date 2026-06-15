@@ -28,6 +28,17 @@ it('memoizes the active semester so repeat calls hit the database once', functio
     expect(Semester::activeId())->toBe($active->id);
 });
 
+it('picks the newest semester deterministically if two are ever active at once', function () {
+    // Force the invariant violation the observer normally prevents, so we can
+    // assert the orderByDesc('id') tie-breaker rather than a silent lowest-id pick.
+    $older = Semester::withoutEvents(fn () => Semester::factory()->create(['is_active' => true]));
+    $newer = Semester::withoutEvents(fn () => Semester::factory()->create(['is_active' => true]));
+    Semester::flushActiveCache();
+
+    expect($newer->id)->toBeGreaterThan($older->id)
+        ->and(Semester::activeId())->toBe($newer->id);
+});
+
 it('forgets the memo when the active semester changes', function () {
     $first = Semester::factory()->create(['is_active' => true]);
     expect(Semester::activeId())->toBe($first->id);

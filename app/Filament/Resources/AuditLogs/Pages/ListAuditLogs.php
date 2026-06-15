@@ -46,7 +46,7 @@ class ListAuditLogs extends ListRecords
             : AuditLogResource::collapsedQuery();
 
         $query
-            ->when($this->search, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$this->search}%")))
+            ->when($this->search, fn ($q) => $q->whereHas('user', fn ($u) => $u->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($this->search).'%'])))
             ->when(! empty($this->filterActions), fn ($q) => AuditLogResource::applyActionFilter($q, $this->filterActions))
             ->when($this->filterUserId, fn ($q) => $q->where('user_id', $this->filterUserId))
             ->when($this->filterRole, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('role', $this->filterRole)))

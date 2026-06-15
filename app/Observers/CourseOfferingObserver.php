@@ -6,6 +6,7 @@ use App\Actions\Enrollment\DropStudentFromOffering;
 use App\Enums\EnrollmentStatus;
 use App\Models\CourseOffering;
 use App\Services\GradeCalculationService;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Cascades side effects on CourseOffering state changes.
@@ -50,24 +51,29 @@ class CourseOfferingObserver
         // which can't happen today but is defensive).
         $affectedStudents = [];
 
-        foreach ($activeEnrollments as $enrollment) {
-            $student = $enrollment->student;
+        // Atomic: closing an offering withdraws every active enrollment and
+        // recomputes each affected student's GPA. A mid-loop failure must not
+        // leave some students withdrawn-and-recomputed and others untouched.
+        DB::transaction(function () use ($offering, $activeEnrollments, &$affectedStudents): void {
+            foreach ($activeEnrollments as $enrollment) {
+                $student = $enrollment->student;
 
-            if (! $student) {
-                continue;
+                if (! $student) {
+                    continue;
+                }
+
+                $this->dropStudentFromOffering->__invoke(
+                    $student,
+                    $offering,
+                    EnrollmentStatus::Withdrawn,
+                );
+
+                $affectedStudents[$student->id] = $student;
             }
 
-            $this->dropStudentFromOffering->__invoke(
-                $student,
-                $offering,
-                EnrollmentStatus::Withdrawn,
-            );
-
-            $affectedStudents[$student->id] = $student;
-        }
-
-        foreach ($affectedStudents as $student) {
-            $this->gradeCalculationService->recalculateStudentGPA($student);
-        }
+            foreach ($affectedStudents as $student) {
+                $this->gradeCalculationService->recalculateStudentGPA($student);
+            }
+        });
     }
 }

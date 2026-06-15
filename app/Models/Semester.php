@@ -36,11 +36,18 @@ class Semester extends Model
      * Under the single-active-semester invariant this is the canonical "current
      * term" lookup. The memo is cleared on any semester save/delete (see booted()),
      * so reads after an active-flip cascade stay correct within the same request.
+     *
+     * `orderByDesc('id')` is a deterministic tie-breaker: should two rows ever be
+     * is_active=true at once (e.g. mid-rollover, before SemesterObserver archives
+     * the peer), the newest one wins instead of the lowest id silently masking it.
      */
     public static function active(): ?self
     {
         if (! static::$activeResolved) {
-            static::$activeMemo = static::query()->where('is_active', true)->first();
+            static::$activeMemo = static::query()
+                ->where('is_active', true)
+                ->orderByDesc('id')
+                ->first();
             static::$activeResolved = true;
         }
 

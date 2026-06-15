@@ -331,7 +331,7 @@ class EnrollStudents extends Page implements HasTable
                                 ->whereIn('specialization_id', $specIds)
                                 ->whereDoesntHave('activeEnrollments', fn (Builder $q) => $q->where('course_offering_id', $offeringId))
                                 ->where(function (Builder $q) use ($search): void {
-                                    $q->whereHas('user', fn (Builder $u) => $u->where('name', 'like', "%{$search}%"))
+                                    $q->whereHas('user', fn (Builder $u) => $u->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($search).'%']))
                                         ->orWhere('enrollment_no', 'like', "%{$search}%");
                                 })
                                 ->limit(20)

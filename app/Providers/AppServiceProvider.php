@@ -8,12 +8,14 @@ use App\Models\CourseOffering;
 use App\Models\Grade;
 use App\Models\Semester;
 use App\Models\Student;
+use App\Models\User;
 use App\Observers\ApplicationObserver;
 use App\Observers\AuditObserver;
 use App\Observers\CourseOfferingObserver;
 use App\Observers\GradeObserver;
 use App\Observers\SemesterObserver;
 use App\Observers\StudentObserver;
+use App\Observers\UserObserver;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
@@ -58,6 +60,7 @@ class AppServiceProvider extends ServiceProvider
         CourseOffering::observe(CourseOfferingObserver::class);
         Semester::observe(SemesterObserver::class);
         Application::observe(ApplicationObserver::class);
+        User::observe(UserObserver::class);
 
         // Full create/update/delete audit trail across every admin-managed record.
         // (AuditLog/NotificationLog/WhatsAppOtp are intentionally excluded — logging
