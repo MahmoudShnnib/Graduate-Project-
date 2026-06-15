@@ -31,6 +31,16 @@ class SemesterFactory extends Factory
         ]);
     }
 
+    public function archived(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+            'survey_open' => false,
+            'applications_open' => false,
+            'archived_at' => now(),
+        ]);
+    }
+
     public function applicationsClosed(): static
     {
         return $this->state(fn (array $attributes) => [

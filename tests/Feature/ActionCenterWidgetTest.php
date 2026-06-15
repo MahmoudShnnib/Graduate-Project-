@@ -2,7 +2,6 @@
 
 use App\Filament\Widgets\ActionCenterWidget;
 use App\Models\Application;
-use App\Models\User;
 use Livewire\Livewire;
 
 /*
@@ -14,10 +13,10 @@ it('is visible to super_admin and secretary but hidden from faculty', function (
     $this->actingAs(adminUser());
     expect(ActionCenterWidget::canView())->toBeTrue();
 
-    $this->actingAs(User::factory()->withRole('secretary')->create());
+    $this->actingAs(secretaryUser());
     expect(ActionCenterWidget::canView())->toBeTrue();
 
-    $this->actingAs(User::factory()->withRole('faculty')->create());
+    $this->actingAs(facultyUser());
     expect(ActionCenterWidget::canView())->toBeFalse();
 });
 

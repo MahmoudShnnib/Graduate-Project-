@@ -40,18 +40,19 @@ class CourseOfferingResource extends Resource
 
     /**
      * Faculty hold ViewAny/View:CourseOffering only so their "موادي" page works.
-     * That permission would otherwise surface this admin resource in their
-     * sidebar, so exclude faculty explicitly — they manage their courses via
-     * MyCourseResource, not here.
+     * That shared model permission would otherwise surface this admin resource
+     * in their sidebar, so gate on Update:CourseOffering — which faculty lack
+     * but secretaries/super-admins hold — instead. Faculty manage their courses
+     * via MyCourseResource, not here.
      */
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->role !== 'faculty' && parent::shouldRegisterNavigation();
+        return (bool) auth()->user()?->can('Update:CourseOffering') && parent::shouldRegisterNavigation();
     }
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->role !== 'faculty' && parent::canAccess();
+        return (bool) auth()->user()?->can('Update:CourseOffering') && parent::canAccess();
     }
 
     public static function getEloquentQuery(): Builder

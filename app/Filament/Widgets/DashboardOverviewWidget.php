@@ -34,7 +34,7 @@ class DashboardOverviewWidget extends Widget
 
     public static function canView(): bool
     {
-        return auth()->user()?->role !== 'faculty';
+        return (bool) auth()->user()?->can('View:DashboardOverviewWidget');
     }
 
     /**

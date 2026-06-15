@@ -44,3 +44,38 @@ function adminUser(): \App\Models\User
 
     return $user;
 }
+
+/**
+ * Seed the real Shield roles + permissions (idempotent) so role-permission
+ * gating can be exercised in tests. Cheap after the first call per test.
+ */
+function seedShieldRolesAndPermissions(): void
+{
+    (new \Database\Seeders\RolesAndPermissionsSeeder)->run();
+}
+
+/**
+ * Create a faculty user with the Shield 'faculty' role (only the
+ * ViewAny/View:CourseOffering permissions) assigned.
+ */
+function facultyUser(): \App\Models\User
+{
+    seedShieldRolesAndPermissions();
+    $user = \App\Models\User::factory()->withRole('faculty')->create();
+    $user->syncRoles(['faculty']);
+
+    return $user;
+}
+
+/**
+ * Create a secretary user with the Shield 'manager_assistant' role (the full
+ * admin permission set minus Role/User/AuditLog) assigned.
+ */
+function secretaryUser(): \App\Models\User
+{
+    seedShieldRolesAndPermissions();
+    $user = \App\Models\User::factory()->withRole('secretary')->create();
+    $user->syncRoles(['manager_assistant']);
+
+    return $user;
+}

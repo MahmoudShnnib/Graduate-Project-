@@ -69,3 +69,26 @@ resolved-by-deletion. I left that file untouched to avoid clobbering the in-flig
 ## Loose ends
 - mPDF is now the single PDF engine (9 documents). No transcript document exists anymore — revisit
   if an official transcript is ever needed (would be a new `prints/transcript` + PrintController method + route).
+
+---
+
+## Follow-up (evening) — clearance PDF layout polish
+
+Visual tuning of `resources/views/prints/clearance_form.blade.php` only. No controller change.
+
+1. **"Shrunk in the center" fix.** All print templates share `makeMpdf()` with 25.4mm (1in) page
+   margins; borderless templates put text at that 25.4mm line. The clearance form draws its `.frame`
+   border *at* 25.4mm and then adds inner padding (`.frame` 2.5mm + `.frame-inner` 9mm ≈ 11.5mm/side),
+   so its text started ~37mm in — visibly narrower than every other doc. Fix: `@page { margin: 14mm; }`
+   scoped to this blade. The border now sits out at 14mm and, with the frame padding, the **text** lands
+   at ~25.4mm — matching the other PDFs. Wider content area = less overflow risk, not more.
+2. **Bottom gap.** `min-height` on `.frame-inner` did **nothing** — mPDF ignores `min-height` on block
+   elements (confirmed by trial; use a fixed-height spacer instead). Solution: a `.notes-spacer`
+   `<div>` (fixed `height`) placed right before the `.notes` block to push the ملاحظة section down.
+   Final value **22mm** (started at 45mm, user wanted half).
+
+### Gotchas worth remembering
+- **mPDF ignores `min-height`** on block elements — to reserve vertical space, use a fixed-`height`
+  spacer div, not `min-height`.
+- **Per-document margins** can be set with CSS `@page { margin: … }` inside the blade, overriding the
+  shared `makeMpdf()` constructor margins — no controller change, no impact on other templates.

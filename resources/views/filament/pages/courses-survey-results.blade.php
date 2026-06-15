@@ -11,7 +11,8 @@
     @elseif($results->isEmpty())
         <x-admin.empty-state icon="heroicon-o-chart-bar" :message="'لم يتم تقديم أي استطلاعات للفصل: ' . $semester->name" />
     @else
-        <div class="fi-ta rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+        <div x-data="{ open: @js($this->showCoursesTable) }"
+             class="fi-ta rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
             {{-- Header (stays visible even when table body is collapsed so admin can re-expand) --}}
             <div class="fi-ta-header-ctn divide-y divide-gray-200 dark:divide-white/10">
                 <div class="fi-ta-header flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -24,20 +25,20 @@
                         </p>
                     </div>
                     <button type="button"
-                            wire:click="toggleCoursesTable"
-                            aria-expanded="{{ $this->showCoursesTable ? 'true' : 'false' }}"
-                            aria-label="{{ $this->showCoursesTable ? 'إخفاء الجدول' : 'إظهار الجدول' }}"
-                            title="{{ $this->showCoursesTable ? 'إخفاء الجدول' : 'إظهار الجدول' }}"
+                            x-on:click="open = ! open; $wire.toggleCoursesTable()"
+                            x-bind:aria-expanded="open ? 'true' : 'false'"
+                            x-bind:aria-label="open ? 'إخفاء الجدول' : 'إظهار الجدول'"
+                            x-bind:title="open ? 'إخفاء الجدول' : 'إظهار الجدول'"
                             class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition">
                         <x-heroicon-m-chevron-down
-                            class="h-4 w-4 transition-transform duration-200 {{ $this->showCoursesTable ? 'rotate-180' : '' }}" />
+                            class="h-4 w-4 transition-transform duration-200"
+                            x-bind:class="open ? 'rotate-180' : ''" />
                     </button>
                 </div>
             </div>
 
-            {{-- Table body (hidden when toggle is off) --}}
-            @if($this->showCoursesTable)
-            <div class="fi-ta-content overflow-x-auto">
+            {{-- Table body (smoothly collapses via Alpine; server prop keeps the preference across reloads) --}}
+            <div x-show="open" x-collapse.duration.500ms x-cloak class="fi-ta-content overflow-x-auto">
                 <table class="fi-ta-table w-full table-auto divide-y divide-gray-200 text-start dark:divide-white/5">
                     <thead class="divide-y divide-gray-200 dark:divide-white/5">
                         <tr>
@@ -111,7 +112,6 @@
                     </tbody>
                 </table>
             </div>
-            @endif
         </div>
 
         {{-- Students survey list (merged from the retired /admin/student-surveys-list, T10) --}}

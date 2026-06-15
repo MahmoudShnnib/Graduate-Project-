@@ -36,7 +36,7 @@ class ViewCourseGrades extends Page implements HasTable
     public function boot(): void
     {
         $user = auth()->user();
-        if (isset($this->record) && $user->role === 'faculty' && $this->record->faculty_id !== $user->id) {
+        if (isset($this->record) && $user->hasRole('faculty') && $this->record->faculty_id !== $user->id) {
             abort(403);
         }
     }
@@ -54,7 +54,7 @@ class ViewCourseGrades extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         $user = auth()->user();
-        $isFaculty = $user->role === 'faculty';
+        $isFaculty = $user->hasRole('faculty');
 
         if ($isFaculty) {
             return [];
@@ -331,7 +331,7 @@ class ViewCourseGrades extends Page implements HasTable
                     ->label('تعديل')
                     ->icon(Heroicon::Pencil)
                     ->color('gray')
-                    ->visible(fn (Grade $record): bool => $record->status !== GradeStatus::Approved || auth()->user()->role === 'super_admin')
+                    ->visible(fn (Grade $record): bool => $record->status !== GradeStatus::Approved || auth()->user()->hasRole('super_admin'))
                     ->modalHeading('تعديل الدرجة')
                     ->form(fn (): array => [
                         TextInput::make('coursework_grade')

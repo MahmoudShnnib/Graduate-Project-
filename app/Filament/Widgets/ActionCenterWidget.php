@@ -44,7 +44,7 @@ class ActionCenterWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->role !== 'faculty';
+        return (bool) auth()->user()?->can('View:ActionCenterWidget');
     }
 
     protected function getStats(): array

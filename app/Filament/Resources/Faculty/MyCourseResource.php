@@ -35,13 +35,13 @@ class MyCourseResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->role === 'faculty'
+        return (bool) auth()->user()?->hasRole('faculty')
             && auth()->user()->can('ViewAny:CourseOffering');
     }
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->role === 'faculty'
+        return (bool) auth()->user()?->hasRole('faculty')
             && auth()->user()->can('ViewAny:CourseOffering');
     }
 
