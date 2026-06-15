@@ -53,7 +53,7 @@ A **Libyan graduate-studies admissions, enrollment, and academic-lifecycle manag
 2. **Admin review** (`/admin`) — secretaries/super admins review applications, set exam results, and on approval the system auto-creates `User` + `Student` rows, generates an **enrollment number** scoped by year+specialization+transfer-type, and sends a welcome notification.
 3. **Academic cycle** — per-semester course offerings, a pre-enrollment **course survey** where students rank up to 4 desired courses, manual enrollment by staff, **add/drop** requests (max 3 each, open only during the semester's add-drop window), grade entry by faculty (`/admin` → "موادي") with configurable coursework/final distribution, and super-admin/secretary grade approval.
 4. **Student portal** (`/portal`) — RTL portal for students to browse the course tree, view grades, submit surveys/add-drop/suspension/thesis requests, and check clearance.
-5. **Support flows** — audit logging on sensitive field changes, dual-channel (email + WhatsApp via Qonvo) notifications, PDF generation (transcripts, suspension/thesis/clearance forms), printable course rosters, and GPA auto-recalculation on grade approval.
+5. **Support flows** — audit logging on sensitive field changes, dual-channel (email + WhatsApp via Qonvo) notifications, PDF generation via **mPDF** (clearance, graduation certificate, ministry/exam/grade forms, printable course rosters), and GPA auto-recalculation on grade approval.
 
 For deeper architectural detail see [[_brain/project-context/project-overview]], [[_brain/project-context/architecture]], and [[_brain/project-context/gotchas]].
 
@@ -76,7 +76,7 @@ For deeper architectural detail see [[_brain/project-context/project-overview]],
 - Hybrid role system: `users.role` column (simple string: `super_admin` / `secretary` / `faculty` / `student`) **and** Spatie roles — both are checked, `super_admin` bypasses all gates via `Gate::before`
 
 **Integrations**
-- `barryvdh/laravel-dompdf` — transcripts, clearance, suspension, thesis forms
+- `mpdf/mpdf` — all PDF output (clearance, graduation certificate, ministry/exam/grade forms, course rosters), rendered from `resources/views/prints/*` via `PrintController` + `PrintCourseStudentsController`. (The former `barryvdh/laravel-dompdf` engine + `PdfService` were removed 2026-06-15.)
 - Custom `WhatsAppChannel` → `WhatsAppService` → **Qonvo API** (`qonvo.ly`) with Libyan phone-format conversion (09XXXXXXXX → +2189XXXXXXXX)
 - Laravel mail (driver-agnostic; Postmark/Resend/SES configs exist, no default wired)
 
@@ -102,7 +102,7 @@ app/
 │                            StudentStatus, ApplicationStatus, Season, CourseType, AddDropType,
 │                            SuspensionStatus, NotificationChannel)
 ├── Filament/
-│   ├── Pages/               Admin-panel custom pages (ReportsPage, ExamListPage, StudentSurveysList, …)
+│   ├── Pages/               Admin-panel custom pages (ExamListPage, StudentSurveysList, …)
 │   ├── Resources/           14 admin Resources (Students, Applications, CourseOfferings, Grades,
 │   │                        Faculty, StudentEnrollments, AddDropRequests, Semesters, Courses,
 │   │                        Specializations, SuspensionRequests, ThesisRegistrations, AuditLogs, Users)
@@ -123,7 +123,7 @@ app/
 │   └── Filament/{Admin,Student}PanelProvider.php
 ├── Rules/                   ArabicOnly, MinArabicWords (custom validation)
 ├── Services/                AuditService, EnrollmentNumberService, GradeCalculationService,
-│                            NotificationService, PdfService, TrackingCodeService, WhatsAppService
+│                            NotificationService, TrackingCodeService, WhatsAppService
 └── View/Components/Form/    Blade form components (Button, Input, Label) used by public registration
 bootstrap/
 ├── app.php                  Routing, middleware, 403→/portal/login exception handler
@@ -138,8 +138,9 @@ resources/
 └── views/
     ├── components/          admin/*, form/*, layout/app (shared Blade components)
     ├── filament/            Filament page + resource Blade overrides (admin + student)
-    ├── pdfs/                transcript, clearance_form, suspension_form, thesis_form
-    ├── prints/              course-students (printable roster)
+    ├── prints/              mPDF docs: clearance_form, course_results, course-students, exam_attendance,
+    │                        exam_list, graduation_certificate, student_letter,
+    │                        student_provisional_grades, thesis_ministry
     ├── registration/        create.blade.php, track.blade.php (public pages)
     └── welcome.blade.php
 routes/
@@ -299,7 +300,7 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
-- php - 8.5.4
+- php - 8.5.6
 - filament/filament (FILAMENT) - v5
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0

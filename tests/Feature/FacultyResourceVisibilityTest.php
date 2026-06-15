@@ -52,13 +52,11 @@ it('hides admin-only custom pages from faculty', function () {
 
     expect(\App\Filament\Pages\ExamListPage::canAccess())->toBeFalse()
         ->and(\App\Filament\Pages\ExceptionalOpportunitiesPage::canAccess())->toBeFalse()
-        ->and(\App\Filament\Pages\CoursesSurveyResults::canAccess())->toBeFalse()
-        ->and(\App\Filament\Pages\ReportsPage::canAccess())->toBeFalse();
+        ->and(\App\Filament\Pages\CoursesSurveyResults::canAccess())->toBeFalse();
 });
 
 it('keeps admin-only custom pages accessible to a super admin', function () {
     actingAs(adminUser());
 
-    expect(\App\Filament\Pages\ExamListPage::canAccess())->toBeTrue()
-        ->and(\App\Filament\Pages\ReportsPage::canAccess())->toBeTrue();
+    expect(\App\Filament\Pages\ExamListPage::canAccess())->toBeTrue();
 });

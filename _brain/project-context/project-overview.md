@@ -35,7 +35,7 @@ The lifecycle flows roughly top-to-bottom through these layers:
 7. **Grade entry** — faculty sees their own courses via `MyCourseResource` (scoped by `faculty_id == auth()->id()`), enters coursework + final grades in `ViewMyCourse`. The `Grade` model's `booted()` saving hook auto-computes `total`, `letter` (A/B+/B/C+/C/D+/D/F), and `points` (4.0/3.5/…/0.0). Status starts as `Draft`, moves to `PendingApproval`.
 8. **Grade approval** — admin/secretary reviews in the Grades resource and sets `status = Approved`. The `GradeObserver::updated` hook catches the status change and calls `GradeCalculationService::recalculateStudentGPA` which updates `Student::gpa` (weighted by course credits, including transfer courses).
 9. **Student-side reads** — student portal pages read through the status-filtered relations (`activeEnrollments`, `activeCourseOfferings`), always limited to approved grades for transcripts.
-10. **Support flows** — thesis registration (eligible when all general + specialized courses + 2 electives completed with `gpa >= 3.0`), **discussion request** (4-phase pipeline: review → scheduled → discussed → result → binding/submission), suspension requests (with PDF form), clearance requests (with PDF form and transcript — now gated by discussion completion, not just thesis approval), and notifications via email + optional WhatsApp.
+10. **Support flows** — thesis registration (eligible when all general + specialized courses + 2 electives completed with `gpa >= 3.0`), **discussion request** (4-phase pipeline: review → scheduled → discussed → result → binding/submission), suspension requests, clearance requests (with mPDF clearance form — gated by discussion completion, not just thesis approval), and notifications via email + optional WhatsApp.
 
 ## Data flow / architecture
 
@@ -77,7 +77,7 @@ The pattern is **thin controllers/pages → Action → Model write → Observer 
 - `GradeCalculationService::recalculateStudentGPA` — credit-weighted GPA from approved grades + transfer courses; skips suspended students
 - `NotificationService` — thin dispatcher that calls `notifiable->notify()`, catches errors, logs to `NotificationLog` per-channel; WhatsApp channel only triggers if `config('services.qonvo.api_token')` is set
 - `AuditService::log` — writes `AuditLog` with user_id, IP, old/new values
-- `PdfService` — DomPDF-based generation of transcript, clearance, suspension, thesis forms; writes to `storage/app/public/pdfs/`
+- PDF generation — handled by `PrintController` + `PrintCourseStudentsController` via **mPDF**, streamed inline (not persisted). Documents: clearance, graduation certificate, ministry/exam/grade forms, course rosters. (The earlier DomPDF `PdfService` — transcript/clearance/suspension/thesis written to `storage/app/public/pdfs/` — was removed 2026-06-15.)
 - `TrackingCodeService::generate` — `APP-{YEAR}-0001`-style monotonic code
 - `WhatsAppService` — Qonvo HTTP client with Libyan phone normalization to `+218...`
 
@@ -102,7 +102,7 @@ The pattern is **thin controllers/pages → Action → Model write → Observer 
 
 - **`bezhansalleh/filament-shield`** — auto-generates Spatie permissions per Filament Resource. `User::canAccessPanel` calls `Utils::getSuperAdminName()` + `Utils::getPanelUserRoleName()`. Shield-generated permissions are referenced in `RolesAndPermissionsSeeder`.
 - **`spatie/laravel-permission`** — works alongside the `users.role` column (not instead of). Both are checked; see [[gotchas#Hybrid role system]].
-- **`barryvdh/laravel-dompdf`** — used for 4 PDF templates. Note: `PdfService` uses the `\Storage` facade with a leading backslash (not imported) — unusual but works.
+- **`mpdf/mpdf`** — sole PDF engine. All documents render from `resources/views/prints/*` through `PrintController`/`PrintCourseStudentsController` and stream inline. (`barryvdh/laravel-dompdf` + its `PdfService` were removed 2026-06-15 — see [[../daily-notes/2026-06-15-dompdf-removal-and-graduate-clearance|removal note]].)
 - **Qonvo WhatsApp API** (`qonvo.ly`) — third-party Libyan WhatsApp gateway. If creds aren't in `.env`, the system silently falls back to email-only. No queue/retry layer.
 - **No queue driver configured for actual use** — `composer run dev` launches `queue:listen`, but **no `ShouldQueue` implementation exists**. All notifications and PDFs run synchronously.
 

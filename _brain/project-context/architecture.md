@@ -46,7 +46,7 @@ related: [[project-overview]], [[gotchas]], [[../../CLAUDE]]
 │            │                            ▼                                    │
 │            │           ┌────────────────────────────┐                        │
 │            │           │ External: Qonvo WhatsApp   │                        │
-│            │           │          DomPDF            │                        │
+│            │           │          mPDF              │                        │
 │            │           │          Mail (SMTP)       │                        │
 │            │           └────────────────────────────┘                        │
 │            ▼                                                                 │
@@ -141,7 +141,7 @@ related: [[project-overview]], [[gotchas]], [[../../CLAUDE]]
 - `Enrollment/DropStudentFromOffering::__invoke(Student, CourseOffering, EnrollmentStatus = Dropped): bool`
 
 **Services** (`app/Services/*`) — reusable, stateless (or near-stateless):
-- `AuditService`, `EnrollmentNumberService`, `GradeCalculationService`, `NotificationService`, `PdfService`, `TrackingCodeService`, `WhatsAppService`
+- `AuditService`, `EnrollmentNumberService`, `GradeCalculationService`, `NotificationService`, `TrackingCodeService`, `WhatsAppService` (the DomPDF-based `PdfService` was removed 2026-06-15; all PDFs now go through `PrintController` + mPDF)
 
 ### Observer layer (the reactive glue)
 
@@ -242,7 +242,7 @@ A single `NotificationService` concentrates every notification call. Models that
 
 ### PDF generation
 
-`PdfService` loads a Blade view (`resources/views/pdfs/*`), writes a file to `storage/app/public/pdfs/`, returns the relative path. Callers then use `asset('storage/'.$path)` to link. All synchronous.
+`PrintController` (and `PrintCourseStudentsController`) renders a Blade view (`resources/views/prints/*`) to HTML, feeds it to a configured `Mpdf\Mpdf` instance, and streams the result inline as the HTTP response (`$pdf->Output('', 'S')`) — nothing is persisted to disk. All synchronous, routed via the `print.*` named routes. (The earlier DomPDF-based `PdfService`, which wrote files to `storage/app/public/pdfs/`, was removed 2026-06-15.)
 
 ### Audit trail
 

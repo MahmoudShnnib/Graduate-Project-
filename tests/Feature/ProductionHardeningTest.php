@@ -1,8 +1,6 @@
 <?php
 
-use App\Filament\Pages\ReportsPage;
 use App\Models\Specialization;
-use App\Models\Student;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 use function Pest\Laravel\actingAs;
@@ -31,6 +29,19 @@ it('forbids non-admin faculty from another course offering print route', functio
         ->assertForbidden();
 });
 
+it('lets an admin print the blank clearance form but forbids students', function () {
+    ['user' => $student] = studentWithRecord();
+
+    // Admin-only blank template printed from the Graduates list — no student context.
+    actingAs($student)
+        ->get(route('print.clearance-blank'))
+        ->assertRedirect('/portal/login');
+
+    actingAs(adminUser())
+        ->get(route('print.clearance-blank'))
+        ->assertOk();
+});
+
 /*
  * M2 — the public /apply submission must be rate limited (throttle:6,1).
  */
@@ -43,34 +54,6 @@ it('throttles repeated application submissions', function () {
     }
 
     expect($lastStatus)->toBe(429);
-});
-
-/*
- * M8 — the reports student picker must lazily cap results, not load every student.
- */
-it('caps the reports student picker at 50 results', function () {
-    actingAs(adminUser());
-
-    Student::factory()->count(60)->create();
-
-    $students = (new ReportsPage)->getStudentsProperty();
-
-    expect($students)->toHaveCount(50);
-});
-
-it('narrows the reports student picker by search term', function () {
-    actingAs(adminUser());
-
-    Student::factory()->count(20)->create();
-    $target = Student::factory()->create();
-
-    $page = new ReportsPage;
-    $page->studentSearch = $target->user->name;
-
-    $results = $page->getStudentsProperty();
-
-    expect($results->keys())->toContain($target->id)
-        ->and($results->count())->toBeLessThanOrEqual(50);
 });
 
 /*
