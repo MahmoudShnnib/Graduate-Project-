@@ -306,6 +306,21 @@ class PrintController extends Controller
         ]);
     }
 
+    public function clearanceFormBlank(): Response
+    {
+        $this->authorizeAdminOnly();
+
+        $html = view('prints.clearance_form')->render();
+
+        $pdf = $this->makeMpdf();
+        $pdf->WriteHTML($html);
+
+        return response($pdf->Output('', 'S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="clearance-form.pdf"',
+        ]);
+    }
+
     private function makeMpdf(): Mpdf
     {
         $defaultConfig = (new ConfigVariables)->getDefaults();

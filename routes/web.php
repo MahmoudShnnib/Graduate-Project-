@@ -77,3 +77,8 @@ Route::get('/admin/exam-list/{specialization}/print', [PrintController::class, '
 Route::get('/portal/clearance/{student}/print', [PrintController::class, 'clearanceForm'])
     ->middleware(['auth'])
     ->name('print.clearance-form');
+
+// Blank clearance template (no student) — printed in bulk from the admin Graduates page.
+Route::get('/admin/clearance-form/print', [PrintController::class, 'clearanceFormBlank'])
+    ->middleware(['auth'])
+    ->name('print.clearance-blank');
