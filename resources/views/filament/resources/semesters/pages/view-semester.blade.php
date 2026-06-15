@@ -23,13 +23,6 @@
 
         {{-- HERO CARD --}}
         <section class="fsv-hero">
-            <div class="fsv-hero__actions">
-                <button type="button" onclick="window.print(); return false;" class="fsv-btn fsv-btn--secondary">
-                    <span>طباعة</span>
-                    <x-heroicon-o-printer class="fsv-btn__icon" />
-                </button>
-            </div>
-
             <div class="fsv-hero__identity">
                 <div class="fsv-hero__name-row">
                     <h1 class="fsv-hero__name">{{ $semesterName }}</h1>
@@ -102,40 +95,6 @@
             background: rgb(24 24 27);
             border-color: rgb(63 63 70);
         }
-
-        .figma-semester-view .fsv-hero__actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            order: 2;
-        }
-
-        .figma-semester-view .fsv-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 17px;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 20px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background .15s ease, border-color .15s ease;
-            white-space: nowrap;
-        }
-        .figma-semester-view .fsv-btn__icon { width: 16px; height: 16px; }
-        .figma-semester-view .fsv-btn--secondary {
-            background: #ffffff;
-            color: #09090b;
-            border: 1px solid #e4e4e7;
-        }
-        .figma-semester-view .fsv-btn--secondary:hover { background: #f4f4f5; }
-        .dark .figma-semester-view .fsv-btn--secondary {
-            background: rgb(39 39 42);
-            color: #fafafa;
-            border-color: rgb(63 63 70);
-        }
-        .dark .figma-semester-view .fsv-btn--secondary:hover { background: rgb(63 63 70); }
 
         .figma-semester-view .fsv-hero__identity {
             display: flex;
@@ -339,8 +298,7 @@
             .fi-sidebar,
             .fi-topbar,
             .fi-header,
-            .fi-breadcrumbs,
-            .figma-semester-view .fsv-hero__actions { display: none !important; }
+            .fi-breadcrumbs { display: none !important; }
             .figma-semester-view { padding: 0 !important; }
             .figma-semester-view .fi-section,
             .figma-semester-view .fsv-hero {

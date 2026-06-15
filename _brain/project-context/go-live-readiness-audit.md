@@ -18,15 +18,35 @@ related:
 > the 2026-06-04 hardening notes were re-verified, not trusted. The top blockers were then
 > confirmed by hand (entrypoint + seeder + nginx + mPDF). **No code was changed — planning only.**
 
+## ⚖️ User decisions (2026-06-15, after review) — READ THIS FIRST
+- **Email is OUT of scope — WhatsApp-only.** Fix is to *remove* the `mail` channel from notifications
+  (H2), not to configure SMTP. Password recovery is WhatsApp-only **by design** (H1) — Qonvo is a hard
+  launch prerequisite; a student with a wrong phone is staff-reset only.
+- **B3 (public-disk PII) — ACCEPTED RISK, downgraded from blocker.** Uploads use a 40-char random
+  filename; user accepts the obscurity. Residual risk is a *leaked* URL (no auth once known), not
+  brute-force. Revisit if scaling.
+- **H4 (mPDF tempDir → PDF 500) — RETRACTED.** PDFs work in prod; the agent's permission concern does
+  not manifest on the live container.
+- **M4 (frozen GPA on non-Active grade approval) — REMOVED.** GPA logic was fixed by the user 2026-06-14;
+  off-limits.
+- **H7 — audit logging is ALREADY DONE.** `User` is in `AuditObserver`'s model list and `phone`/`email`
+  are not in `BLOCKED_FIELDS` (blocked = updated_at, created_at, password, remember_token,
+  email_verified_at, last_seen_activity_id), so student phone/email changes ARE audited. Remaining
+  (optional): notify the *old* phone/email on change.
+- **H3 — testing semester only.** Real semester created via UI at launch; just keep exactly one `is_active`.
+  (Caveat: `SemesterSeeder` still has Sept-2025 dates — edit after a clean re-seed.)
+- **M7 — English text is fine** for 419/429/503 pages; reuse the existing error layout/system fonts.
+
 ## TL;DR verdict — NOT ready to open to real students yet
 
 The 2026-06-04 Docker/security hardening is **genuinely present and correct** (OPcache, gzip,
 headers, FPM pool, healthcheck, graceful shutdown, TrustProxies, timezone, entrypoint caching —
 all verified in current code). Test suite is **318 passed / 0 failed** (the "known failures" are
-already fixed in the uncommitted working tree). The blockers are **data hygiene, PII exposure,
-two concrete prod-only code bugs, and operator/ops gaps** — not the framework.
+already fixed in the uncommitted working tree). After the user decisions above, the remaining work
+is **data hygiene + ops gaps + a couple of correctness fixes** — not the framework.
 
-**3 blockers + auto-migrate-without-backup must clear before go-live.**
+**3 must-do before real students: B1 (default-cred/fake seeder), B2 (clean re-seed), B4 (backups).**
+(B3 accepted, H4/M4 dropped — see decisions block.)
 
 ---
 
@@ -59,7 +79,9 @@ two concrete prod-only code bugs, and operator/ops gaps** — not the framework.
   Verify the dummy rows are gone (`gpa.test@dev.ly`, `suspend.test@dev.ly`, `clearance.student@dev.ly`,
   `ppsan@pp.com`, the 4 `*.faculty.ly` / `cs.faculty@example.ly`).
 
-### B3 — Applicant PII (certificates, national-ID scans) is world-readable by URL
+### B3 — Applicant PII (certificates, national-ID scans) is world-readable by URL — ⚖️ ACCEPTED RISK (downgraded, NOT a blocker)
+> User accepts this: uploads use a 40-char random filename; no auth once a URL is known. Residual
+> risk is a *leaked* URL, not brute-force. Revisit only if scaling. Details kept below for the record.
 - **Where:** uploads use the **`public`** disk (`RegistrationController` store ~lines 217/229
   `->store('applications','public')`; thesis proposals + student degree images likewise).
   `entrypoint.sh:45` `storage:link --force` + `docker/nginx.conf:70-71` (`root /var/www/public;
@@ -87,29 +109,25 @@ two concrete prod-only code bugs, and operator/ops gaps** — not the framework.
 
 ## 🟠 HIGH — fix before or immediately around launch
 
-- **H1 — Password recovery is 100% WhatsApp/Qonvo-dependent.** Reset + change are OTP-only, no email
-  fallback. If Qonvo is unconfigured/down on launch day, locked-out students have **no self-service
-  recovery**. *Fix:* treat Qonvo (token + authenticated sender) as a hard launch prerequisite
-  (`php artisan app:whatsapp-test`); consider an email-OTP fallback once SMTP is live.
-  Files: `PasswordResetController`, `ChangesPasswordWithOtp`, `WhatsAppService::isConfigured()`.
+- **H1 (by design — WhatsApp-only) — Password recovery is 100% Qonvo-dependent.** No email fallback,
+  intentionally. *Action (no code):* treat Qonvo (token + authenticated sender) as a **hard launch
+  prerequisite** (`php artisan app:whatsapp-test`); document that a student with a wrong/unreachable
+  phone is **staff-reset only** (admin edit). Files: `PasswordResetController`, `ChangesPasswordWithOtp`,
+  `WhatsAppService::isConfigured()`.
 
-- **H2 — `MAIL_MAILER=log` by default → welcome email (with credentials) goes to a log file, silently.**
-  Mail send is try/catch-wrapped so failure is invisible. Students without a WhatsApp-reachable phone
-  never get their enrollment number/credentials. *Fix:* configure real SMTP + `MAIL_MAILER=smtp` for
-  prod, or drop `'mail'` from `via()` (but that locks in H1). `.env.example:61`, `WelcomeStudentNotification`.
+- **H2 (revised — WhatsApp-only) — `mail` is a silent dead channel.** Welcome + other notifications
+  still list `mail` in `via()`; with `MAIL_MAILER=log` that writes credentials to a log file and looks
+  "sent" (try/catch-wrapped, failure invisible). *Fix:* **remove `'mail'` from `via()`** in the
+  notifications (do NOT configure SMTP — email is out of scope). `WelcomeStudentNotification` + the other
+  notification classes.
 
-- **H3 — Seeded active semester has leftover Sept 2025 dates; add/drop window is closed in the past.**
-  `SemesterSeeder.php:12-21` ("خريف 2025", add_drop 2025-09-01..09-15). The add/drop window is the
-  only gate for student add/drop — with a past window, **students cannot add/drop at all**. *Fix:*
-  set the real active semester + real start/end + add_drop dates before launch; confirm exactly one
-  `is_active=true`. Also confirm the course-survey window.
+- **H3 (operational — testing semester only) — seeded semester has Sept-2025 dates.**
+  `SemesterSeeder.php:12-21` ("خريف 2025", add_drop 2025-09-01..09-15) → add/drop closed. User will
+  **create the real semester via the UI at launch**; keep exactly one `is_active=true`. *Caveat:*
+  `SemesterSeeder` still ships these dates, so after a clean re-seed (B2) edit/replace the semester.
 
-- **H4 — mPDF temp dir not writable in prod → PDF generation likely 500s.** `PrintController::makeMpdf()`
-  (`:309-356`) sets no `tempDir`, so mPDF defaults to `vendor/mpdf/mpdf/tmp` which is **root-owned 755**
-  (Dockerfile `COPY . .` as root chowns only `storage` + `bootstrap/cache`; PHP-FPM runs as www-data).
-  First transcript/clearance/exam-list/roster PDF a real user requests writes a font-subset temp file →
-  EACCES → 500. Local dev never repros. *Fix:* `'tempDir' => storage_path('app/mpdf-tmp')` + `mkdir -p`
-  it in entrypoint. **Verify on the live container before trusting** (a redeploy may already be failing).
+- **~~H4 — mPDF temp dir~~ — RETRACTED.** PDFs work in prod; the permission concern does not manifest
+  on the live container. No action.
 
 - **H5 — Logs are ephemeral + no error monitoring.** Only `storage/app/public` is on the mounted
   volume; `storage/logs` is **not** → `laravel.log` vanishes on every redeploy. No Sentry/Flare. *Fix:*
@@ -123,10 +141,10 @@ two concrete prod-only code bugs, and operator/ops gaps** — not the framework.
   *Fix:* `lockForUpdate`/retry-on-unique-violation, and require an active semester (or surface a clear
   error) on approval.
 
-- **H7 — Staff can change a student's phone/email with no verification; reset is phone-based.**
-  `EditStudent.php` / `StudentResource.php` — combined with H1 this is an account-takeover path
-  (compromised secretary → change phone → OTP reset). *Fix:* ensure phone/email are in
-  `AuditObserver::WATCHED_FIELDS`; notify the old phone/email on change.
+- **H7 (reduced) — Staff can change a student's phone/email; reset is phone-based.** Audit logging is
+  **already done** ✅ — `User` is in `AuditObserver`'s model list and `phone`/`email` are not in
+  `BLOCKED_FIELDS`, so these changes ARE logged. *Optional remaining:* notify the **old** phone/email
+  on change (alerts a takeover victim). `EditStudent.php` / `StudentResource.php`.
 
 ---
 
@@ -144,16 +162,16 @@ two concrete prod-only code bugs, and operator/ops gaps** — not the framework.
   → picks lowest id if two are active (plausible during term rollover). *Fix:* `orderByDesc('id')` +
   a partial unique index `WHERE is_active` to enforce the invariant at the DB. (Zero-active is well
   null-guarded across pages — no crash.)
-- **M4 — `GradeObserver` GPA recalc skips non-Active students** (calls `recalculateStudentGPA` without
-  `force`). Approving a grade for an OnHold/Inactive student won't update GPA. **Confirm intended**
-  (frozen-GPA-for-suspended is plausibly by design) — product call, not necessarily a bug.
+- **~~M4 — GPA recalc skips non-Active students~~ — REMOVED.** GPA logic was fixed by the user
+  2026-06-14 and is off-limits. No action.
 - **M5 — Synchronous notifications block the staff action up to ~10s** per send if Qonvo is slow (no
   queue worker). Won't roll back the business action (sends are post-transaction + try/catch). Acceptable
   at launch volume; `ShouldQueue` + worker is the post-launch upgrade.
 - **M6 — `SettingsSeeder` ships placeholder contact info** (`+218 21 000 0000`, `info@cet.edu.ly`) that
   appears on PDFs/forms until an admin edits the settings widget. *Fix:* set real values after the clean seed.
-- **M7 — Missing Arabic 419/429/503 error pages** (403/404/500 exist). A student hitting an expired
-  session on `/apply` or a rate limit sees the default English Laravel page. *Fix:* add RTL views.
+- **M7 — Missing 419/429/503 error pages** (403/404/500 exist). A student hitting an expired session
+  on `/apply` or a rate limit sees the default Laravel page. *Fix:* add views reusing the existing error
+  layout/system fonts — **English text is fine** (user's call).
 - **M8 — HSTS header is commented out** (`nginx.conf`) — uncomment once TLS is confirmed end-to-end.
 - **M9 — Stop using `->enum()` in migrations.** 12 enum-born columns still exist; the
   `2026_06_13_..drop_orphaned_enum_check_constraints` migration covers the *current* schema, but any
@@ -171,7 +189,7 @@ two concrete prod-only code bugs, and operator/ops gaps** — not the framework.
 - [ ] `SESSION_SECURE_COOKIE=true` (behind TLS)
 - [ ] `QONVO_API_TOKEN` + `QONVO_SENDER_PHONE` (authenticated sender in Qonvo dashboard) — **rotate** the
       token that was pasted in plaintext during dev
-- [ ] `MAIL_MAILER` = real transport + `MAIL_FROM_ADDRESS` (see H2)
+- [ ] (No mail config needed — email is out of scope; remove the `mail` channel in code instead, see H2)
 - [ ] Persistent volume confirmed at `storage/app/public`; Postgres automated backups ON (see B4)
 - [ ] Dokploy/Traefik sets HSTS (M8)
 
@@ -204,20 +222,21 @@ two concrete prod-only code bugs, and operator/ops gaps** — not the framework.
 
 ---
 
-## Recommended execution order
+## Recommended execution order (after user decisions)
 
-1. **B1 + B2** (clean DB + kill default creds) — together; the data-hygiene blockers.
-2. **H3** (real semester + add/drop dates) — else enrollment is dead on arrival.
-3. **B4 + H5** (backups + log durability) — irreversible-loss risks before real data exists.
-4. **B3** (private upload disk + gated download) — PII exposure.
-5. **H4** (mPDF tempDir) — verify on live container; core feature else 500s.
-6. **H1 + H2** (confirm Qonvo live; decide SMTP/email fallback).
-7. **H6, H7, M1–M9** — correctness + UX polish, post-launch acceptable.
+1. **B1 + B2** (split the seeder + clean re-seed path) — the data-hygiene blockers.
+2. **B4** (Dokploy Postgres backups) + **H5** (`LOG_STACK=single,stderr`) — irreversible-loss risks.
+3. **H2** (remove the `mail` channel) — quick code cleanup.
+4. **H1** (confirm Qonvo live — operational, no code) + **H3** (create real semester at launch via UI).
+5. **H6** (enrollment-number race + NULL path).
+6. **M1, M2, M3, M6, M7, M8, M9** + **H7** (optional notify-old-contact) — correctness + polish.
 
-## Open product questions for the user
-- M4: is "frozen GPA for non-Active students on grade approval" intended, or a bug?
-- H2/H1: is email in scope for prod (welcome + recovery fallback), or WhatsApp-only?
-- Storage (B3): single-VM persistent volume + gated route, or move to S3/R2 signed URLs?
+*Dropped/accepted, no action: B3 (accepted), H4 (retracted), M4 (GPA, off-limits), M5 (acceptable at launch volume).*
+
+## Resolved product questions
+- ~~Email in scope?~~ → **WhatsApp-only.** Remove the `mail` channel (H2).
+- ~~Frozen GPA on approval intended?~~ → **N/A, GPA fixed by user.**
+- ~~Storage A vs B?~~ → **B3 accepted as-is** (random filename). No storage change.
 
 ## Caveat
 - The green test suite + several fixes depend on **uncommitted** working-tree changes on

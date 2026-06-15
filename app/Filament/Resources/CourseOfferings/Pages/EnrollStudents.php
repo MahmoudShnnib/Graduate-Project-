@@ -14,6 +14,7 @@ use App\Filament\Resources\CourseOfferings\CourseOfferingResource;
 use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
 use App\Models\Student;
+use App\Services\AuditService;
 use App\Services\GradeCalculationService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -193,6 +194,8 @@ class EnrollStudents extends Page implements HasTable
                     $notActive = 0;
 
                     foreach ($data['student_ids'] as $studentId) {
+                        AuditService::resetBatch();
+
                         $student = Student::find($studentId);
 
                         if (! $student) {
@@ -284,6 +287,8 @@ class EnrollStudents extends Page implements HasTable
                     $count = 0;
 
                     foreach ($data['student_ids'] as $studentId) {
+                        AuditService::resetBatch();
+
                         $student = Student::find($studentId);
 
                         if (! $student) {
@@ -359,6 +364,8 @@ class EnrollStudents extends Page implements HasTable
                     $notActive = 0;
 
                     foreach ($data['student_ids'] as $studentId) {
+                        AuditService::resetBatch();
+
                         $student = Student::find($studentId);
 
                         if (! $student) {
@@ -512,6 +519,8 @@ class EnrollStudents extends Page implements HasTable
                         $count = 0;
 
                         foreach ($records as $student) {
+                            AuditService::resetBatch();
+
                             if ($drop($student, $this->record)) {
                                 $count++;
                                 $calculator->recalculateStudentGPA($student);
