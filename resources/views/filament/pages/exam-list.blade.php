@@ -49,7 +49,7 @@
                     <thead class="divide-y divide-gray-200 dark:divide-white/5">
                         <tr>
                             <th class="fi-ta-header-cell w-10">
-                                <input type="checkbox" x-data x-on:change="document.querySelectorAll('.exam-cb').forEach(c=>{c.checked=$event.target.checked;c.dispatchEvent(new Event('change'))})"
+                                <input type="checkbox" x-data x-on:change="$wire.toggleSelectAll($event.target.checked)"
                                     class="rounded border-gray-300 dark:border-gray-600 text-primary-600" />
                             </th>
                             <th class="fi-ta-header-cell w-10">م</th>
@@ -66,8 +66,8 @@
                         @foreach($applications as $i => $app)
                             <tr class="fi-ta-row transition hover:bg-gray-50 dark:hover:bg-white/5">
                                 <td class="fi-ta-cell px-3 py-4">
-                                    <input type="checkbox" value="{{ $app->id }}" wire:model="selected"
-                                        class="exam-cb rounded border-gray-300 dark:border-gray-600 text-primary-600" />
+                                    <input type="checkbox" value="{{ $app->id }}" wire:model.live="selected"
+                                        class="rounded border-gray-300 dark:border-gray-600 text-primary-600" />
                                 </td>
                                 <td class="fi-ta-cell px-3 py-4 text-xs text-gray-400 font-mono">{{ $i + 1 }}</td>
                                 <td class="fi-ta-cell px-3 py-4 font-medium text-gray-950 dark:text-white">{{ $app->name }}</td>
@@ -79,9 +79,13 @@
                                 <td class="fi-ta-cell px-3 py-4 font-mono text-xs text-gray-500 dark:text-gray-400">{{ $app->national_id ?? '—' }}</td>
                                 <td class="fi-ta-cell px-3 py-4 text-gray-500 dark:text-gray-400">{{ $app->exam_date?->format('Y/m/d H:i') ?? '—' }}</td>
                                 <td class="fi-ta-cell px-3 py-4">
-                                    <input type="number" step="0.01" min="0" max="100"
-                                        wire:model="scores.{{ $app->id }}" placeholder="—"
-                                        class="w-20 rounded-lg border-gray-200 dark:border-gray-700 bg-transparent dark:text-white text-sm text-center focus:border-primary-500 focus:ring-primary-500" />
+                                    <div class="w-24">
+                                        <x-filament::input.wrapper>
+                                            <input type="number" step="0.01" min="0" max="20"
+                                                wire:model="scores.{{ $app->id }}" placeholder="—"
+                                                class="fi-input block w-full border-none bg-transparent px-3 py-1.5 text-sm text-center text-gray-950 outline-none transition duration-75 placeholder:text-gray-400 focus:ring-0 dark:text-white dark:placeholder:text-gray-500" />
+                                        </x-filament::input.wrapper>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

@@ -57,3 +57,24 @@ it('disables the accept/reject actions when nothing is selected', function () {
         ->assertActionDisabled('markPassed')
         ->assertActionDisabled('markFailed');
 });
+
+it('select-all populates the selection so the actions enable in one round-trip', function () {
+    $semester = Semester::factory()->create(['is_active' => true]);
+    $spec = Specialization::factory()->create();
+    collect(['SEL-1', 'SEL-2', 'SEL-3'])->each(fn (string $code) => Application::factory()->create([
+        'specialization_id' => $spec->id,
+        'semester_id' => $semester->id,
+        'status' => ApplicationStatus::InitiallyApproved,
+        'tracking_code' => $code,
+    ]));
+
+    Livewire::actingAs(adminUser())
+        ->test(ExamListPage::class)
+        ->call('toggleSelectAll', true)
+        ->assertCount('selected', 3)
+        ->assertActionEnabled('markPassed')
+        ->assertActionEnabled('markFailed')
+        ->call('toggleSelectAll', false)
+        ->assertCount('selected', 0)
+        ->assertActionDisabled('markPassed');
+});

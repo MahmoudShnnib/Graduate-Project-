@@ -379,6 +379,8 @@ class ViewCourseGrades extends Page implements HasTable
                                 continue;
                             }
 
+                            AuditService::resetBatch();
+
                             $grade->update([
                                 'status' => GradeStatus::Approved,
                                 'approved_by' => auth()->id(),

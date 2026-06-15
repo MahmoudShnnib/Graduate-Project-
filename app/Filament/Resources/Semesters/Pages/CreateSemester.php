@@ -11,6 +11,8 @@ class CreateSemester extends CreateRecord
 {
     protected static string $resource = SemesterResource::class;
 
+    protected static bool $canCreateAnother = false;
+
     /**
      * Force is_active=true on every new semester. Under the single-active
      * invariant, creating a semester is always "open a new term", so the

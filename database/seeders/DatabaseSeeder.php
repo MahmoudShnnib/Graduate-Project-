@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             SettingsSeeder::class,
             SpecializationSeeder::class,
-            SemesterSeeder::class,
             CourseSeeder::class,
             AdminUserSeeder::class,
         ]);

@@ -78,6 +78,13 @@ class ExamListPage extends Page
             ->get();
     }
 
+    public function toggleSelectAll(bool $checked): void
+    {
+        $this->selected = $checked
+            ? $this->getApplications()->pluck('id')->map(fn ($id): string => (string) $id)->all()
+            : [];
+    }
+
     public function markPassedAction(): Action
     {
         return Action::make('markPassed')
@@ -127,6 +134,8 @@ class ExamListPage extends Page
             ->get();
 
         foreach ($applications as $application) {
+            AuditService::resetBatch();
+
             try {
                 $application->update([
                     'exam_score' => $this->scores[$application->id] ?? null,
@@ -176,6 +185,8 @@ class ExamListPage extends Page
             ->get();
 
         foreach ($applications as $application) {
+            AuditService::resetBatch();
+
             $application->update([
                 'status' => ApplicationStatus::Rejected,
                 'rejection_reason' => 'لم يجتز الامتحان التفاضلي',

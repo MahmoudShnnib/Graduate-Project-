@@ -389,6 +389,8 @@ class ApplicationResource extends Resource
                                 continue;
                             }
 
+                            AuditService::resetBatch();
+
                             $application->update([
                                 'status' => ApplicationStatus::InitiallyApproved,
                                 'exam_date' => $examDate,
