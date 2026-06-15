@@ -30,7 +30,16 @@ class ApproveApplication
             throw new \Exception('البريد الإلكتروني "'.$application->email.'" مسجل بالفعل في النظام. لا يمكن قبول هذا الطلب — قد يكون مقدم الطلب مسجلاً كطالب أو مستخدم آخر.');
         }
 
-        DB::transaction(function () use ($application) {
+        // An active semester is required: the enrollment number encodes its
+        // year + season. Without one we'd create a student with a NULL
+        // enrollment_no and no retry path — refuse clearly instead.
+        $activeSemester = Semester::active();
+
+        if (! $activeSemester) {
+            throw new \Exception('لا يوجد فصل دراسي نشط. يجب تفعيل فصل دراسي قبل قبول الطلبات لتوليد الرقم الجامعي.');
+        }
+
+        DB::transaction(function () use ($application, $activeSemester) {
             $application->update([
                 'status' => ApplicationStatus::Accepted,
             ]);
@@ -76,11 +85,7 @@ class ApproveApplication
                 'is_transfer' => $application->is_transfer,
             ]);
 
-            $activeSemester = Semester::active();
-
-            if ($activeSemester) {
-                $this->enrollmentNumberService->generate($student, $activeSemester, (bool) $application->is_transfer);
-            }
+            $this->enrollmentNumberService->generate($student, $activeSemester, (bool) $application->is_transfer);
         });
 
         $application->refresh();

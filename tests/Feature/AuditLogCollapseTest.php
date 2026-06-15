@@ -128,6 +128,23 @@ it('batch-aware action filter surfaces the representative of any operation conta
         ->and($ids)->not->toContain($repWithout->id);
 });
 
+it('searches user names case-insensitively (Postgres LIKE is case-sensitive)', function () {
+    $admin = adminUser();
+    $target = User::factory()->withRole('secretary')->create(['name' => 'Mahmoud Shnnib']);
+    logRow($target, 'application_approved', 'op-search');
+
+    $this->actingAs($admin);
+
+    $ids = Livewire::test(ListAuditLogs::class)
+        ->set('search', 'mahmoud shnnib')
+        ->instance()
+        ->getAuditLogs()['items']
+        ->pluck('user_id')
+        ->all();
+
+    expect($ids)->toContain($target->id);
+});
+
 it('lists the sibling rows of the operation on the detail page', function () {
     $admin = adminUser();
     $sibling = logRow($admin, 'Application_updated', 'op-6');

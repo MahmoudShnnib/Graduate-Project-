@@ -7,6 +7,7 @@ use App\Enums\SuspensionStatus;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Services\WarningService;
+use Illuminate\Support\Facades\DB;
 
 class SemesterObserver
 {
@@ -50,11 +51,14 @@ class SemesterObserver
      */
     private function archivePeersOf(Semester $semester): void
     {
-        Semester::query()
+        $peers = Semester::query()
             ->whereNull('archived_at')
             ->where('id', '!=', $semester->id)
-            ->get()
-            ->each(fn (Semester $peer) => $peer->archiveCascade());
+            ->get();
+
+        // All peers archive together or not at all — a mid-loop failure must
+        // not leave one semester archived while another stays active.
+        DB::transaction(fn () => $peers->each(fn (Semester $peer) => $peer->archiveCascade()));
     }
 
     /**
@@ -66,8 +70,8 @@ class SemesterObserver
      */
     private function resetInactiveStudentsToActive(): void
     {
-        Student::where('status', StudentStatus::Inactive)
-            ->each(fn (Student $student) => $student->updateQuietly(['status' => StudentStatus::Active]));
+        DB::transaction(fn () => Student::where('status', StudentStatus::Inactive)
+            ->each(fn (Student $student) => $student->updateQuietly(['status' => StudentStatus::Active])));
     }
 
     /**
@@ -80,12 +84,12 @@ class SemesterObserver
      */
     private function releaseOnHoldStudentsForSemester(Semester $activeSemester): void
     {
-        Student::where('status', StudentStatus::OnHold)
+        DB::transaction(fn () => Student::where('status', StudentStatus::OnHold)
             ->whereDoesntHave('suspensionRequests', function ($q) use ($activeSemester) {
                 $q->where('semester_id', $activeSemester->id)
                     ->where('status', SuspensionStatus::Approved);
             })
-            ->each(fn (Student $student) => $student->updateQuietly(['status' => StudentStatus::Active]));
+            ->each(fn (Student $student) => $student->updateQuietly(['status' => StudentStatus::Active])));
     }
 
     /**
@@ -96,8 +100,8 @@ class SemesterObserver
      */
     private function processNonSubmittingStudents(Semester $semester): void
     {
-        Student::where('status', StudentStatus::Active)
+        DB::transaction(fn () => Student::where('status', StudentStatus::Active)
             ->whereDoesntHave('courseSurveys', fn ($q) => $q->where('semester_id', $semester->id))
-            ->each(fn (Student $student) => $student->update(['status' => StudentStatus::Inactive]));
+            ->each(fn (Student $student) => $student->update(['status' => StudentStatus::Inactive])));
     }
 }

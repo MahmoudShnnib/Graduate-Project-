@@ -6,15 +6,19 @@ use App\Channels\WhatsAppChannel;
 
 trait HasWhatsAppChannel
 {
-    /** @return array<int, string|class-string> */
+    /**
+     * Notifications are WhatsApp-only by design — email is out of scope.
+     * When Qonvo is unconfigured or the notifiable has no phone, no channel
+     * is returned (nothing is sent) rather than silently falling back to mail.
+     *
+     * @return array<int, class-string>
+     */
     public function via(object $notifiable): array
     {
-        $channels = ['mail'];
-
         if (! empty($notifiable->phone) && ! empty(config('services.qonvo.api_token'))) {
-            $channels[] = WhatsAppChannel::class;
+            return [WhatsAppChannel::class];
         }
 
-        return $channels;
+        return [];
     }
 }

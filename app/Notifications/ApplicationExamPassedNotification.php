@@ -6,7 +6,6 @@ use App\Channels\WhatsAppMessage;
 use App\Models\Application;
 use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class ApplicationExamPassedNotification extends Notification
@@ -16,17 +15,6 @@ class ApplicationExamPassedNotification extends Notification
     public string $logEvent = 'application_exam_passed';
 
     public function __construct(public readonly Application $application) {}
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->subject('نتيجة اختبار القبول — ناجح')
-            ->greeting('عزيزي المتقدم،')
-            ->line('يسرنا إبلاغك بأنك اجتزت اختبار القبول بنجاح.')
-            ->line('اصبحت طالبا في كلية التقنية الالكترونية - الدراسات العليا.')
-            ->action('الدخول إلى البوابة', url('/portal'))
-            ->salutation('مع تحيات مكتب الدراسات العليا');
-    }
 
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {

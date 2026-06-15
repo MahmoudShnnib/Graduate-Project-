@@ -6,7 +6,6 @@ use App\Channels\WhatsAppMessage;
 use App\Models\Student;
 use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class WelcomeStudentNotification extends Notification
@@ -19,25 +18,6 @@ class WelcomeStudentNotification extends Notification
         public readonly Student $student,
         public readonly ?string $plainPassword = null,
     ) {}
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        $mail = (new MailMessage)
-            ->subject('مرحباً بك في كلية التقنية الإلكترونية - الدراسات العليا')
-            ->greeting('عزيزي الطالب '.$notifiable->name.'،')
-            ->line('يسعدنا إبلاغك بأنه تم قبولك رسمياً في كلية التقنية الإلكترونية')
-            ->line('**رقمك الجامعي:** '.($this->student->enrollment_no ?? '—'))
-            ->line('**البريد الإلكتروني:** '.$notifiable->email);
-
-        if ($this->plainPassword) {
-            $mail->line('**كلمة المرور:** '.$this->plainPassword);
-            $mail->line('يرجى تغيير كلمة المرور بعد أول تسجيل دخول.');
-        }
-
-        return $mail
-            ->action('الدخول إلى بوابة الطالب', url('/portal'))
-            ->salutation('مع تحيات مكتب الدراسات العليا');
-    }
 
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {

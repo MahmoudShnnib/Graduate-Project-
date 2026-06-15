@@ -9,6 +9,7 @@ use App\Models\Semester;
 use App\Models\Student;
 use App\Services\GradeCalculationService;
 use App\Services\WarningService;
+use Illuminate\Support\Facades\DB;
 
 class StudentObserver
 {
@@ -76,9 +77,13 @@ class StudentObserver
     {
         $offerings = $student->activeCourseOfferings()->get();
 
-        foreach ($offerings as $offering) {
-            ($this->drop)($student, $offering, EnrollmentStatus::Withdrawn);
-        }
+        // Wrap the multi-row withdraw so a mid-loop failure can't leave the
+        // student half-withdrawn (some offerings dropped, others still active).
+        DB::transaction(function () use ($student, $offerings): void {
+            foreach ($offerings as $offering) {
+                ($this->drop)($student, $offering, EnrollmentStatus::Withdrawn);
+            }
+        });
     }
 
     /**
@@ -91,26 +96,30 @@ class StudentObserver
     {
         $activeSemester = Semester::active();
 
-        if ($activeSemester) {
-            $offerings = $student->activeCourseOfferings()
-                ->where('course_offerings.semester_id', $activeSemester->id)
-                ->get();
+        // Atomic: the current-semester withdrawals and the GPA recompute that
+        // depends on them must commit together or not at all.
+        DB::transaction(function () use ($student, $activeSemester): void {
+            if ($activeSemester) {
+                $offerings = $student->activeCourseOfferings()
+                    ->where('course_offerings.semester_id', $activeSemester->id)
+                    ->get();
 
-            foreach ($offerings as $offering) {
-                ($this->drop)($student, $offering, EnrollmentStatus::Withdrawn);
+                foreach ($offerings as $offering) {
+                    ($this->drop)($student, $offering, EnrollmentStatus::Withdrawn);
+                }
             }
-        }
 
-        // Recompute on a FRESH instance. Saving $student here would re-fire this
-        // observer with `status` still dirty (its original isn't synced until
-        // the outer save finishes), so `wasChanged('status')` would stay true
-        // and recurse infinitely. The fresh instance has `status` synced, so
-        // only `gpa` is dirty on save.
-        $fresh = $student->fresh();
+            // Recompute on a FRESH instance. Saving $student here would re-fire this
+            // observer with `status` still dirty (its original isn't synced until
+            // the outer save finishes), so `wasChanged('status')` would stay true
+            // and recurse infinitely. The fresh instance has `status` synced, so
+            // only `gpa` is dirty on save.
+            $fresh = $student->fresh();
 
-        if ($fresh) {
-            $this->gradeCalculationService->recalculateStudentGPA($fresh, force: true);
-            $student->setAttribute('gpa', $fresh->gpa);
-        }
+            if ($fresh) {
+                $this->gradeCalculationService->recalculateStudentGPA($fresh, force: true);
+                $student->setAttribute('gpa', $fresh->gpa);
+            }
+        });
     }
 }
