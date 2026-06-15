@@ -14,6 +14,7 @@ use App\Filament\Resources\CourseOfferings\CourseOfferingResource;
 use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
 use App\Models\Student;
+use App\Services\GradeCalculationService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\CheckboxList;
@@ -489,8 +490,10 @@ class EnrollStudents extends Page implements HasTable
                     ->color('danger')
                     ->visible(fn (): bool => ! $this->isArchived())
                     ->requiresConfirmation()
-                    ->action(function (Student $record, DropStudentFromOffering $drop) {
+                    ->action(function (Student $record, DropStudentFromOffering $drop, GradeCalculationService $calculator) {
                         $drop($record, $this->record);
+
+                        $calculator->recalculateStudentGPA($record);
 
                         Notification::make()
                             ->title('تم إلغاء تسجيل الطالب')
@@ -505,12 +508,13 @@ class EnrollStudents extends Page implements HasTable
                     ->color('danger')
                     ->visible(fn (): bool => ! $this->isArchived())
                     ->requiresConfirmation()
-                    ->action(function (Collection $records, DropStudentFromOffering $drop) {
+                    ->action(function (Collection $records, DropStudentFromOffering $drop, GradeCalculationService $calculator) {
                         $count = 0;
 
                         foreach ($records as $student) {
                             if ($drop($student, $this->record)) {
                                 $count++;
+                                $calculator->recalculateStudentGPA($student);
                             }
                         }
 

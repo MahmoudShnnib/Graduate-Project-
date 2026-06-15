@@ -15,6 +15,7 @@ use App\Filament\Resources\AddDropRequests\Pages\ListAddDropRequests;
 use App\Models\AddDropRequest;
 use App\Models\Semester;
 use App\Services\AuditService;
+use App\Services\GradeCalculationService;
 use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -186,6 +187,7 @@ class AddDropRequestResource extends Resource
                         AuditService $audit,
                         EnrollStudentInOffering $enroll,
                         DropStudentFromOffering $drop,
+                        GradeCalculationService $calculator,
                     ) {
                         $student = $record->student;
                         $offering = $record->courseOffering;
@@ -236,6 +238,7 @@ class AddDropRequestResource extends Resource
                             }
                         } else {
                             $drop($student, $offering);
+                            $calculator->recalculateStudentGPA($student);
                         }
 
                         $record->update([

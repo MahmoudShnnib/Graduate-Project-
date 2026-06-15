@@ -15,9 +15,11 @@ it('forbids students from reaching admin-only print routes', function () {
     ['user' => $student] = studentWithRecord();
     $specialization = Specialization::factory()->create();
 
+    // Denied: bootstrap/app.php converts the 403 into a logout + redirect to the
+    // student's own panel login, so the student never receives the admin PDF.
     actingAs($student)
         ->get(route('print.exam-list', $specialization))
-        ->assertForbidden();
+        ->assertRedirect('/portal/login');
 });
 
 it('forbids non-admin faculty from another course offering print route', function () {

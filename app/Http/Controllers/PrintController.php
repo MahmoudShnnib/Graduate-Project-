@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ApplicationStatus;
+use App\Enums\DiscussionStatus;
 use App\Models\Application;
 use App\Models\CourseOffering;
 use App\Models\DiscussionRequest;
@@ -283,6 +284,28 @@ class PrintController extends Controller
         ]);
     }
 
+    public function clearanceForm(Student $student): Response
+    {
+        $this->authorizeAdminOrOwningStudent($student);
+
+        abort_unless(
+            $student->discussionRequests()
+                ->where('status', DiscussionStatus::Completed)
+                ->exists(),
+            403
+        );
+
+        $html = view('prints.clearance_form')->render();
+
+        $pdf = $this->makeMpdf();
+        $pdf->WriteHTML($html);
+
+        return response($pdf->Output('', 'S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="clearance-form-'.$student->enrollment_no.'.pdf"',
+        ]);
+    }
+
     private function makeMpdf(): Mpdf
     {
         $defaultConfig = (new ConfigVariables)->getDefaults();
@@ -338,6 +361,14 @@ class PrintController extends Controller
             in_array(auth()->user()?->role, ['super_admin', 'manager_assistant'], true),
             403
         );
+    }
+
+    private function authorizeAdminOrOwningStudent(Student $student): void
+    {
+        $user = auth()->user();
+        $isAdmin = in_array($user?->role, ['super_admin', 'manager_assistant'], true);
+        $isOwner = $user?->role === 'student' && $user->student?->id === $student->id;
+        abort_unless($isAdmin || $isOwner, 403);
     }
 
     private function authorizeAdminOrCourseFaculty(CourseOffering $offering): void
