@@ -30,12 +30,12 @@ class ExamListPage extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->role !== 'faculty';
+        return (bool) auth()->user()?->can('View:ExamListPage');
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->role !== 'faculty';
+        return (bool) auth()->user()?->can('View:ExamListPage');
     }
 
     /** @var array<int, string> */
@@ -63,6 +63,21 @@ class ExamListPage extends Page
         return Semester::orderByDesc('is_active')->orderByDesc('year')->get();
     }
 
+    /**
+     * True when the semester picked in the combo box is archived. The page goes
+     * read-only for archived semesters: the pending list, score inputs and
+     * accept/reject actions are hidden, leaving only the historical results
+     * table. Mirrors the archived = read-only rule enforced across the system.
+     */
+    public function isSelectedSemesterArchived(): bool
+    {
+        if (! $this->selectedSemester) {
+            return false;
+        }
+
+        return Semester::whereKey($this->selectedSemester)->value('archived_at') !== null;
+    }
+
     public function filterBySpecialization(?int $id): void
     {
         $this->activeSpecialization = $this->activeSpecialization === $id ? null : $id;
@@ -76,6 +91,41 @@ class ExamListPage extends Page
             ->when($this->activeSpecialization, fn ($q) => $q->where('specialization_id', $this->activeSpecialization))
             ->orderBy('exam_date')
             ->get();
+    }
+
+    /**
+     * Applications already processed through this page (accepted or rejected
+     * via the differential exam), scoped to the same semester + specialization
+     * filters as the pending list above. Shown in the collapsible results table.
+     */
+    public function getProcessedApplications(): Collection
+    {
+        return Application::whereNotNull('exam_result_date')
+            ->with('specialization')
+            ->when($this->selectedSemester, fn ($q) => $q->where('semester_id', $this->selectedSemester))
+            ->when($this->activeSpecialization, fn ($q) => $q->where('specialization_id', $this->activeSpecialization))
+            ->orderByDesc('exam_result_date')
+            ->get();
+    }
+
+    /**
+     * Names of selected applications missing a grade. The accept/reject actions
+     * refuse to run while this is non-empty so no student is processed without
+     * a recorded exam score.
+     *
+     * @param  \Illuminate\Support\Collection<int, Application>  $applications
+     * @return array<int, string>
+     */
+    protected function applicationsMissingScore(Collection $applications): array
+    {
+        return $applications
+            ->filter(function (Application $application): bool {
+                $score = $this->scores[$application->id] ?? null;
+
+                return $score === null || $score === '';
+            })
+            ->pluck('name')
+            ->all();
     }
 
     public function toggleSelectAll(bool $checked): void
@@ -118,6 +168,12 @@ class ExamListPage extends Page
 
     public function markPassed(): void
     {
+        if ($this->isSelectedSemesterArchived()) {
+            Notification::make()->title('هذا الفصل مؤرشف ولا يمكن تنفيذ أي إجراء عليه')->warning()->send();
+
+            return;
+        }
+
         if (empty($this->selected)) {
             Notification::make()->title('الرجاء تحديد طالب واحد على الأقل')->warning()->send();
 
@@ -132,6 +188,18 @@ class ExamListPage extends Page
         $applications = Application::whereIn('id', $this->selected)
             ->where('status', ApplicationStatus::InitiallyApproved)
             ->get();
+
+        $missingScore = $this->applicationsMissingScore($applications);
+
+        if (! empty($missingScore)) {
+            Notification::make()
+                ->title('الرجاء إدخال الدرجة لجميع الطلاب المحددين قبل القبول')
+                ->body('لم يتم إدخال درجة لـ: '.implode('، ', $missingScore))
+                ->warning()
+                ->send();
+
+            return;
+        }
 
         foreach ($applications as $application) {
             AuditService::resetBatch();
@@ -172,6 +240,12 @@ class ExamListPage extends Page
 
     public function markFailed(): void
     {
+        if ($this->isSelectedSemesterArchived()) {
+            Notification::make()->title('هذا الفصل مؤرشف ولا يمكن تنفيذ أي إجراء عليه')->warning()->send();
+
+            return;
+        }
+
         if (empty($this->selected)) {
             Notification::make()->title('الرجاء تحديد طالب واحد على الأقل')->warning()->send();
 
@@ -183,6 +257,18 @@ class ExamListPage extends Page
         $applications = Application::whereIn('id', $this->selected)
             ->where('status', ApplicationStatus::InitiallyApproved)
             ->get();
+
+        $missingScore = $this->applicationsMissingScore($applications);
+
+        if (! empty($missingScore)) {
+            Notification::make()
+                ->title('الرجاء إدخال الدرجة لجميع الطلاب المحددين قبل الرفض')
+                ->body('لم يتم إدخال درجة لـ: '.implode('، ', $missingScore))
+                ->warning()
+                ->send();
+
+            return;
+        }
 
         foreach ($applications as $application) {
             AuditService::resetBatch();

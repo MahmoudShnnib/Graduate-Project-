@@ -14,7 +14,7 @@ class FacultyStatsOverviewWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->role === 'faculty';
+        return (bool) auth()->user()?->hasRole('faculty');
     }
 
     protected function getStats(): array

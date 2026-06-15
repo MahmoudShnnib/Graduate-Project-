@@ -7,6 +7,8 @@
         $activeSpec      = $this->activeSpecialization;
         $activeSpecName  = $activeSpec ? $specializations->firstWhere('id', $activeSpec)?->name : null;
         $selectedCount   = count($this->selected);
+        $processed       = $this->getProcessedApplications();
+        $isArchived      = $this->isSelectedSemesterArchived();
 
         $tabs = collect([['id' => null, 'label' => 'الكل', 'count' => \App\Models\Application::where('status', 'initially_approved')->when($selectedSem, fn ($q) => $q->where('semester_id', $selectedSem))->count()]]);
         foreach ($specializations as $spec) {
@@ -30,14 +32,23 @@
                 @endforeach
             </select>
 
-            @if($activeSpec && $applications->isNotEmpty())
+            @if(! $isArchived && $activeSpec && $applications->isNotEmpty())
                 <x-admin.print-button onclick="window.open('{{ route('print.exam-list', $activeSpec) }}', '_blank')" />
             @endif
         </div>
     </div>
 
+    {{-- Archived semester: read-only history. Only the results table below is shown. --}}
+    @if($isArchived)
+        <div class="flex items-start gap-3 rounded-xl bg-gray-50 p-4 text-sm ring-1 ring-gray-950/5 dark:bg-white/5 dark:ring-white/10">
+            <x-heroicon-o-archive-box class="h-5 w-5 shrink-0 text-gray-400" />
+            <div>
+                <p class="font-semibold text-gray-950 dark:text-white">هذا الفصل مؤرشف — للعرض فقط</p>
+                <p class="text-gray-500 dark:text-gray-400">لا يمكن قبول أو رفض الطلاب في فصل مؤرشف. نتائج الامتحان التفاضلي لهذا الفصل معروضة بالأسفل كسجل تاريخي.</p>
+            </div>
+        </div>
     {{-- Content --}}
-    @if($applications->isEmpty())
+    @elseif($applications->isEmpty())
         <x-admin.empty-state
             icon="heroicon-o-clipboard-document-list"
             :message="$activeSpec ? 'لا يوجد طلبات لقسم ' . $activeSpecName : 'لا يوجد طلبات مقبولة مبدئياً'"
@@ -106,6 +117,81 @@
                     {{ $this->markFailedAction }}
                     {{ $this->markPassedAction }}
                 </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Results of already-processed applications (accepted / rejected) --}}
+    @if($processed->isNotEmpty())
+        <div wire:key="processed-results-{{ $selectedSem }}"
+             x-data="{ open: @js($isArchived) }"
+             class="fi-ta rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 mt-6">
+            {{-- Header (always visible so the table can be re-expanded) --}}
+            <div class="fi-ta-header-ctn divide-y divide-gray-200 dark:divide-white/10">
+                <div class="fi-ta-header flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="fi-ta-header-heading text-base font-semibold text-gray-950 dark:text-white">
+                            نتائج الامتحان التفاضلي
+                        </h3>
+                        <p class="fi-ta-header-description text-sm text-gray-500 dark:text-gray-400">
+                            {{ $processed->count() }} طالب — مقبول أو مرفوض
+                        </p>
+                    </div>
+                    <button type="button"
+                            x-on:click="open = ! open"
+                            x-bind:aria-expanded="open ? 'true' : 'false'"
+                            aria-label="إظهار أو إخفاء جدول النتائج"
+                            title="إظهار أو إخفاء جدول النتائج"
+                            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition">
+                        <x-heroicon-m-chevron-down
+                            class="h-4 w-4 transition-transform duration-200"
+                            x-bind:class="open ? 'rotate-180' : ''" />
+                    </button>
+                </div>
+            </div>
+
+            {{-- Table body (smoothly collapses via Alpine) --}}
+            <div x-show="open" x-collapse.duration.500ms x-cloak class="fi-ta-content overflow-x-auto">
+                <table class="fi-ta-table w-full table-auto divide-y divide-gray-200 text-start dark:divide-white/5">
+                    <thead class="divide-y divide-gray-200 dark:divide-white/5">
+                        <tr>
+                            <th class="fi-ta-header-cell w-10">م</th>
+                            <th class="fi-ta-header-cell">الاسم الرباعي</th>
+                            @if(! $activeSpec)
+                                <th class="fi-ta-header-cell">التخصص</th>
+                            @endif
+                            <th class="fi-ta-header-cell">الرقم الوطني</th>
+                            <th class="fi-ta-header-cell text-center">الدرجة</th>
+                            <th class="fi-ta-header-cell text-center">النتيجة</th>
+                            <th class="fi-ta-header-cell">تاريخ النتيجة</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5">
+                        @foreach($processed as $i => $app)
+                            <tr class="fi-ta-row transition hover:bg-gray-50 dark:hover:bg-white/5">
+                                <td class="fi-ta-cell px-3 py-4 text-xs text-gray-400 font-mono">{{ $i + 1 }}</td>
+                                <td class="fi-ta-cell px-3 py-4 font-medium text-gray-950 dark:text-white">{{ $app->name }}</td>
+                                @if(! $activeSpec)
+                                    <td class="fi-ta-cell px-3 py-4">
+                                        <x-admin.badge color="gray">{{ $app->specialization?->name ?? '—' }}</x-admin.badge>
+                                    </td>
+                                @endif
+                                <td class="fi-ta-cell px-3 py-4 font-mono text-xs text-gray-500 dark:text-gray-400">{{ $app->national_id ?? '—' }}</td>
+                                <td class="fi-ta-cell px-3 py-4 text-center font-semibold text-gray-950 dark:text-white">
+                                    {{ $app->exam_score !== null ? rtrim(rtrim(number_format((float) $app->exam_score, 2), '0'), '.') : '—' }}
+                                </td>
+                                <td class="fi-ta-cell px-3 py-4 text-center">
+                                    @if($app->exam_passed)
+                                        <x-admin.badge color="success">مقبول</x-admin.badge>
+                                    @else
+                                        <x-admin.badge color="danger">مرفوض</x-admin.badge>
+                                    @endif
+                                </td>
+                                <td class="fi-ta-cell px-3 py-4 text-gray-500 dark:text-gray-400">{{ $app->exam_result_date?->format('Y/m/d H:i') ?? '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     @endif

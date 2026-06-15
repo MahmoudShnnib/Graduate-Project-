@@ -180,6 +180,8 @@ These are the ones that cost the most time on the first template:
 4. **Mixed Arabic/Latin in one span.** Use `e()` (HTML-escape user content) and `{!! !!}` only for the digit-wrapping preg_replace.
 5. **Avoid CSS dashed/dotted borders.** mPDF's renderer makes them look like spaced underscores. Always use a literal text run in DejaVu.
 6. **Numbers + bold = ink smear.** Markazi has no `B` registered, so any `font-weight: bold` on a Markazi span produces synthetic stroke-doubling. Bump size instead.
+7. **mPDF ignores `min-height` on block elements.** To reserve vertical space (push a block down, fill the page), insert a fixed-`height` spacer `<div>` — `min-height` is silently a no-op.
+8. **Per-document margins via `@page`.** `makeMpdf()` sets shared 25.4mm margins. To override for one template, put `@page { margin: Xmm; }` in that blade's `<style>` — no controller change, no impact on other docs. Used on `clearance_form` (14mm) so its bordered frame sits in the margin while text still lands at the standard 25.4mm line.
 
 Full bug list — [[../bugs-and-fixes/2026-05-19-mpdf-arabic-font-incompatibilities]].
 

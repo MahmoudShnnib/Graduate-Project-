@@ -33,12 +33,12 @@ class CoursesSurveyResults extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->role !== 'faculty';
+        return (bool) auth()->user()?->can('View:CoursesSurveyResults');
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return auth()->user()?->role !== 'faculty';
+        return (bool) auth()->user()?->can('View:CoursesSurveyResults');
     }
 
     public static function getNavigationBadge(): ?string

@@ -35,6 +35,7 @@ it('gives each applicant its own audit batch when bulk-passing the exam', functi
     Livewire::actingAs(adminUser())
         ->test(ExamListPage::class)
         ->set('selected', $apps->pluck('id')->all())
+        ->set('scores', $apps->mapWithKeys(fn ($app) => [$app->id => 15])->all())
         ->callAction('markPassed')
         ->assertHasNoActionErrors();
 
@@ -61,6 +62,7 @@ it('gives each applicant its own audit batch when bulk-failing the exam', functi
     Livewire::actingAs(adminUser())
         ->test(ExamListPage::class)
         ->set('selected', $apps->pluck('id')->all())
+        ->set('scores', $apps->mapWithKeys(fn ($app) => [$app->id => 5])->all())
         ->callAction('markFailed')
         ->assertHasNoActionErrors();
 

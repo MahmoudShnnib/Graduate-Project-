@@ -15,6 +15,11 @@
 <head>
 <meta charset="utf-8">
 <style>
+    /* Pull the page margin in so the bordered frame sits out in the margin area;
+       with the frame padding (2.5mm + 9mm) the text still lands at ~25.4mm — the
+       same start position as every other (borderless) print template. */
+    @page { margin: 14mm; }
+
     body {
         font-family: 'noto-naskh', serif;
         font-size: 13pt;
@@ -32,6 +37,9 @@
         border: 0.5pt solid #000;
         padding: 4mm 9mm;
     }
+
+    /* Spacer to push the notes section toward the bottom of the page. */
+    .notes-spacer { height: 22mm; }
 
     .title-1 { font-size: 19pt; font-weight: bold; text-align: center; margin: 0 0 5pt; }
     .title-2 { font-size: 25pt; font-weight: bold; text-align: center; margin: 0 0 8pt; }
@@ -148,6 +156,8 @@
         <tr><td class="head">اعتماد {{ $officeName }} ب{{ $collegeName }}</td></tr>
         <tr><td class="body"></td></tr>
     </table>
+
+    <div class="notes-spacer"></div>
 
     <div class="notes">
         <p class="note-main">
