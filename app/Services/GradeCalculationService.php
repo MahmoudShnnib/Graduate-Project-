@@ -7,9 +7,9 @@ use App\Models\Student;
 
 class GradeCalculationService
 {
-    public function recalculateStudentGPA(Student $student): void
+    public function recalculateStudentGPA(Student $student, bool $force = false): void
     {
-        if ($student->status !== StudentStatus::Active) {
+        if (! $force && $student->status !== StudentStatus::Active) {
             return;
         }
 

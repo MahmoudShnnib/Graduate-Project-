@@ -49,9 +49,12 @@
                         <x-heroicon-o-check-badge style="width: 1.1rem; height: 1.1rem;" class="text-gray-400" />
                         <span>نموذج الاستماحة</span>
                     </div>
-                    <x-admin.print-button onclick="printClearanceForm()">
+                    <a href="{{ route('print.clearance-form', ['student' => $student]) }}"
+                       target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                        <x-heroicon-o-printer style="width:1rem;height:1rem" />
                         طباعة نموذج الاستماحة
-                    </x-admin.print-button>
+                    </a>
                 </div>
             </x-slot>
 
@@ -62,94 +65,6 @@
                 <p class="font-semibold text-gray-900 dark:text-white mb-1">تم إتمام جميع المتطلبات</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">يمكنك الآن طباعة نموذج الاستماحة وتقديمه للجهات المختصة.</p>
             </div>
-
-            <div id="clearance-data"
-                 data-student-name="{{ $student->user?->name }}"
-                 data-enrollment-no="{{ $student->enrollment_no }}"
-                 data-specialization="{{ $student->specialization?->name }}"
-                 data-gpa="{{ number_format($student->gpa, 2) }}"
-                 data-thesis-title="{{ $thesis?->title }}"
-                 data-supervisor="{{ $thesis?->getSupervisorDisplayName() }}"
-                 class="hidden"></div>
         </x-filament::section>
     @endif
-
-    @script
-    <script>
-        window.printClearanceForm = function() {
-            const el = document.getElementById('clearance-data');
-            if (!el) return;
-
-            const name   = el.getAttribute('data-student-name');
-            const enrNo  = el.getAttribute('data-enrollment-no');
-            const spec   = el.getAttribute('data-specialization');
-            const gpa    = el.getAttribute('data-gpa');
-            const thesis = el.getAttribute('data-thesis-title');
-            const supervisor = el.getAttribute('data-supervisor');
-            const now    = new Date();
-            const date   = now.toLocaleDateString('en-CA');
-
-            const html = '<!DOCTYPE html>'
-                + '<html dir="rtl" lang="ar"><head><meta charset="UTF-8">'
-                + '<title>نموذج الاستماحة — ' + name + '</title>'
-                + '<style>'
-                + '*{margin:0;padding:0;box-sizing:border-box}'
-                + 'body{font-family:Arial,Tahoma,sans-serif;padding:40px;direction:rtl;color:#111}'
-                + '.hdr{text-align:center;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:24px}'
-                + '.hdr h1{font-size:15px;color:#444;margin-bottom:2px}'
-                + '.hdr h2{font-size:20px;margin-bottom:12px}'
-                + '.info{display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;font-size:13px;margin-bottom:24px;text-align:right}'
-                + '.info .item{display:flex;gap:6px;align-items:baseline}'
-                + '.info .label{color:#666;white-space:nowrap}'
-                + '.info .value{font-weight:bold}'
-                + '.section{margin-top:24px;border:1px solid #999;border-radius:6px;padding:16px}'
-                + '.section h3{font-size:15px;color:#1F4E79;margin-bottom:12px;border-bottom:1px solid #ddd;padding-bottom:8px}'
-                + '.checklist{list-style:none;font-size:13px}'
-                + '.checklist li{padding:8px 0;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px}'
-                + '.checklist li:last-child{border-bottom:none}'
-                + '.box{display:inline-block;width:14px;height:14px;border:1.5px solid #666;border-radius:2px;flex-shrink:0}'
-                + '.sig-row{display:flex;justify-content:space-between;margin-top:60px;font-size:12px}'
-                + '.sig{text-align:center;min-width:180px}'
-                + '.sig .line{border-top:1px solid #333;margin-top:40px;padding-top:6px}'
-                + '.ft{margin-top:32px;font-size:10px;color:#999;border-top:1px solid #ddd;padding-top:8px;display:flex;justify-content:space-between}'
-                + '</style></head><body>'
-                + '<div class="hdr">'
-                + '<h1>كلية التقنية الإلكترونية — طرابلس</h1>'
-                + '<h2>نموذج الاستماحة</h2>'
-                + '</div>'
-                + '<div class="info">'
-                + '<div class="item"><span class="label">اسم الطالب:</span><span class="value">' + name + '</span></div>'
-                + '<div class="item"><span class="label">رقم القيد:</span><span class="value">' + enrNo + '</span></div>'
-                + '<div class="item"><span class="label">التخصص:</span><span class="value">' + spec + '</span></div>'
-                + '<div class="item"><span class="label">المعدل التراكمي:</span><span class="value">' + gpa + '</span></div>'
-                + (thesis ? '<div class="item"><span class="label">عنوان الرسالة:</span><span class="value">' + thesis + '</span></div>' : '')
-                + (supervisor ? '<div class="item"><span class="label">المشرف:</span><span class="value">' + supervisor + '</span></div>' : '')
-                + '</div>'
-                + '<div class="section">'
-                + '<h3>الجهات المطلوب الاستماحة منها</h3>'
-                + '<ul class="checklist">'
-                + '<li><span class="box"></span> المكتبة</li>'
-                + '<li><span class="box"></span> القسم الأكاديمي</li>'
-                + '<li><span class="box"></span> شؤون الطلاب</li>'
-                + '<li><span class="box"></span> الشؤون المالية</li>'
-                + '<li><span class="box"></span> تقنية المعلومات</li>'
-                + '</ul>'
-                + '</div>'
-                + '<div class="sig-row">'
-                + '<div class="sig"><div class="line">رئيس القسم</div></div>'
-                + '<div class="sig"><div class="line">مدير مكتب الدراسات العليا</div></div>'
-                + '</div>'
-                + '<div class="ft">'
-                + '<span>مكتب الدراسات العليا</span>'
-                + '<span>التاريخ: ' + date + '</span>'
-                + '</div>'
-                + '</body></html>';
-
-            const w = window.open('', '_blank');
-            w.document.write(html);
-            w.document.close();
-            w.onload = function() { w.print(); };
-        };
-    </script>
-    @endscript
 </x-filament-panels::page>

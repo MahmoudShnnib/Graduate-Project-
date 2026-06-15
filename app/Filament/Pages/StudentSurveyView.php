@@ -14,6 +14,7 @@ use App\Models\CourseSurvey;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Services\GradeCalculationService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Panel;
@@ -427,6 +428,8 @@ class StudentSurveyView extends Page
         }
 
         if ($drop($this->student, $offering)) {
+            app(GradeCalculationService::class)->recalculateStudentGPA($this->student);
+
             Notification::make()->title('تم إلغاء تسجيل الطالب')->warning()->send();
         }
     }

@@ -58,8 +58,12 @@ test('calculates gpa correctly from approved grades', function () {
         ->toBeLessThanOrEqual(3.8);
 });
 
-test('does not recalculate gpa for non-active students', function () {
-    $this->student->update(['status' => StudentStatus::OnHold, 'gpa' => 2.5]);
+test('does not recalculate gpa for non-active students (unforced)', function () {
+    // Suspending triggers the current-semester flush + a forced recalc, so set
+    // a known GPA AFTER the status change (a gpa-only update doesn't re-fire the
+    // status cascade). An unforced recalc must then leave it frozen.
+    $this->student->update(['status' => StudentStatus::OnHold]);
+    $this->student->update(['gpa' => 2.5]);
 
     $this->service->recalculateStudentGPA($this->student);
     $this->student->refresh();
@@ -74,4 +78,51 @@ test('sets gpa to zero when student has no approved grades', function () {
     $this->student->refresh();
 
     expect((float) $this->student->gpa)->toBe(0.0);
+});
+
+test('counts only the latest attempt when a course is retaken', function () {
+    $course = Course::factory()->create(['credits' => 3]);
+    $course->specializations()->attach($this->student->specialization_id, ['type' => 'general']);
+
+    $priorSemester = Semester::factory()->create(['is_active' => false]);
+
+    // First attempt: F (0.0).
+    $firstOffering = CourseOffering::factory()->create([
+        'course_id' => $course->id,
+        'semester_id' => $priorSemester->id,
+    ]);
+    $firstEnrollment = StudentEnrollment::factory()->create([
+        'student_id' => $this->student->id,
+        'course_offering_id' => $firstOffering->id,
+    ]);
+    Grade::factory()->create([
+        'enrollment_id' => $firstEnrollment->id,
+        'coursework_grade' => 10,
+        'final_grade' => 15, // 25 → F → 0.0
+        'status' => GradeStatus::Approved,
+        'published_at' => now(),
+    ]);
+
+    // Retake: A (4.0).
+    $retakeOffering = CourseOffering::factory()->create([
+        'course_id' => $course->id,
+        'semester_id' => $this->semester->id,
+    ]);
+    $retakeEnrollment = StudentEnrollment::factory()->create([
+        'student_id' => $this->student->id,
+        'course_offering_id' => $retakeOffering->id,
+    ]);
+    Grade::factory()->create([
+        'enrollment_id' => $retakeEnrollment->id,
+        'coursework_grade' => 50,
+        'final_grade' => 40, // 90 → A → 4.0
+        'status' => GradeStatus::Approved,
+        'published_at' => now(),
+    ]);
+
+    $this->service->recalculateStudentGPA($this->student);
+    $this->student->refresh();
+
+    // Only the latest attempt (A = 4.0) counts — NOT the average of both (2.0).
+    expect((float) $this->student->gpa)->toBe(4.0);
 });

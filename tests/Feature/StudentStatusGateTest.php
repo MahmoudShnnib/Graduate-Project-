@@ -112,7 +112,7 @@ it('keeps approved grades visible on GradesPage after cascade', function () {
         ->and($grades->first()->grade->status)->toBe(GradeStatus::Approved);
 });
 
-it('GPA is not recalculated for non-active students', function (StudentStatus $status) {
+it('keeps the GPA frozen for terminal non-active statuses', function (StudentStatus $status) {
     $enroll = app(EnrollStudentInOffering::class);
     $enrollment = $enroll($this->student, $this->offering);
 
@@ -132,11 +132,37 @@ it('GPA is not recalculated for non-active students', function (StudentStatus $s
 
     expect((float) $this->student->gpa)->toBe(2.75);
 })->with([
-    'on_hold' => StudentStatus::OnHold,
-    'inactive' => StudentStatus::Inactive,
+    // Terminal states preserve the final GPA. OnHold/Inactive intentionally
+    // recalc on suspension (current semester flushed) — covered separately
+    // below and in SuspensionFlushesCurrentSemesterTest.
     'transferred' => StudentStatus::Transferred,
     'graduated' => StudentStatus::Graduated,
     'dismissed' => StudentStatus::Dismissed,
+]);
+
+it('flushes the current semester and recalculates the GPA on suspension/inactive', function (StudentStatus $status) {
+    $enroll = app(EnrollStudentInOffering::class);
+    $enrollment = $enroll($this->student, $this->offering);
+
+    Grade::create([
+        'enrollment_id' => $enrollment->id,
+        'coursework_grade' => 30,
+        'final_grade' => 30, // 60 → C → 2.0
+        'status' => GradeStatus::Approved,
+        'published_at' => now(),
+    ]);
+
+    $this->student->refresh();
+    expect((float) $this->student->gpa)->toBe(2.0); // counts while Active
+
+    $this->student->update(['status' => $status]);
+
+    // Current-semester course flushed; no prior work → GPA 0.00.
+    expect($enrollment->fresh()->status)->toBe(EnrollmentStatus::Withdrawn)
+        ->and((float) $this->student->fresh()->gpa)->toBe(0.0);
+})->with([
+    'on_hold' => StudentStatus::OnHold,
+    'inactive' => StudentStatus::Inactive,
 ]);
 
 it('graduated students can still authenticate and access the portal', function () {

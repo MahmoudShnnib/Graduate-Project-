@@ -73,3 +73,7 @@ Route::get('/admin/thesis-registrations/{thesisRegistration}/print-ministry-form
 Route::get('/admin/exam-list/{specialization}/print', [PrintController::class, 'examList'])
     ->middleware(['auth'])
     ->name('print.exam-list');
+
+Route::get('/portal/clearance/{student}/print', [PrintController::class, 'clearanceForm'])
+    ->middleware(['auth'])
+    ->name('print.clearance-form');

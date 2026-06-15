@@ -21,7 +21,10 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'phone' => fake()->phoneNumber(),
+            // Valid Libyan mobile format (09XXXXXXXX). fake()->phoneNumber() can
+            // emit extensions/letters that fail the student form's ->tel() regex,
+            // which made phone-validating tests flaky by Faker-state position.
+            'phone' => '09'.fake()->numerify('########'),
             'is_active' => true,
         ];
     }

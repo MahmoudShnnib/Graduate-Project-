@@ -13,16 +13,18 @@ test('student user can access the portal', function () {
     $this->actingAs($user)->get('/portal')->assertRedirect();
 });
 
-test('non-student role gets 403 on portal', function () {
+// A non-student on /portal is denied; bootstrap/app.php converts the 403 into a
+// logout + redirect to the panel they belong on (admin login), not a bare 403.
+test('non-student role is redirected from the portal to the admin login', function () {
     $admin = User::factory()->withRole('super_admin')->create();
 
-    $this->actingAs($admin)->get('/portal')->assertForbidden();
+    $this->actingAs($admin)->get('/portal')->assertRedirect('/admin/login');
 });
 
-test('faculty role gets 403 on portal', function () {
+test('faculty role is redirected from the portal to the admin login', function () {
     $faculty = User::factory()->faculty()->create();
 
-    $this->actingAs($faculty)->get('/portal')->assertForbidden();
+    $this->actingAs($faculty)->get('/portal')->assertRedirect('/admin/login');
 });
 
 test('student can access course survey page', function () {
