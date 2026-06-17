@@ -3,20 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Channels\WhatsAppMessage;
-use App\Models\AddDropRequest;
 use App\Models\Application;
-use App\Models\ClearanceRequest;
-use App\Models\Grade;
 use App\Models\Student;
-use App\Models\SuspensionRequest;
-use App\Models\ThesisRegistration;
-use App\Notifications\AddDropDecisionNotification;
-use App\Notifications\ApplicationExamPassedNotification;
-use App\Notifications\ApplicationReceivedNotification;
-use App\Notifications\ClearanceIssuedNotification;
-use App\Notifications\GradePublishedNotification;
-use App\Notifications\SuspensionDecisionNotification;
-use App\Notifications\ThesisDecisionNotification;
+use App\Notifications\ApplicationInitiallyApprovedNotification;
+use App\Notifications\ContactInfoChangedNotification;
+use App\Notifications\GradesPublishedNotification;
 use App\Notifications\WelcomeStudentNotification;
 use App\Services\WhatsAppOtpService;
 use App\Services\WhatsAppService;
@@ -25,7 +16,7 @@ use Illuminate\Console\Command;
 class WhatsAppTest extends Command
 {
     protected $signature = 'whatsapp:test {phone : Recipient number, e.g. 0912345678}
-        {--type=all : otp | application_received | exam_passed | welcome | grade | add_drop | suspension | thesis | clearance | all}';
+        {--type=all : otp | initially_approved | welcome | grades | contact | all}';
 
     protected $description = 'Send a real WhatsApp message (OTP or any notification) to a number to test delivery and wording.';
 
@@ -84,29 +75,14 @@ class WhatsAppTest extends Command
     {
         $application = Application::first();
         $student = Student::first();
-        $grade = Grade::first();
-        $addDrop = AddDropRequest::first();
-        $suspension = SuspensionRequest::first();
-        $thesis = ThesisRegistration::first();
-        $clearance = ClearanceRequest::first();
 
         return [
-            'application_received' => $application
-                ? (new ApplicationReceivedNotification($application))->toWhatsApp($notifiable) : null,
-            'exam_passed' => $application
-                ? (new ApplicationExamPassedNotification($application))->toWhatsApp($notifiable) : null,
+            'initially_approved' => $application
+                ? (new ApplicationInitiallyApprovedNotification($application))->toWhatsApp($notifiable) : null,
             'welcome' => $student
                 ? (new WelcomeStudentNotification($student))->toWhatsApp($notifiable) : null,
-            'grade' => $grade
-                ? (new GradePublishedNotification($grade))->toWhatsApp($notifiable) : null,
-            'add_drop' => $addDrop
-                ? (new AddDropDecisionNotification($addDrop))->toWhatsApp($notifiable) : null,
-            'suspension' => $suspension
-                ? (new SuspensionDecisionNotification($suspension))->toWhatsApp($notifiable) : null,
-            'thesis' => $thesis
-                ? (new ThesisDecisionNotification($thesis))->toWhatsApp($notifiable) : null,
-            'clearance' => $clearance
-                ? (new ClearanceIssuedNotification($clearance))->toWhatsApp($notifiable) : null,
+            'grades' => (new GradesPublishedNotification)->toWhatsApp($notifiable),
+            'contact' => (new ContactInfoChangedNotification(['phone', 'email']))->toWhatsApp($notifiable),
         ];
     }
 }

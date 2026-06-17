@@ -107,7 +107,6 @@
                             @php
                                 $grade = $enrollment->grade;
                                 $isFullyPublished = $grade?->published_at !== null;
-                                $isMidtermOnly = ! $isFullyPublished && $grade?->midterm_published_at !== null;
                             @endphp
                             <tr class="fi-ta-row hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                 <td class="fi-ta-cell px-4 py-2.5 text-gray-400 dark:text-gray-500 text-xs font-mono">{{ $enrollment->courseOffering->semester->name }}</td>
@@ -124,8 +123,6 @@
                                             'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400' => $grade->letter === 'F',
                                             'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $grade->letter === 'D',
                                         ])>{{ $grade->letter }}</span>
-                                    @elseif($isMidtermOnly)
-                                        <span class="inline-flex items-center justify-center px-2 h-6 rounded-md text-xs font-medium bg-info-100 text-info-700 dark:bg-info-500/20 dark:text-info-400">منتصف</span>
                                     @else
                                         <span class="text-gray-400">—</span>
                                     @endif

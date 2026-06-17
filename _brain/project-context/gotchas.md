@@ -312,6 +312,16 @@ This app runs `CACHE_STORE=database`. With the database cache store, `cache()->r
 
 **Rule:** before reaching for `cache()->remember()` as an N+1 fix, check `config('cache.default')`. On a `database`/`dynamodb` store the cache lookup is itself a query — a static (per-request) memo is the driver-agnostic win. See [[../decisions/2026-06-03-n1-eager-loading-deviations]]. (⚠️ static memo persists across requests under Octane — not used here.)
 
+## Student grade visibility must mirror the GPA, gated on STUDENT STATUS not enrollment status
+
+The course tree (`CourseTreePage`) walks **all** enrollments (not just active) on purpose, so a `Graduated` student — whose cascade withdraws *every* enrollment but whose GPA is **frozen with them** — keeps their transcript. So you **cannot** filter the transcript/tree by `status = Enrolled`: that wipes graduates.
+
+The real distinction is the **student's status**, not the enrollment's:
+- `OnHold`/`Inactive` flush the current term AND recalc the GPA *without* it → the flushed current-semester courses must be **hidden** from كشف الدرجات + المقررات العامة.
+- `Graduated` (and others) freeze the GPA *with* the term → transcript stays intact.
+
+Rule: hide an enrollment only when `in_array($student->status, [OnHold, Inactive]) && isCurrentSemester && status !== Enrolled`. The visible set must always equal the GPA-counted set. See [[../decisions/2026-06-17-suspended-student-grade-visibility]] (display side) + [[../decisions/2026-06-15-flush-current-semester-on-suspend]] (GPA side). Watch for tests that assert the *old* "grades stay visible after an OnHold cascade" behavior — that was reversed 2026-06-17.
+
 ## Testing gotchas
 
 - `tests/Pest.php` provides `studentWithRecord()` and `adminUser()` — **always** use these instead of manually creating User+Student+Role

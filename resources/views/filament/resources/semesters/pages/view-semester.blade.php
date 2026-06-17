@@ -2,8 +2,8 @@
     {{-- ============================================================
          /admin/semesters/{id} — Figma view-page design language
          Mirrors student/user/application views.
-         Workflow actions (publish midterms/finals, archive, edit) stay
-         in the page header — they're driven by Filament Action objects.
+         Workflow actions (publish finals, archive, edit) stay in the
+         page header — they're driven by Filament Action objects.
          Backup: _backups/semester-view-2026-05-13/
        ============================================================ --}}
 

@@ -22,7 +22,6 @@
     $courseCode   = $courseOffering->course?->code ?? '';
     $semesterName = $courseOffering->semester?->name ?? '—';
     $facultyName  = $courseOffering->faculty?->name ?? '—';
-    $timeSlot     = $courseOffering->time_slot ?: '—';
     $studentCount = $students->count();
 @endphp
 <!DOCTYPE html>
@@ -153,10 +152,6 @@
     <tr>
         <th>عدد الطلبة</th>
         <td class="num-val">{{ $studentCount }}</td>
-    </tr>
-    <tr>
-        <th>التوقيت</th>
-        <td>{{ $timeSlot }}</td>
     </tr>
 </table>
 

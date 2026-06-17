@@ -28,7 +28,6 @@ class FacultyStatsOverviewWidget extends BaseWidget
             ->when($activeSemesterId, fn ($q) => $q->where('semester_id', $activeSemesterId));
 
         $myCoursesCount = (clone $myOfferings)->count();
-        $pendingSheetCount = (clone $myOfferings)->whereNull('paper_sheet_path')->count();
 
         $myStudentsCount = StudentEnrollment::query()
             ->active()
@@ -46,11 +45,6 @@ class FacultyStatsOverviewWidget extends BaseWidget
             Stat::make('مقرراتي هذا الفصل', $myCoursesCount)
                 ->color('primary')
                 ->icon('heroicon-o-academic-cap'),
-
-            Stat::make('أوراق درجات معلقة', $pendingSheetCount)
-                ->description($pendingSheetCount > 0 ? 'بانتظار الرفع' : 'كل الأوراق مرفوعة')
-                ->color($pendingSheetCount > 0 ? 'warning' : 'success')
-                ->icon('heroicon-o-document-arrow-up'),
 
             Stat::make('طلابي', $myStudentsCount)
                 ->color('info')

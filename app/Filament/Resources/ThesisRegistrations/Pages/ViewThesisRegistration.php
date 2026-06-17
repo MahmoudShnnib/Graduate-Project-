@@ -6,7 +6,6 @@ use App\Enums\ThesisStatus;
 use App\Filament\Resources\ThesisRegistrations\ThesisRegistrationResource;
 use App\Models\ThesisRegistration;
 use App\Services\AuditService;
-use App\Services\NotificationService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -86,7 +85,7 @@ class ViewThesisRegistration extends ViewRecord
                     ->required()
                     ->rows(3),
             ])
-            ->action(function (array $data, NotificationService $notifier) {
+            ->action(function (array $data) {
                 $this->record->update([
                     'status' => ThesisStatus::Rejected,
                     'rejection_reason' => $data['rejection_reason'],
@@ -94,13 +93,13 @@ class ViewThesisRegistration extends ViewRecord
                     'decided_at' => now(),
                 ]);
 
-                $notifier->notifyThesisDecision($this->record->fresh());
-
                 Notification::make()
                     ->title('تم رفض الطلب')
                     ->body('سيظهر سبب الرفض للطالب.')
                     ->success()
                     ->send();
+
+                $this->dispatch('refresh-sidebar');
             });
     }
 
@@ -115,7 +114,7 @@ class ViewThesisRegistration extends ViewRecord
             ->modalHeading('قبول طلب تسجيل الرسالة')
             ->modalDescription('سيتم قبول تسجيل الرسالة لهذا الطالب. هل أنت متأكد؟')
             ->modalSubmitActionLabel('تأكيد القبول')
-            ->action(function (AuditService $audit, NotificationService $notifier) {
+            ->action(function (AuditService $audit) {
                 $student = $this->record->student;
 
                 if (! $student->isEligibleForThesis()) {
@@ -135,12 +134,13 @@ class ViewThesisRegistration extends ViewRecord
                 ]);
 
                 $audit->log('thesis_approved', $this->record, ['status' => 'printed'], ['status' => 'approved']);
-                $notifier->notifyThesisDecision($this->record->fresh());
 
                 Notification::make()
                     ->title('تم قبول تسجيل الرسالة')
                     ->success()
                     ->send();
+
+                $this->dispatch('refresh-sidebar');
             });
     }
 

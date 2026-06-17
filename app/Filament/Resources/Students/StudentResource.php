@@ -379,9 +379,11 @@ class StudentResource extends Resource
                         ])
                         ->required(),
 
-                    TextInput::make('nationality')
+                    Select::make('nationality')
                         ->label('الجنسية')
-                        ->default('ليبية')
+                        ->options(collect(config('nationalities.list'))->mapWithKeys(fn (array $c): array => [$c['name'] => $c['flag'].' '.$c['name']]))
+                        ->default(config('nationalities.default'))
+                        ->searchable()
                         ->required(),
 
                     TextInput::make('national_id')

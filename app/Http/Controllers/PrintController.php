@@ -7,9 +7,11 @@ use App\Enums\DiscussionStatus;
 use App\Models\Application;
 use App\Models\CourseOffering;
 use App\Models\DiscussionRequest;
+use App\Models\Semester;
 use App\Models\Specialization;
 use App\Models\Student;
 use App\Models\ThesisRegistration;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
@@ -148,18 +150,29 @@ class PrintController extends Controller
         ]);
     }
 
-    public function examList(Specialization $specialization): Response
+    /**
+     * Differential-exam call list — every applicant initially approved for the
+     * exam, filtered by the page's specialization tab + selected semester. Omit
+     * the specialization param to print all specializations in one list.
+     */
+    public function examList(Request $request): Response
     {
         $this->authorizeAdminOnly();
 
+        [$specialization, $semesterId] = $this->resolveExamFilters($request);
+
         $applications = Application::query()
             ->where('status', ApplicationStatus::InitiallyApproved)
-            ->where('specialization_id', $specialization->id)
+            ->with('specialization')
+            ->when($specialization, fn ($q) => $q->where('specialization_id', $specialization->id))
+            ->when($semesterId, fn ($q) => $q->where('semester_id', $semesterId))
+            ->orderBy('specialization_id')
             ->orderBy('exam_date')
             ->get();
 
         $html = view('prints.exam_list', [
-            'specialization' => $specialization,
+            'specName' => $specialization?->name ?? 'جميع التخصصات',
+            'showSpecColumn' => $specialization === null,
             'applications' => $applications,
             'examDate' => $applications->first()?->exam_date,
         ])->render();
@@ -169,8 +182,61 @@ class PrintController extends Controller
 
         return response($pdf->Output('', 'S'), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="exam-list-'.$specialization->id.'.pdf"',
+            'Content-Disposition' => 'inline; filename="exam-list.pdf"',
         ]);
+    }
+
+    /**
+     * Differential-exam results — applicants already processed (accepted or
+     * rejected) with their exam score and outcome, using the same specialization
+     * + semester filters as the exam call list.
+     */
+    public function examResults(Request $request): Response
+    {
+        $this->authorizeAdminOnly();
+
+        [$specialization, $semesterId] = $this->resolveExamFilters($request);
+
+        $applications = Application::query()
+            ->whereNotNull('exam_result_date')
+            ->with('specialization')
+            ->when($specialization, fn ($q) => $q->where('specialization_id', $specialization->id))
+            ->when($semesterId, fn ($q) => $q->where('semester_id', $semesterId))
+            ->orderBy('specialization_id')
+            ->orderByDesc('exam_passed')
+            ->orderBy('name')
+            ->get();
+
+        $html = view('prints.exam_results', [
+            'specName' => $specialization?->name ?? 'جميع التخصصات',
+            'showSpecColumn' => $specialization === null,
+            'applications' => $applications,
+        ])->render();
+
+        $pdf = $this->makeMpdf();
+        $pdf->WriteHTML($html);
+
+        return response($pdf->Output('', 'S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="exam-results.pdf"',
+        ]);
+    }
+
+    /**
+     * Resolve the optional specialization + semester filters shared by the two
+     * exam prints from the request query string.
+     *
+     * @return array{0: ?Specialization, 1: ?int}
+     */
+    private function resolveExamFilters(Request $request): array
+    {
+        $specId = $request->integer('specialization') ?: null;
+        $semesterId = $request->integer('semester') ?: null;
+
+        return [
+            $specId ? Specialization::find($specId) : null,
+            $semesterId,
+        ];
     }
 
     public function graduationCertificate(DiscussionRequest $discussionRequest): Response
@@ -318,6 +384,39 @@ class PrintController extends Controller
         return response($pdf->Output('', 'S'), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="clearance-form.pdf"',
+        ]);
+    }
+
+    public function studentCourses(Student $student): Response
+    {
+        $this->authorizeAdminOrOwningStudent($student);
+
+        $activeSemester = Semester::active();
+
+        abort_unless($activeSemester !== null, 404);
+
+        $student->load(['user:id,name', 'specialization:id,name']);
+
+        $enrollments = $student->enrollments()
+            ->active()
+            ->whereHas('courseOffering', fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->with(['courseOffering.course', 'courseOffering.faculty'])
+            ->get()
+            ->sortBy('courseOffering.course.code')
+            ->values();
+
+        $html = view('prints.student_courses', [
+            'student' => $student,
+            'semester' => $activeSemester,
+            'enrollments' => $enrollments,
+        ])->render();
+
+        $pdf = $this->makeMpdf();
+        $pdf->WriteHTML($html);
+
+        return response($pdf->Output('', 'S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="student-courses-'.$student->enrollment_no.'.pdf"',
         ]);
     }
 

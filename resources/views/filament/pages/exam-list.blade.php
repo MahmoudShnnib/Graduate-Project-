@@ -32,8 +32,33 @@
                 @endforeach
             </select>
 
-            @if(! $isArchived && $activeSpec && $applications->isNotEmpty())
-                <x-admin.print-button onclick="window.open('{{ route('print.exam-list', $activeSpec) }}', '_blank')" />
+            @php $printParams = array_filter(['specialization' => $activeSpec, 'semester' => $selectedSem]); @endphp
+            @if($applications->isNotEmpty() || $processed->isNotEmpty())
+                <div x-data="{ open: false }" @click.outside="open = false" class="relative">
+                    <button type="button" @click="open = ! open"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                        <x-heroicon-o-printer style="width:1rem;height:1rem" />
+                        <span>طباعة</span>
+                        <x-heroicon-m-chevron-down style="width:1rem;height:1rem" />
+                    </button>
+                    <div x-show="open" x-cloak x-transition
+                        class="absolute z-10 mt-1 end-0 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1">
+                        @if($applications->isNotEmpty())
+                            <a href="{{ route('print.exam-list', $printParams) }}" target="_blank" rel="noopener" @click="open = false"
+                                class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5">
+                                <x-heroicon-o-clipboard-document-list style="width:1rem;height:1rem" />
+                                <span>قائمة الامتحان</span>
+                            </a>
+                        @endif
+                        @if($processed->isNotEmpty())
+                            <a href="{{ route('print.exam-results', $printParams) }}" target="_blank" rel="noopener" @click="open = false"
+                                class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5">
+                                <x-heroicon-o-academic-cap style="width:1rem;height:1rem" />
+                                <span>نتائج الامتحان</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
             @endif
         </div>
     </div>

@@ -13,6 +13,7 @@ class NotificationLog extends Model
     protected $fillable = [
         'student_id',
         'channel',
+        'phone',
         'event',
         'message',
         'status',

@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Specialization;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 use function Pest\Laravel\actingAs;
@@ -11,12 +10,11 @@ use function Pest\Laravel\actingAs;
  */
 it('forbids students from reaching admin-only print routes', function () {
     ['user' => $student] = studentWithRecord();
-    $specialization = Specialization::factory()->create();
 
     // Denied: bootstrap/app.php converts the 403 into a logout + redirect to the
     // student's own panel login, so the student never receives the admin PDF.
     actingAs($student)
-        ->get(route('print.exam-list', $specialization))
+        ->get(route('print.exam-list'))
         ->assertRedirect('/portal/login');
 });
 

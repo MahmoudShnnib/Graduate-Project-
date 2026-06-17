@@ -227,6 +227,33 @@ it('allows application submission when the phone is verified', function () {
     expect(Application::where('phone', '0915555555')->exists())->toBeTrue();
 });
 
+it('keeps the phone marked verified on the apply page after a failed submit', function () {
+    configureQonvo();
+
+    WhatsAppOtp::create([
+        'phone' => '0915555555',
+        'purpose' => 'apply_phone',
+        'code_hash' => Hash::make('123456'),
+        'verified_at' => now()->subMinutes(10),
+        'expires_at' => now()->subMinutes(10),
+    ]);
+
+    // Mimics back()->withInput() repopulating old('phone') after a validation failure.
+    $this->withSession(['_old_input' => ['phone' => '0915555555']])
+        ->get(route('registration.create'))
+        ->assertOk()
+        ->assertSee('let verified = true', false);
+});
+
+it('does not mark an unverified phone as verified on the apply page', function () {
+    configureQonvo();
+
+    $this->withSession(['_old_input' => ['phone' => '0915555555']])
+        ->get(route('registration.create'))
+        ->assertOk()
+        ->assertSee('let verified = false', false);
+});
+
 it('allows application submission without OTP when WhatsApp is not configured', function () {
     configureQonvo(false);
 

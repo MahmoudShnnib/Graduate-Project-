@@ -22,7 +22,7 @@
     $courseName   = $offering->course?->name ?? '—';
     $semesterName = $offering->semester?->name ?? '—';
     $facultyName  = $offering->faculty?->name ?? '—';
-    $timeSlot     = $offering->time_slot ?: '—';
+    $printDate    = now()->format('Y/m/d');
 
     $enrollments  = $offering->activeEnrollments->sortBy('student.enrollment_no')->values();
     $studentCount = $enrollments->count();
@@ -105,7 +105,9 @@
     </tr>
     <tr>
         <td class="info-label">التاريخ</td>
-        <td class="info-value">&nbsp;</td>
+        <td class="info-value">
+            {!! preg_replace('/(\d+)/', '<span style="font-family:markazi;font-size:14pt;font-weight:normal;">$1</span>', e($printDate)) !!}
+        </td>
     </tr>
 </table>
 
@@ -133,16 +135,6 @@
                 <td>&nbsp;</td>
             </tr>
         @endforeach
-        @for ($j = 0; $j < 3; $j++)
-            <tr>
-                <td class="col-num">&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-            </tr>
-        @endfor
     </tbody>
 </table>
 

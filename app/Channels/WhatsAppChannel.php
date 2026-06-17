@@ -40,19 +40,20 @@ class WhatsAppChannel
 
         try {
             $this->whatsApp->sendText($phone, $message);
-            $this->writeLog($studentId, $event, $messageText, 'sent');
+            $this->writeLog($studentId, $phone, $event, $messageText, 'sent');
         } catch (\Throwable $e) {
             Log::warning('WhatsApp notification failed: '.$e->getMessage());
-            $this->writeLog($studentId, $event, $messageText, 'failed', $e->getMessage());
+            $this->writeLog($studentId, $phone, $event, $messageText, 'failed', $e->getMessage());
         }
     }
 
-    private function writeLog(?int $studentId, string $event, string $message, string $status, ?string $errorMessage = null): void
+    private function writeLog(?int $studentId, string $phone, string $event, string $message, string $status, ?string $errorMessage = null): void
     {
         try {
             NotificationLog::create([
                 'student_id' => $studentId,
                 'channel' => 'whatsapp',
+                'phone' => $phone,
                 'event' => $event,
                 'message' => $message,
                 'status' => $status,

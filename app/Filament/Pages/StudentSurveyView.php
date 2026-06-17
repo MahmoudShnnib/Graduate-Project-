@@ -40,6 +40,87 @@ class StudentSurveyView extends Page
 
     public ?string $retakeActionType = null;
 
+    /** Key of the action awaiting confirmation in the custom modal (null = closed). */
+    public ?string $confirmKey = null;
+
+    /** Optional course id for per-row confirmations (enroll/unenroll/reject a single course). */
+    public ?int $confirmCourseId = null;
+
+    /**
+     * Display config for the generic confirmation modal, keyed by the pending action.
+     *
+     * @return array{heading: string, body: string, confirmLabel: string, color: string, icon: string}|null
+     */
+    public function getConfirmConfig(): ?array
+    {
+        return match ($this->confirmKey) {
+            'enrollSelected' => [
+                'heading' => 'تسجيل المقررات المحددة',
+                'body' => 'هل أنت متأكد من تسجيل المقررات المحددة للطالب؟',
+                'confirmLabel' => 'تسجيل',
+                'color' => 'success',
+                'icon' => 'heroicon-o-check',
+            ],
+            'rejectSelected' => [
+                'heading' => 'رفض المقررات المحددة',
+                'body' => 'هل أنت متأكد من رفض المقررات المحددة؟',
+                'confirmLabel' => 'رفض',
+                'color' => 'danger',
+                'icon' => 'heroicon-o-x-mark',
+            ],
+            'enrollStudent' => [
+                'heading' => 'تسجيل الطالب',
+                'body' => 'هل أنت متأكد من تسجيل الطالب في هذا المقرر؟',
+                'confirmLabel' => 'تسجيل',
+                'color' => 'success',
+                'icon' => 'heroicon-o-check',
+            ],
+            'unenrollStudent' => [
+                'heading' => 'إلغاء تسجيل الطالب',
+                'body' => 'هل أنت متأكد من إلغاء تسجيل الطالب من هذا المقرر؟',
+                'confirmLabel' => 'إلغاء التسجيل',
+                'color' => 'danger',
+                'icon' => 'heroicon-o-x-mark',
+            ],
+            'rejectCourse' => [
+                'heading' => 'رفض الاختيار',
+                'body' => 'هل أنت متأكد من رفض هذا الاختيار للطالب؟',
+                'confirmLabel' => 'رفض',
+                'color' => 'danger',
+                'icon' => 'heroicon-o-x-mark',
+            ],
+            default => null,
+        };
+    }
+
+    public function requestConfirm(string $key, ?int $courseId = null): void
+    {
+        $this->confirmKey = $key;
+        $this->confirmCourseId = $courseId;
+    }
+
+    public function cancelConfirm(): void
+    {
+        $this->confirmKey = null;
+        $this->confirmCourseId = null;
+    }
+
+    public function confirmAction(): void
+    {
+        $key = $this->confirmKey;
+        $courseId = $this->confirmCourseId;
+        $this->cancelConfirm();
+
+        match ($key) {
+            'enrollSelected' => $this->enrollSelected(),
+            'rejectSelected' => $this->rejectSelected(),
+            'enrollStudent' => $courseId !== null ? $this->enrollStudent($courseId) : null,
+            'unenrollStudent' => $courseId !== null ? $this->unenrollStudent($courseId) : null,
+            'rejectCourse' => $courseId !== null ? $this->rejectCourse($courseId) : null,
+            default => null,
+        };
+    }
+
     public function showRetakeAction(int $courseId, string $type): void
     {
         $this->retakeActionCourseId = $courseId;
@@ -218,6 +299,7 @@ class StudentSurveyView extends Page
         }
 
         $this->selected = [];
+        $this->dispatch('refresh-sidebar');
 
         if ($capped) {
             Notification::make()
@@ -310,6 +392,7 @@ class StudentSurveyView extends Page
         }
 
         $this->selected = [];
+        $this->dispatch('refresh-sidebar');
 
         if ($skippedEnrolled > 0) {
             Notification::make()
@@ -387,6 +470,8 @@ class StudentSurveyView extends Page
         } else {
             Notification::make()->title('الطالب مسجل بالفعل في هذا المقرر')->warning()->send();
         }
+
+        $this->dispatch('refresh-sidebar');
     }
 
     public function approveRetake(int $courseId): void
@@ -413,6 +498,8 @@ class StudentSurveyView extends Page
         ]);
 
         Notification::make()->title('تم رفض طلب الإعادة')->success()->send();
+
+        $this->dispatch('refresh-sidebar');
     }
 
     public function unenrollStudent(int $courseId): void
@@ -480,6 +567,8 @@ class StudentSurveyView extends Page
         ]);
 
         Notification::make()->title('تم رفض الاختيار')->success()->send();
+
+        $this->dispatch('refresh-sidebar');
     }
 
     public static function getRoutePath(Panel $panel): string

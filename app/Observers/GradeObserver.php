@@ -23,10 +23,9 @@ class GradeObserver
 
     public function updating(Grade $grade): void
     {
-        if ($grade->isDirty('coursework_grade')) {
-            $grade->midterm_published_at = null;
-            $grade->published_at = null;
-        } elseif ($grade->isDirty('final_grade')) {
+        // Any change to the marks un-publishes the grade until an admin
+        // re-publishes it (the single final-publish step).
+        if ($grade->isDirty('coursework_grade') || $grade->isDirty('final_grade')) {
             $grade->published_at = null;
         }
     }

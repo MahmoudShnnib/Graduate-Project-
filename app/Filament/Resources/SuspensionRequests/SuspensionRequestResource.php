@@ -8,7 +8,6 @@ use App\Filament\Resources\SuspensionRequests\Pages\ListSuspensionRequests;
 use App\Filament\Resources\SuspensionRequests\Pages\ViewSuspensionRequest;
 use App\Models\SuspensionRequest;
 use App\Services\AuditService;
-use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -247,7 +246,7 @@ class SuspensionRequestResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading(fn (SuspensionRequest $record): string => 'قبول إيقاف قيد '.($record->student?->user?->name ?? ''))
                     ->modalDescription(fn (SuspensionRequest $record): string => 'سيتم سحب تسجيلات '.($record->student?->user?->name ?? 'الطالب').' في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
-                    ->action(function (SuspensionRequest $record, AuditService $audit, NotificationService $notifier) {
+                    ->action(function (SuspensionRequest $record, AuditService $audit, \Livewire\Component $livewire) {
                         $student = $record->student;
 
                         $record->update([
@@ -264,13 +263,14 @@ class SuspensionRequestResource extends Resource
                             ['status' => SuspensionStatus::Pending->value],
                             ['status' => SuspensionStatus::Approved->value],
                         );
-                        $notifier->notifySuspensionDecision($record->fresh());
 
                         Notification::make()
                             ->title('تم قبول طلب إيقاف القيد')
                             ->body('تم إيقاف قيد الطالب وسحب جميع تسجيلاته النشطة.')
                             ->success()
                             ->send();
+
+                        $livewire->dispatch('refresh-sidebar');
                     }),
 
                 Action::make('reject')
@@ -283,7 +283,7 @@ class SuspensionRequestResource extends Resource
                             ->label('سبب الرفض')
                             ->required(),
                     ])
-                    ->action(function (SuspensionRequest $record, array $data, NotificationService $notifier, AuditService $audit) {
+                    ->action(function (SuspensionRequest $record, array $data, AuditService $audit, \Livewire\Component $livewire) {
                         $record->update([
                             'status' => SuspensionStatus::Rejected,
                             'decided_by' => auth()->id(),
@@ -292,9 +292,10 @@ class SuspensionRequestResource extends Resource
                         ]);
 
                         $audit->log('suspension_rejected', $record);
-                        $notifier->notifySuspensionDecision($record->fresh());
 
                         Notification::make()->title('تم رفض الطلب')->success()->send();
+
+                        $livewire->dispatch('refresh-sidebar');
                     }),
             ]);
     }

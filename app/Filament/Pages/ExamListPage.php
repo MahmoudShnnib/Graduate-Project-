@@ -236,6 +236,8 @@ class ExamListPage extends Page
                 ->danger()
                 ->send();
         }
+
+        $this->dispatch('refresh-sidebar');
     }
 
     public function markFailed(): void
@@ -291,5 +293,7 @@ class ExamListPage extends Page
             ->title("تم رفض {$applications->count()} طالب")
             ->success()
             ->send();
+
+        $this->dispatch('refresh-sidebar');
     }
 }

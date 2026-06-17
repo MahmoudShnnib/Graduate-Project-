@@ -88,7 +88,11 @@ it('cascades active enrollments to Withdrawn when status flips from Active', fun
     'dismissed' => StudentStatus::Dismissed,
 ]);
 
-it('keeps approved grades visible on GradesPage after cascade', function () {
+it('keeps approved grades visible on GradesPage after a non-suspension cascade', function () {
+    // A graduation cascade withdraws all enrollments, but the GPA stays frozen
+    // WITH them, so the transcript must remain visible. (A suspension/inactive
+    // cascade intentionally HIDES the flushed current term — that is covered in
+    // SuspensionFlushesCurrentSemesterTest.)
     $enroll = app(EnrollStudentInOffering::class);
     $enrollment = $enroll($this->student, $this->offering);
 
@@ -100,7 +104,7 @@ it('keeps approved grades visible on GradesPage after cascade', function () {
         'published_at' => now(),
     ]);
 
-    $this->student->update(['status' => StudentStatus::OnHold]);
+    $this->student->update(['status' => StudentStatus::Graduated]);
 
     $this->actingAs($this->student->fresh()->user);
 

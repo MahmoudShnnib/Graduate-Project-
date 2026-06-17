@@ -43,8 +43,6 @@ class ViewSemester extends ViewRecord
             ->whereHas('enrollment', fn ($q) => $q->where('status', \App\Enums\EnrollmentStatus::Enrolled));
 
         $totalGrades = (clone $baseQuery)()->count();
-        $readyMidterm = (clone $baseQuery)()->where('status', GradeStatus::Approved)
-            ->whereNull('midterm_published_at')->whereNotNull('coursework_grade')->count();
         $readyFinal = (clone $baseQuery)()->where('status', GradeStatus::Approved)
             ->whereNull('published_at')->whereNotNull('total')->count();
         $noFinal = (clone $baseQuery)()->where('status', GradeStatus::Approved)
@@ -54,7 +52,6 @@ class ViewSemester extends ViewRecord
             ->where('status', \App\Enums\EnrollmentStatus::Enrolled)->count();
         $noGrade = $totalEnrolled - $totalGrades;
 
-        $midtermWarning = $noGrade > 0 ? "\n\n⚠️ تنبيه: يوجد {$noGrade} تسجيل بدون درجات مدخلة." : '';
         $finalWarning = '';
         if ($noGrade > 0) {
             $finalWarning .= "\n\n⚠️ يوجد {$noGrade} تسجيل بدون درجات مدخلة.";
@@ -64,30 +61,6 @@ class ViewSemester extends ViewRecord
         }
 
         return [
-            Action::make('publish_midterms')
-                ->label('نشر درجات أعمال الفصل')
-                ->icon(Heroicon::OutlinedMegaphone)
-                ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading('نشر درجات أعمال الفصل للفصل الدراسي')
-                ->modalDescription(
-                    "سيتم نشر درجات أعمال الفصل لـ {$readyMidterm} درجة من أصل {$totalEnrolled} تسجيل في الفصل."
-                    ."\nسيتمكن الطلاب من رؤية درجات أعمال الفصل فقط."
-                    .$midtermWarning
-                )
-                ->action(function (AuditService $audit): void {
-                    $count = Grade::whereHas('enrollment.courseOffering', fn ($q) => $q->where('semester_id', $this->record->id))
-                        ->whereHas('enrollment', fn ($q) => $q->where('status', \App\Enums\EnrollmentStatus::Enrolled))
-                        ->where('status', GradeStatus::Approved)
-                        ->whereNull('midterm_published_at')
-                        ->whereNotNull('coursework_grade')
-                        ->update(['midterm_published_at' => now()]);
-
-                    $audit->log('grades_midterm_published', $this->record, newValues: ['count' => $count]);
-
-                    Notification::make()->title("تم نشر درجات أعمال الفصل لـ {$count} درجة")->success()->send();
-                }),
-
             Action::make('publish_finals')
                 ->label('نشر الدرجات النهائية')
                 ->icon(Heroicon::OutlinedCheckBadge)
@@ -118,10 +91,7 @@ class ViewSemester extends ViewRecord
 
                     Grade::withoutEvents(function () use ($grades, &$studentIds) {
                         foreach ($grades as $grade) {
-                            $grade->updateQuietly([
-                                'midterm_published_at' => $grade->midterm_published_at ?? now(),
-                                'published_at' => now(),
-                            ]);
+                            $grade->updateQuietly(['published_at' => now()]);
                             $studentIds->push($grade->enrollment->student_id);
                         }
                     });
@@ -131,6 +101,8 @@ class ViewSemester extends ViewRecord
                         $student = Student::find($studentId);
                         if ($student) {
                             $calculator->recalculateStudentGPA($student);
+                            // One general "grades published" message per student.
+                            $notifier->notifyGradesPublished($student);
                         }
                     }
 
@@ -139,7 +111,6 @@ class ViewSemester extends ViewRecord
                         if ($student) {
                             $warningService->evaluateGradeApproval($student, $grade);
                         }
-                        $notifier->notifyGradePublished($grade);
                     }
 
                     $audit->log('grades_published', $this->record, newValues: ['count' => $grades->count()]);

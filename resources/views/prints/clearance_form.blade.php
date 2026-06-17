@@ -38,8 +38,6 @@
         padding: 4mm 9mm;
     }
 
-    /* Spacer to push the notes section toward the bottom of the page. */
-    .notes-spacer { height: 22mm; }
 
     .title-1 { font-size: 19pt; font-weight: bold; text-align: center; margin: 0 0 5pt; }
     .title-2 { font-size: 25pt; font-weight: bold; text-align: center; margin: 0 0 8pt; }
@@ -63,7 +61,7 @@
         direction: rtl;
     }
     .approval th { font-weight: bold; font-size: 15pt; padding: 6pt; background: #f0f0f0; }
-    .approval td { height: 9mm; }
+    .approval td { height: 13mm; }
     .approval .dept { font-weight: bold; font-size: 14pt; padding: 4pt 8pt; text-align: center; }
 
     /* Approval / accreditation box */
@@ -156,8 +154,6 @@
         <tr><td class="head">اعتماد {{ $officeName }} ب{{ $collegeName }}</td></tr>
         <tr><td class="body"></td></tr>
     </table>
-
-    <div class="notes-spacer"></div>
 
     <div class="notes">
         <p class="note-main">

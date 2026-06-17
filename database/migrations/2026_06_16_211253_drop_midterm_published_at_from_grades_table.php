@@ -1,0 +1,24 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('grades', function (Blueprint $table) {
+            // The coursework/midterm publish step was removed — grades are now
+            // published in a single final step (`published_at`).
+            $table->dropColumn('midterm_published_at');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('grades', function (Blueprint $table) {
+            $table->timestamp('midterm_published_at')->nullable()->after('approved_at');
+        });
+    }
+};

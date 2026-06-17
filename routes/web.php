@@ -70,9 +70,19 @@ Route::get('/admin/thesis-registrations/{thesisRegistration}/print-ministry-form
     ->middleware(['auth'])
     ->name('print.thesis-ministry-form');
 
-Route::get('/admin/exam-list/{specialization}/print', [PrintController::class, 'examList'])
+// Exam prints are filter-aware: both accept optional ?specialization= and
+// ?semester= query params (omit specialization to print every specialization).
+Route::get('/admin/exam-list/print', [PrintController::class, 'examList'])
     ->middleware(['auth'])
     ->name('print.exam-list');
+
+Route::get('/admin/exam-results/print', [PrintController::class, 'examResults'])
+    ->middleware(['auth'])
+    ->name('print.exam-results');
+
+Route::get('/portal/student-courses/{student}/print', [PrintController::class, 'studentCourses'])
+    ->middleware(['auth'])
+    ->name('print.student-courses');
 
 Route::get('/portal/clearance/{student}/print', [PrintController::class, 'clearanceForm'])
     ->middleware(['auth'])

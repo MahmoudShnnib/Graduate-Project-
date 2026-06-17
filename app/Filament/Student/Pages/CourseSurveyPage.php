@@ -27,6 +27,8 @@ class CourseSurveyPage extends Page
 
     public ?int $retakeConfirmCourseId = null;
 
+    public bool $confirmingSubmit = false;
+
     public function mount(): void
     {
         $student = auth()->user()->student;
@@ -35,6 +37,7 @@ class CourseSurveyPage extends Page
         if ($student && $activeSemester) {
             $existing = CourseSurvey::where('student_id', $student->id)
                 ->where('semester_id', $activeSemester->id)
+                ->where('is_retake', false)
                 ->get()
                 ->keyBy('course_id');
 
@@ -120,11 +123,37 @@ class CourseSurveyPage extends Page
         return $statuses;
     }
 
+    /**
+     * Whether the student has already submitted (finalized) their course survey
+     * for the active semester. The survey is a once-per-semester decision — after
+     * submitting, selections are locked. Retake requests are tracked separately.
+     */
+    public function hasSubmittedSurvey(): bool
+    {
+        $student = auth()->user()->student;
+        $activeSemester = $this->getActiveSemester();
+
+        if (! $student || ! $activeSemester) {
+            return false;
+        }
+
+        return CourseSurvey::where('student_id', $student->id)
+            ->where('semester_id', $activeSemester->id)
+            ->where('is_retake', false)
+            ->exists();
+    }
+
     public function toggleCourse(int $courseId): void
     {
         $semester = $this->getActiveSemester();
         if (! $semester?->survey_open) {
             Notification::make()->title('الاستطلاع مغلق حالياً')->warning()->send();
+
+            return;
+        }
+
+        if ($this->hasSubmittedSurvey()) {
+            Notification::make()->title('لقد أرسلت اختياراتك ولا يمكن تعديلها')->warning()->send();
 
             return;
         }
@@ -146,13 +175,46 @@ class CourseSurveyPage extends Page
         }
     }
 
+    /** Open the confirmation modal warning the student that submitting is final. */
+    public function confirmSubmit(): void
+    {
+        if (count($this->selections) < 1) {
+            Notification::make()
+                ->title('يجب اختيار مقرر واحد على الأقل')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $this->confirmingSubmit = true;
+    }
+
+    public function cancelSubmit(): void
+    {
+        $this->confirmingSubmit = false;
+    }
+
     public function submit(): void
     {
+        $this->confirmingSubmit = false;
+
         $student = auth()->user()->student;
         $activeSemester = $this->getActiveSemester();
 
         if (! $student || ! $activeSemester) {
             Notification::make()->title('لا يوجد فصل دراسي نشط')->danger()->send();
+
+            return;
+        }
+
+        // Once-per-semester: a finalized survey cannot be edited or resubmitted.
+        if ($this->hasSubmittedSurvey()) {
+            Notification::make()
+                ->title('لقد أرسلت اختياراتك مسبقاً')
+                ->body('لا يمكن تعديل الاستطلاع بعد إرساله.')
+                ->warning()
+                ->send();
 
             return;
         }
@@ -182,8 +244,11 @@ class CourseSurveyPage extends Page
             return;
         }
 
+        // Clear only the regular (non-retake) rows — retake requests are managed
+        // separately and must survive. On a first submit there is nothing to clear.
         CourseSurvey::where('student_id', $student->id)
             ->where('semester_id', $activeSemester->id)
+            ->where('is_retake', false)
             ->delete();
 
         foreach ($this->selections as $courseId => $priority) {
@@ -192,6 +257,7 @@ class CourseSurveyPage extends Page
                 'semester_id' => $activeSemester->id,
                 'course_id' => $courseId,
                 'priority' => $priority,
+                'is_retake' => false,
             ]);
         }
 

@@ -9,7 +9,6 @@ use App\Models\Specialization;
 use App\Models\User;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
-use App\Services\NotificationService;
 use App\Services\WhatsAppOtpService;
 use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
@@ -33,7 +32,14 @@ class RegistrationController extends Controller
         $whatsappEnabled = $whatsApp->isConfigured();
         $applicationsOpen = Semester::active()?->acceptsApplications() ?? false;
 
-        return view('registration.create', compact('specializations', 'whatsappEnabled', 'applicationsOpen'));
+        // After a failed submit (back()->withInput()), keep the phone's still-valid
+        // verification so the applicant doesn't have to re-request the OTP just to
+        // fix an unrelated field. The 30-minute grace window lives in WhatsAppOtpService.
+        $otpVerified = $whatsappEnabled
+            && filled(old('phone'))
+            && $this->otpService->hasVerified(old('phone'));
+
+        return view('registration.create', compact('specializations', 'whatsappEnabled', 'applicationsOpen', 'otpVerified'));
     }
 
     /**
@@ -238,8 +244,6 @@ class RegistrationController extends Controller
             }
 
             $application = $this->createApplication->handle($data);
-
-            app(NotificationService::class)->notifyApplicationReceived($application);
         } catch (\Throwable $e) {
             Log::error('Application submission failed', [
                 'email' => $validated['email'] ?? null,

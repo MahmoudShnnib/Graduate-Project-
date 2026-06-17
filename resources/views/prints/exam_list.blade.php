@@ -1,10 +1,10 @@
 @php
-    /** @var \App\Models\Specialization $specialization */
     /** @var \Illuminate\Support\Collection $applications */
+    /** @var string $specName */
+    /** @var bool $showSpecColumn */
     $collegeName = \App\Models\Setting::get('college_name');
     $officeName  = \App\Models\Setting::get('office_name');
 
-    $specName     = $specialization->name ?? '—';
     $examDateText = $examDate ? \Carbon\Carbon::parse($examDate)->format('Y/m/d H:i') : '—';
     $todayText    = now()->format('Y/m/d');
     $studentCount = $applications->count();
@@ -75,6 +75,7 @@
         <tr>
             <th class="col-num">م</th>
             <th>الاسم الرباعي</th>
+            @if($showSpecColumn)<th>التخصص</th>@endif
         </tr>
     </thead>
     <tbody>
@@ -82,9 +83,10 @@
             <tr style="{{ $loop->even ? 'background:#f7f7f7;' : '' }}">
                 <td class="col-num">{!! $num($i + 1) !!}</td>
                 <td>{{ $app->name }}</td>
+                @if($showSpecColumn)<td>{{ $app->specialization?->name ?? '—' }}</td>@endif
             </tr>
         @empty
-            <tr><td colspan="2" style="text-align:center;">لا يوجد طلاب</td></tr>
+            <tr><td colspan="{{ $showSpecColumn ? 3 : 2 }}" style="text-align:center;">لا يوجد طلاب</td></tr>
         @endforelse
     </tbody>
 </table>
