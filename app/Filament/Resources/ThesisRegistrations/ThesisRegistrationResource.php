@@ -7,7 +7,6 @@ use App\Filament\Resources\ThesisRegistrations\Pages\ListThesisRegistrations;
 use App\Filament\Resources\ThesisRegistrations\Pages\ViewThesisRegistration;
 use App\Models\ThesisRegistration;
 use App\Services\AuditService;
-use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -136,7 +135,7 @@ class ThesisRegistrationResource extends Resource
                     ->modalHeading('قبول طلب تسجيل الرسالة')
                     ->modalDescription('سيتم قبول تسجيل الرسالة لهذا الطالب. هل أنت متأكد؟')
                     ->modalSubmitActionLabel('تأكيد القبول')
-                    ->action(function (ThesisRegistration $record, AuditService $audit, NotificationService $notifier) {
+                    ->action(function (ThesisRegistration $record, AuditService $audit, \Livewire\Component $livewire) {
                         $student = $record->student;
 
                         if (! $student->isEligibleForThesis()) {
@@ -156,9 +155,10 @@ class ThesisRegistrationResource extends Resource
                         ]);
 
                         $audit->log('thesis_approved', $record, ['status' => 'printed'], ['status' => 'approved']);
-                        $notifier->notifyThesisDecision($record->fresh());
 
                         Notification::make()->title('تم قبول تسجيل الرسالة')->success()->send();
+
+                        $livewire->dispatch('refresh-sidebar');
                     }),
 
                 Action::make('reject')
@@ -176,7 +176,7 @@ class ThesisRegistrationResource extends Resource
                             ->required()
                             ->rows(3),
                     ])
-                    ->action(function (ThesisRegistration $record, array $data, NotificationService $notifier, AuditService $audit) {
+                    ->action(function (ThesisRegistration $record, array $data, AuditService $audit, \Livewire\Component $livewire) {
                         $record->update([
                             'status' => ThesisStatus::Rejected,
                             'rejection_reason' => $data['rejection_reason'],
@@ -185,9 +185,10 @@ class ThesisRegistrationResource extends Resource
                         ]);
 
                         $audit->log('thesis_rejected', $record);
-                        $notifier->notifyThesisDecision($record->fresh());
 
                         Notification::make()->title('تم رفض الطلب')->success()->send();
+
+                        $livewire->dispatch('refresh-sidebar');
                     }),
             ]);
     }

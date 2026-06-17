@@ -65,7 +65,7 @@ class UserFactory extends Factory
                 'national_id' => fake()->unique()->numerify('############'),
                 'birth_date' => fake()->dateTimeBetween('-65 years', '-30 years')->format('Y-m-d'),
                 'birth_place' => fake()->randomElement(['طرابلس', 'بنغازي', 'مصراتة', 'سبها', 'الزاوية', 'صبراتة', 'درنة']),
-                'nationality' => 'ليبية',
+                'nationality' => 'ليبيا',
                 'gender' => fake()->randomElement(['male', 'female']),
                 'academic_rank' => fake()->randomElement(['أستاذ', 'أستاذ مشارك', 'أستاذ مساعد', 'محاضر']),
                 'qualification' => fake()->randomElement(['دكتوراه', 'ماجستير']),

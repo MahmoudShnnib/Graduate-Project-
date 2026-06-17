@@ -19,10 +19,8 @@ class Grade extends Model
         'letter',
         'points',
         'status',
-        'paper_sheet_path',
         'approved_by',
         'approved_at',
-        'midterm_published_at',
         'published_at',
     ];
 
@@ -35,7 +33,6 @@ class Grade extends Model
             'points' => 'decimal:1',
             'status' => GradeStatus::class,
             'approved_at' => 'datetime',
-            'midterm_published_at' => 'datetime',
             'published_at' => 'datetime',
         ];
     }

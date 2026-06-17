@@ -16,41 +16,48 @@ class UserForm
     {
         return $schema
             ->components([
-                TextInput::make('name')
-                    ->label('الاسم')
-                    ->required(),
+                Section::make('بيانات الحساب')
+                    ->icon(Heroicon::UserCircle)
+                    ->columns(2)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('name')
+                            ->label('الاسم')
+                            ->required(),
 
-                TextInput::make('email')
-                    ->label('البريد الإلكتروني')
-                    ->email()
-                    ->required()
-                    ->unique(ignoreRecord: true),
+                        TextInput::make('email')
+                            ->label('البريد الإلكتروني')
+                            ->email()
+                            ->required()
+                            ->unique(ignoreRecord: true),
 
-                // Password is set only when creating a user. On the edit page the field is
-                // hidden entirely — users change their own password via the WhatsApp
-                // forgot-password / change-password flows, so admins never reset it by hand.
-                TextInput::make('password')
-                    ->label('كلمة المرور')
-                    ->password()
-                    ->visibleOn('create')
-                    ->required()
-                    ->minLength(8),
+                        // Password is set only when creating a user. On the edit page the field is
+                        // hidden entirely — users change their own password via the WhatsApp
+                        // forgot-password / change-password flows, so admins never reset it by hand.
+                        TextInput::make('password')
+                            ->label('كلمة المرور')
+                            ->password()
+                            ->visibleOn('create')
+                            ->required()
+                            ->minLength(8),
 
-                TextInput::make('phone')
-                    ->label('رقم الهاتف'),
+                        TextInput::make('phone')
+                            ->label('رقم الهاتف'),
 
-                Select::make('role')
-                    ->label('الدور')
-                    ->options([
-                        'super_admin' => 'رئيس مكتب الدراسات العليا',
-                        'manager_assistant' => 'مساعد إداري',
-                        'faculty' => 'عضو هيئة التدريس',
-                    ])
-                    ->live(),
+                        Select::make('role')
+                            ->label('الدور')
+                            ->options([
+                                'super_admin' => 'رئيس مكتب الدراسات العليا',
+                                'manager_assistant' => 'مساعد إداري',
+                                'faculty' => 'عضو هيئة التدريس',
+                            ])
+                            ->required()
+                            ->live(),
 
-                Toggle::make('is_active')
-                    ->label('نشط')
-                    ->default(true),
+                        Toggle::make('is_active')
+                            ->label('نشط')
+                            ->default(true),
+                    ]),
 
                 // Faculty-only identity fields — mirrors the external-supervisor modal
                 // on /admin/thesis-registrations so internal + external supervisors
@@ -58,6 +65,7 @@ class UserForm
                 Section::make('البيانات الشخصية')
                     ->icon(Heroicon::Identification)
                     ->columns(2)
+                    ->columnSpanFull()
                     ->visible(fn (callable $get): bool => $get('role') === 'faculty')
                     ->schema([
                         TextInput::make('national_id')
@@ -77,11 +85,12 @@ class UserForm
                             ->required(fn (callable $get): bool => $get('role') === 'faculty')
                             ->maxLength(255),
 
-                        TextInput::make('nationality')
+                        Select::make('nationality')
                             ->label('الجنسية')
-                            ->default('ليبية')
-                            ->required(fn (callable $get): bool => $get('role') === 'faculty')
-                            ->maxLength(255),
+                            ->options(collect(config('nationalities.list'))->mapWithKeys(fn (array $c): array => [$c['name'] => $c['flag'].' '.$c['name']]))
+                            ->default(config('nationalities.default'))
+                            ->searchable()
+                            ->required(fn (callable $get): bool => $get('role') === 'faculty'),
 
                         Select::make('gender')
                             ->label('الجنس')
@@ -98,6 +107,7 @@ class UserForm
                     ->icon(Heroicon::AcademicCap)
                     ->description('تظهر هذه الحقول لأعضاء هيئة التدريس فقط، وتطابق نموذج المشرفين الخارجيين.')
                     ->columns(2)
+                    ->columnSpanFull()
                     ->visible(fn (callable $get): bool => $get('role') === 'faculty')
                     ->schema([
                         TextInput::make('academic_rank')

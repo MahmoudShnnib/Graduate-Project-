@@ -199,6 +199,7 @@ class ViewExceptionalStudent extends Page
 
                 $this->record->refresh();
                 $this->record->load(['exceptionalRequests' => fn ($q) => $q->latest()]);
+                $this->dispatch('refresh-sidebar');
             });
     }
 }

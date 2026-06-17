@@ -1,8 +1,8 @@
 <x-filament-panels::page>
     {{-- ============================================================
          /admin/grades/{offering}/grades — Figma view-page design.
-         Page header actions (publish midterms / publish finals) stay
-         intact — they're Filament Action objects.
+         Page header action (publish finals) stays intact — it's a
+         Filament Action object.
          Backup: _backups/view-course-grades-2026-05-13/
        ============================================================ --}}
 

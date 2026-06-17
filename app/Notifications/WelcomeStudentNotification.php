@@ -16,19 +16,17 @@ class WelcomeStudentNotification extends Notification
 
     public function __construct(
         public readonly Student $student,
-        public readonly ?string $plainPassword = null,
     ) {}
 
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {
         $enrollmentNo = $this->student->enrollment_no ?? '—';
-        $text = "مرحباً {$notifiable->name}، تم قبولك رسمياً في برنامج الدراسات العليا.\nرقمك الجامعي: {$enrollmentNo}\nالبريد: {$notifiable->email}";
 
-        if ($this->plainPassword) {
-            $text .= "\nكلمة المرور: {$this->plainPassword}";
-        }
-
-        return new WhatsAppMessage(message: $text);
+        return new WhatsAppMessage(
+            message: "مرحباً {$notifiable->name}، يسرنا إبلاغك بأنك اجتزت اختبار القبول وتم قبولك رسمياً في برنامج الدراسات العليا.\n"
+                ."رقمك الجامعي: {$enrollmentNo}\n"
+                ."البريد: {$notifiable->email}",
+        );
     }
 
     /** @return array<string, mixed> */

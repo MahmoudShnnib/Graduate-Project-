@@ -246,3 +246,25 @@ From the original 10-step plan in [[../daily-notes/2026-05-17-settings-widget-an
 | 10 | Delete unused `pdfs/thesis_form.blade.php` | ⏳ TODO |
 
 Continue at Step 4's remaining templates next session — they all share this guide's skeleton.
+
+## Additions (2026-06-17) — see [[../daily-notes/2026-06-17-eight-fix-batch]]
+
+- **First student-panel print.** `student_courses.blade.php` +
+  `PrintController::studentCourses()` + route `print.student-courses`
+  (`/portal/student-courses/{student}/print`). Replaced the old portal page's inline
+  `window.print()` JS. Auth uses **`authorizeAdminOrOwningStudent($student)`** (not
+  admin-only) so a student prints their own sheet; admins can print any. The
+  on-page print button just `window.open(route(...))`. Signature block:
+  `{{ $directorName }}` / `مدير {{ $officeName }} بالكلية`, both from `Setting::get()`.
+- **Date auto-fill convention.** Where a print needs "today", set
+  `$printDate = now()->format('Y/m/d')` in the blade and wrap digits with the markazi
+  span. Applied to `exam_attendance` + `course_results` (التاريخ row was a blank `&nbsp;`).
+- **Faculty access to a print.** `course_results` / `exam_attendance` already use
+  `authorizeAdminOrCourseFaculty($offering)` — faculty teaching the offering can hit the
+  route. Added the missing **"طباعة نتائج المادة"** header action on the faculty
+  `ViewMyCourse` page so they have a button (the route already allowed them).
+- **Signature = director from settings.** `exam_results` footer now prints
+  `Setting::get('director_name')` + `مدير {office}` (was office-name only). Any new
+  signature block should do the same — never hardcode the director/dean name.
+- **Trim blank filler rows.** Removed `course_offerings.paper_sheet_path` grade-sheet
+  feature and the 3 hardcoded blank `<tr>` filler rows in `exam_attendance`.

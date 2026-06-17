@@ -236,6 +236,8 @@ class EnrollStudents extends Page implements HasTable
                         }
                     }
 
+                    $this->dispatch('refresh-sidebar');
+
                     if ($capped > 0 || $outOfSpec > 0 || $suspended > 0 || $notActive > 0) {
                         $bodyParts = [];
                         if ($capped > 0) {
@@ -307,6 +309,8 @@ class EnrollStudents extends Page implements HasTable
                         ->title("تمت الموافقة على إعادة {$count} طالب")
                         ->success()
                         ->send();
+
+                    $this->dispatch('refresh-sidebar');
                 }),
 
             Action::make('enroll_manual')
@@ -405,6 +409,8 @@ class EnrollStudents extends Page implements HasTable
                             $count++;
                         }
                     }
+
+                    $this->dispatch('refresh-sidebar');
 
                     if ($capped > 0 || $outOfSpec > 0 || $suspended > 0 || $notActive > 0) {
                         $bodyParts = [];

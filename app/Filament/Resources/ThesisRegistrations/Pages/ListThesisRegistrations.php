@@ -83,9 +83,11 @@ class ListThesisRegistrations extends ListRecords
                             TextInput::make('birth_place')
                                 ->label('مكان الميلاد')
                                 ->required(),
-                            TextInput::make('nationality')
+                            Select::make('nationality')
                                 ->label('الجنسية')
-                                ->default('ليبية')
+                                ->options(collect(config('nationalities.list'))->mapWithKeys(fn (array $c): array => [$c['name'] => $c['flag'].' '.$c['name']]))
+                                ->default(config('nationalities.default'))
+                                ->searchable()
                                 ->required(),
                             Select::make('gender')
                                 ->label('الجنس')

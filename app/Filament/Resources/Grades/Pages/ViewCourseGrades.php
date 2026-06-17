@@ -68,16 +68,11 @@ class ViewCourseGrades extends Page implements HasTable
         $withGrade = (clone $baseQuery)()->count();
         $noGrade = $totalEnrolled - $withGrade;
 
-        $readyMidterm = (clone $baseQuery)()->where('status', GradeStatus::Approved)
-            ->whereNull('midterm_published_at')->whereNotNull('coursework_grade')->count();
         $readyFinal = (clone $baseQuery)()->where('status', GradeStatus::Approved)
             ->whereNull('published_at')->whereNotNull('total')->count();
         $approvedNoFinal = (clone $baseQuery)()->where('status', GradeStatus::Approved)
             ->whereNull('total')->count();
 
-        $midtermWarning = $noGrade > 0
-            ? "\n\n⚠️ تنبيه: يوجد {$noGrade} طالب مسجل بدون درجات مدخلة."
-            : '';
         $finalWarning = '';
         if ($noGrade > 0) {
             $finalWarning .= "\n\n⚠️ يوجد {$noGrade} طالب بدون درجات مدخلة.";
@@ -87,49 +82,6 @@ class ViewCourseGrades extends Page implements HasTable
         }
 
         return [
-            Action::make('publish_midterms')
-                ->label('نشر درجات أعمال الفصل')
-                ->icon(Heroicon::OutlinedMegaphone)
-                ->color('warning')
-                ->disabled($readyMidterm === 0)
-                ->tooltip($readyMidterm === 0 ? 'لا توجد درجات أعمال فصل جاهزة للنشر' : null)
-                ->requiresConfirmation()
-                ->modalHeading('نشر درجات أعمال الفصل')
-                ->modalDescription(
-                    "سيتم نشر درجات أعمال الفصل لـ {$readyMidterm} طالب من أصل {$totalEnrolled} مسجل."
-                    ."\nسيتمكن الطلاب من رؤية درجات أعمال الفصل وسيتم إشعارهم بذلك."
-                    .$midtermWarning
-                )
-                ->action(function (NotificationService $notifier, AuditService $audit): void {
-                    $grades = Grade::whereHas('enrollment', fn ($q) => $q->where('course_offering_id', $this->record->id)
-                        ->where('status', \App\Enums\EnrollmentStatus::Enrolled))
-                        ->where('status', GradeStatus::Approved)
-                        ->whereNull('midterm_published_at')
-                        ->whereNotNull('coursework_grade')
-                        ->with(['enrollment.student.user', 'enrollment.courseOffering.course'])
-                        ->get();
-
-                    if ($grades->isEmpty()) {
-                        Notification::make()->title('لا توجد درجات جاهزة للنشر')->warning()->send();
-
-                        return;
-                    }
-
-                    Grade::withoutEvents(function () use ($grades): void {
-                        foreach ($grades as $grade) {
-                            $grade->updateQuietly(['midterm_published_at' => now()]);
-                        }
-                    });
-
-                    foreach ($grades as $grade) {
-                        $notifier->notifyCourseworkPublished($grade);
-                    }
-
-                    $audit->log('grades_midterm_published', $this->record, newValues: ['count' => $grades->count()]);
-
-                    Notification::make()->title("تم نشر درجات أعمال الفصل لـ {$grades->count()} طالب")->success()->send();
-                }),
-
             Action::make('publish_finals')
                 ->label('نشر الدرجات النهائية')
                 ->icon(Heroicon::OutlinedCheckBadge)
@@ -162,10 +114,7 @@ class ViewCourseGrades extends Page implements HasTable
 
                     Grade::withoutEvents(function () use ($grades, &$studentIds) {
                         foreach ($grades as $grade) {
-                            $grade->updateQuietly([
-                                'midterm_published_at' => $grade->midterm_published_at ?? now(),
-                                'published_at' => now(),
-                            ]);
+                            $grade->updateQuietly(['published_at' => now()]);
                             $studentIds->push($grade->enrollment->student_id);
                         }
                     });
@@ -175,6 +124,8 @@ class ViewCourseGrades extends Page implements HasTable
                         $student = \App\Models\Student::find($studentId);
                         if ($student) {
                             $calculator->recalculateStudentGPA($student);
+                            // One general "grades published" message per student.
+                            $notifier->notifyGradesPublished($student);
                         }
                     }
 
@@ -183,7 +134,6 @@ class ViewCourseGrades extends Page implements HasTable
                         if ($student) {
                             $warningService->evaluateGradeApproval($student, $grade);
                         }
-                        $notifier->notifyGradePublished($grade);
                     }
 
                     $audit->log('grades_published', $this->record, newValues: ['count' => $grades->count()]);
@@ -252,26 +202,8 @@ class ViewCourseGrades extends Page implements HasTable
                 TextColumn::make('publish_status')
                     ->label('النشر')
                     ->badge()
-                    ->state(function (Grade $record): string {
-                        if ($record->published_at) {
-                            return 'منشور';
-                        }
-                        if ($record->midterm_published_at) {
-                            return 'منتصف فقط';
-                        }
-
-                        return 'غير منشور';
-                    })
-                    ->color(function (Grade $record): string {
-                        if ($record->published_at) {
-                            return 'success';
-                        }
-                        if ($record->midterm_published_at) {
-                            return 'warning';
-                        }
-
-                        return 'gray';
-                    }),
+                    ->state(fn (Grade $record): string => $record->published_at ? 'منشور' : 'غير منشور')
+                    ->color(fn (Grade $record): string => $record->published_at ? 'success' : 'gray'),
             ])
             ->recordActions([
                 Action::make('approve')
@@ -292,6 +224,8 @@ class ViewCourseGrades extends Page implements HasTable
                         $audit->log('grade_approved', $record, newValues: ['letter' => $record->letter, 'total' => $record->total]);
 
                         Notification::make()->title('تم اعتماد الدرجة بنجاح')->success()->send();
+
+                        $this->dispatch('refresh-sidebar');
                     }),
 
                 Action::make('change_status')
@@ -325,6 +259,8 @@ class ViewCourseGrades extends Page implements HasTable
                         $record->update($updateData);
 
                         Notification::make()->title('تم تغيير الحالة بنجاح')->success()->send();
+
+                        $this->dispatch('refresh-sidebar');
                     }),
 
                 Action::make('edit_grade')
@@ -361,6 +297,8 @@ class ViewCourseGrades extends Page implements HasTable
                         ]);
 
                         Notification::make()->title('تم تعديل الدرجة')->success()->send();
+
+                        $this->dispatch('refresh-sidebar');
                     }),
             ])
             ->bulkActions([
@@ -391,6 +329,8 @@ class ViewCourseGrades extends Page implements HasTable
                         }
 
                         Notification::make()->title("تم اعتماد {$count} درجة")->success()->send();
+
+                        $this->dispatch('refresh-sidebar');
                     })
                     ->deselectRecordsAfterCompletion(),
             ])

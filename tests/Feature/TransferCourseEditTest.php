@@ -30,7 +30,7 @@ it('persists transfer_courses on edit save and recalculates gpa', function () {
     ['student' => $student] = studentWithRecord([
         'is_transfer' => true, 'gpa' => 0,
         'mother_name' => 'فاطمة أحمد', 'birth_date' => '1990-01-01', 'birth_place' => 'طرابلس',
-        'gender' => 'male', 'marital_status' => 'single', 'nationality' => 'ليبية',
+        'gender' => 'male', 'marital_status' => 'single', 'nationality' => 'ليبيا',
         'national_id' => '111111111111', 'residence' => 'طرابلس', 'permanent_address' => 'طرابلس',
         'study_type' => 'self_funded',
     ]);
@@ -61,7 +61,7 @@ it('deletes transfer_courses when is_transfer is toggled off', function () {
     ['student' => $student] = studentWithRecord([
         'is_transfer' => true,
         'mother_name' => 'فاطمة أحمد', 'birth_date' => '1990-01-01', 'birth_place' => 'طرابلس',
-        'gender' => 'male', 'marital_status' => 'single', 'nationality' => 'ليبية',
+        'gender' => 'male', 'marital_status' => 'single', 'nationality' => 'ليبيا',
         'national_id' => '222222222222', 'residence' => 'طرابلس', 'permanent_address' => 'طرابلس',
         'study_type' => 'self_funded',
     ]);

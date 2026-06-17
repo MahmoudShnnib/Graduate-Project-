@@ -110,6 +110,16 @@ it('rejects a workplace that contains english letters (arabic-only)', function (
         ->assertSessionHasErrors('workplace');
 });
 
+it('rejects an english name field that contains arabic letters', function () {
+    $this->post(route('registration.store'), nationalityPayload(['name_en' => 'محمد أحمد']))
+        ->assertSessionHasErrors('name_en');
+});
+
+it('accepts an english name written in latin letters', function () {
+    $this->post(route('registration.store'), nationalityPayload(['name_en' => 'Mohammed Ahmed Ali Zawai']))
+        ->assertSessionHasNoErrors();
+});
+
 it('accepts an arabic profession and workplace', function () {
     $this->post(route('registration.store'), nationalityPayload([
         'profession' => 'مهندس',

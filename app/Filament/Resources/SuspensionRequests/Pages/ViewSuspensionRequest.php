@@ -7,7 +7,6 @@ use App\Enums\SuspensionStatus;
 use App\Filament\Resources\SuspensionRequests\SuspensionRequestResource;
 use App\Models\SuspensionRequest;
 use App\Services\AuditService;
-use App\Services\NotificationService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -41,7 +40,7 @@ class ViewSuspensionRequest extends ViewRecord
                 ->requiresConfirmation()
                 ->modalHeading(fn (): string => 'قبول إيقاف قيد '.($this->record->student?->user?->name ?? ''))
                 ->modalDescription(fn (): string => 'سيتم سحب تسجيلات '.($this->record->student?->user?->name ?? 'الطالب').' في هذا الفصل فقط، وستبقى حالته نشطة للفصول الأخرى.')
-                ->action(function (AuditService $audit, NotificationService $notifier): void {
+                ->action(function (AuditService $audit): void {
                     /** @var SuspensionRequest $record */
                     $record = $this->record;
                     $student = $record->student;
@@ -60,7 +59,6 @@ class ViewSuspensionRequest extends ViewRecord
                         ['status' => SuspensionStatus::Pending->value],
                         ['status' => SuspensionStatus::Approved->value],
                     );
-                    $notifier->notifySuspensionDecision($record->fresh());
 
                     Notification::make()
                         ->title('تم قبول طلب إيقاف القيد')
@@ -69,6 +67,7 @@ class ViewSuspensionRequest extends ViewRecord
                         ->send();
 
                     $this->refreshFormData(['status', 'decided_by', 'decided_at']);
+                    $this->dispatch('refresh-sidebar');
                 }),
 
             Action::make('reject')
@@ -81,7 +80,7 @@ class ViewSuspensionRequest extends ViewRecord
                         ->label('سبب الرفض')
                         ->required(),
                 ])
-                ->action(function (array $data, NotificationService $notifier, AuditService $audit): void {
+                ->action(function (array $data, AuditService $audit): void {
                     /** @var SuspensionRequest $record */
                     $record = $this->record;
 
@@ -93,11 +92,11 @@ class ViewSuspensionRequest extends ViewRecord
                     ]);
 
                     $audit->log('suspension_rejected', $record);
-                    $notifier->notifySuspensionDecision($record->fresh());
 
                     Notification::make()->title('تم رفض الطلب')->success()->send();
 
                     $this->refreshFormData(['status', 'decided_by', 'decided_at', 'decision_notes']);
+                    $this->dispatch('refresh-sidebar');
                 }),
         ];
     }

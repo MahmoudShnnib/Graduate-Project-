@@ -3,6 +3,8 @@
 use App\Enums\EnrollmentStatus;
 use App\Enums\GradeStatus;
 use App\Enums\StudentStatus;
+use App\Filament\Student\Pages\CourseTreePage;
+use App\Filament\Student\Pages\GradesPage;
 use App\Models\Course;
 use App\Models\CourseOffering;
 use App\Models\Grade;
@@ -148,4 +150,45 @@ it('still withdraws everything and preserves the final GPA on graduation', funct
     expect($current->fresh()->status)->toBe(EnrollmentStatus::Withdrawn)
         ->and($prior->fresh()->status)->toBe(EnrollmentStatus::Withdrawn)
         ->and((float) $student->fresh()->gpa)->toBe(2.5); // frozen at the final value
+});
+
+it('hides suspension-flushed current-semester courses from the transcript but keeps prior work', function () {
+    ['student' => $student, 'prior' => $prior, 'current' => $current] = flushFixture();
+    $student->update(['status' => StudentStatus::OnHold]);
+
+    $this->actingAs($student->user);
+
+    $enrollmentIds = (new GradesPage)->getGrades()->pluck('id');
+
+    expect($enrollmentIds)->toContain($prior->id)
+        ->and($enrollmentIds)->not->toContain($current->id);
+});
+
+it('excludes suspension-flushed current courses from the course tree but keeps prior passed courses', function () {
+    ['student' => $student, 'prior' => $prior, 'current' => $current] = flushFixture();
+    $priorCourseId = $prior->courseOffering->course_id;
+    $currentCourseId = $current->courseOffering->course_id;
+
+    $student->update(['status' => StudentStatus::OnHold]);
+
+    $this->actingAs($student->user);
+
+    $map = (new CourseTreePage)->getEnrollmentMap();
+
+    expect($map)->toHaveKey($priorCourseId)
+        ->and($map[$priorCourseId]['status'])->toBe('passed')
+        ->and($map)->not->toHaveKey($currentCourseId);
+});
+
+it('keeps a graduated student full transcript visible even though all enrollments are withdrawn', function () {
+    ['student' => $student, 'prior' => $prior, 'current' => $current] = flushFixture();
+    $student->update(['status' => StudentStatus::Graduated]);
+
+    $this->actingAs($student->user);
+
+    // On graduation BOTH enrollments are withdrawn, but they are prior/non-current
+    // relative to a graduated student, so the transcript must still show them.
+    $enrollmentIds = (new GradesPage)->getGrades()->pluck('id');
+
+    expect($enrollmentIds)->toContain($prior->id);
 });

@@ -8,7 +8,7 @@ use App\Models\CourseOffering;
 use App\Models\Grade;
 use App\Models\StudentEnrollment;
 use App\Models\User;
-use App\Notifications\CourseworkGradePublishedNotification;
+use App\Notifications\GradesPublishedNotification;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
@@ -36,7 +36,7 @@ function facultyOfferingWithStudent(): array
     return compact('faculty', 'offering', 'student', 'enrollment');
 }
 
-it('lets faculty save a coursework grade alone (no final required)', function () {
+it('lets faculty save a coursework-only grade as a draft', function () {
     ['faculty' => $faculty, 'offering' => $offering, 'enrollment' => $enrollment] = facultyOfferingWithStudent();
 
     Livewire::actingAs($faculty)
@@ -55,30 +55,39 @@ it('lets faculty save a coursework grade alone (no final required)', function ()
         ->and($grade->status)->toBe(GradeStatus::Draft);
 });
 
-it('lets faculty re-open an approved coursework-only grade to add the final', function () {
+it('does not submit a coursework-only draft for approval', function () {
     ['faculty' => $faculty, 'offering' => $offering, 'enrollment' => $enrollment] = facultyOfferingWithStudent();
 
-    $grade = Grade::factory()->create([
+    Grade::factory()->create([
         'enrollment_id' => $enrollment->id,
         'coursework_grade' => 35,
         'final_grade' => null,
-        'status' => GradeStatus::Approved,
-        'midterm_published_at' => now(),
+        'status' => GradeStatus::Draft,
     ]);
 
     Livewire::actingAs($faculty)
         ->test(ViewMyCourse::class, ['record' => $offering])
-        ->callAction(TestAction::make('enter_grade')->table($enrollment), data: [
-            'coursework_grade' => 35,
-            'final_grade' => 50,
-        ])
+        ->callAction('submit_grades');
+
+    expect(Grade::where('enrollment_id', $enrollment->id)->first()->status)->toBe(GradeStatus::Draft);
+});
+
+it('submits a complete draft (coursework + final) for approval', function () {
+    ['faculty' => $faculty, 'offering' => $offering, 'enrollment' => $enrollment] = facultyOfferingWithStudent();
+
+    Grade::factory()->create([
+        'enrollment_id' => $enrollment->id,
+        'coursework_grade' => 35,
+        'final_grade' => 50,
+        'status' => GradeStatus::Draft,
+    ]);
+
+    Livewire::actingAs($faculty)
+        ->test(ViewMyCourse::class, ['record' => $offering])
+        ->callAction('submit_grades')
         ->assertHasNoActionErrors();
 
-    $grade->refresh();
-
-    expect((float) $grade->final_grade)->toBe(50.0)
-        ->and((float) $grade->total)->toBe(85.0)
-        ->and($grade->status)->toBe(GradeStatus::Draft);
+    expect(Grade::where('enrollment_id', $enrollment->id)->first()->status)->toBe(GradeStatus::PendingApproval);
 });
 
 it('hides faculty grade entry while a grade awaits admin approval', function () {
@@ -94,7 +103,22 @@ it('hides faculty grade entry while a grade awaits admin approval', function () 
         ->assertActionHidden(TestAction::make('enter_grade')->table($enrollment));
 });
 
-it('notifies the student when coursework grades are published', function () {
+it('hides faculty grade entry once the grade is approved', function () {
+    ['faculty' => $faculty, 'offering' => $offering, 'enrollment' => $enrollment] = facultyOfferingWithStudent();
+
+    Grade::factory()->create([
+        'enrollment_id' => $enrollment->id,
+        'coursework_grade' => 35,
+        'final_grade' => 50,
+        'status' => GradeStatus::Approved,
+    ]);
+
+    Livewire::actingAs($faculty)
+        ->test(ViewMyCourse::class, ['record' => $offering])
+        ->assertActionHidden(TestAction::make('enter_grade')->table($enrollment));
+});
+
+it('publishes approved grades in a single final step and notifies the student', function () {
     Notification::fake();
 
     ['offering' => $offering, 'student' => $student, 'enrollment' => $enrollment] = facultyOfferingWithStudent();
@@ -102,17 +126,17 @@ it('notifies the student when coursework grades are published', function () {
     Grade::factory()->create([
         'enrollment_id' => $enrollment->id,
         'coursework_grade' => 38,
-        'final_grade' => null,
+        'final_grade' => 50,
         'status' => GradeStatus::Approved,
-        'midterm_published_at' => null,
+        'published_at' => null,
     ]);
 
     Livewire::actingAs(adminUser())
         ->test(ViewCourseGrades::class, ['record' => $offering])
-        ->callAction('publish_midterms')
+        ->callAction('publish_finals')
         ->assertHasNoActionErrors();
 
-    Notification::assertSentTo($student->user, CourseworkGradePublishedNotification::class);
+    Notification::assertSentTo($student->user, GradesPublishedNotification::class);
 
-    expect(Grade::where('enrollment_id', $enrollment->id)->first()->midterm_published_at)->not->toBeNull();
+    expect(Grade::where('enrollment_id', $enrollment->id)->first()->published_at)->not->toBeNull();
 });

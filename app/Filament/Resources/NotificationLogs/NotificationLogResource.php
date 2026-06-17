@@ -32,15 +32,10 @@ class NotificationLogResource extends Resource
     protected static ?int $navigationSort = 5;
 
     public const EVENT_LABELS = [
-        'application_received' => 'استلام الطلب',
         'application_initially_approved' => 'قبول مبدئي',
-        'application_exam_passed' => 'اجتياز الامتحان / قبول نهائي',
-        'welcome_student' => 'ترحيب بالطالب الجديد',
+        'welcome_student' => 'القبول النهائي والترحيب بالطالب',
         'grade_published' => 'نشر الدرجات',
-        'thesis_decision' => 'قرار الرسالة العلمية',
-        'suspension_decision' => 'قرار إيقاف القيد',
-        'add_drop_decision' => 'قرار الإضافة/الحذف',
-        'clearance_issued' => 'اعتماد الاستماحة',
+        'contact_info_changed' => 'تغيير بيانات التواصل',
     ];
 
     public static function form(Schema $schema): Schema
@@ -57,6 +52,12 @@ class NotificationLogResource extends Resource
                     ->label('الطالب')
                     ->description(fn (NotificationLog $record): string => $record->student?->enrollment_no ?? '')
                     ->placeholder('—')
+                    ->searchable(),
+
+                TextColumn::make('phone')
+                    ->label('الرقم')
+                    ->placeholder('—')
+                    ->copyable()
                     ->searchable(),
 
                 TextColumn::make('event')

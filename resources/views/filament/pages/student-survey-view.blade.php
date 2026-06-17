@@ -84,21 +84,18 @@
                         <div class="flex items-center gap-2 shrink-0">
                             @if($isEnrolled)
                                 <x-admin.badge color="success">مسجّل</x-admin.badge>
-                                <button wire:click="unenrollStudent({{ $entry->course->id }})"
-                                    wire:confirm="هل أنت متأكد من إلغاء تسجيل الطالب؟"
+                                <button wire:click="requestConfirm('unenrollStudent', {{ $entry->course->id }})"
                                     class="rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition">
                                     إلغاء
                                 </button>
                             @elseif($isRejected)
                                 <x-admin.badge color="danger">مرفوض</x-admin.badge>
                             @else
-                                <button wire:click="enrollStudent({{ $entry->course->id }})"
-                                    wire:confirm="هل أنت متأكد من تسجيل الطالب؟"
+                                <button wire:click="requestConfirm('enrollStudent', {{ $entry->course->id }})"
                                     class="rounded-lg bg-primary-50 dark:bg-primary-500/10 px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition">
                                     تسجيل
                                 </button>
-                                <button wire:click="rejectCourse({{ $entry->course->id }})"
-                                    wire:confirm="هل أنت متأكد من رفض هذا الاختيار للطالب؟"
+                                <button wire:click="requestConfirm('rejectCourse', {{ $entry->course->id }})"
                                     class="rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition">
                                     رفض
                                 </button>
@@ -110,11 +107,11 @@
 
             {{-- Bulk action bar --}}
             <x-admin.action-bar :selected-count="$selectedCount" selected-label="تم تحديد" empty-label="حدد المقررات لتنفيذ إجراء" class="mt-4 pt-4 border-t border-gray-100 dark:border-white/10">
-                <x-filament::button wire:click="rejectSelected" wire:confirm="هل أنت متأكد من رفض المقررات المحددة؟"
+                <x-filament::button wire:click="requestConfirm('rejectSelected')"
                     color="danger" icon="heroicon-o-x-mark" size="sm">
                     رفض المحددة
                 </x-filament::button>
-                <x-filament::button wire:click="enrollSelected" wire:confirm="هل أنت متأكد من تسجيل المقررات المحددة؟"
+                <x-filament::button wire:click="requestConfirm('enrollSelected')"
                     color="success" icon="heroicon-o-check" size="sm">
                     تسجيل المحددة
                 </x-filament::button>
@@ -251,6 +248,38 @@
                 </div>
             </div>
         @endif
+    @endif
+
+    {{-- Generic action confirmation modal (matches the retake modal design) --}}
+    @php $confirm = $this->getConfirmConfig(); @endphp
+    @if($confirm)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" wire:click.self="cancelConfirm">
+            <div class="w-full max-w-md mx-4 rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                <div class="p-6 text-center">
+                    <div @class([
+                        'flex items-center justify-center w-14 h-14 rounded-full mx-auto mb-4',
+                        'bg-success-100 dark:bg-success-500/20' => $confirm['color'] === 'success',
+                        'bg-danger-100 dark:bg-danger-500/20' => $confirm['color'] === 'danger',
+                    ])>
+                        @if($confirm['color'] === 'success')
+                            <x-heroicon-o-check-circle style="width: 1.75rem; height: 1.75rem;" class="text-success-600 dark:text-success-400" />
+                        @else
+                            <x-heroicon-o-exclamation-triangle style="width: 1.75rem; height: 1.75rem;" class="text-danger-600 dark:text-danger-400" />
+                        @endif
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{{ $confirm['heading'] }}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ $confirm['body'] }}</p>
+                </div>
+                <div class="flex items-center gap-3 px-6 py-4 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-white/10">
+                    <x-filament::button wire:click="cancelConfirm" color="gray" class="flex-1">
+                        إلغاء
+                    </x-filament::button>
+                    <x-filament::button wire:click="confirmAction" :color="$confirm['color']" :icon="$confirm['icon']" class="flex-1">
+                        {{ $confirm['confirmLabel'] }}
+                    </x-filament::button>
+                </div>
+            </div>
+        </div>
     @endif
 
     <a href="{{ url('/admin/courses-survey-results') }}" class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline">

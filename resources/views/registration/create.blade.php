@@ -506,8 +506,9 @@
                     {{-- English name --}}
                     <div class="md:col-span-2">
                         <x-form.label for="name_en">الاسم باللغة الإنجليزية (كما في جواز السفر) <span class="text-red-500">*</span></x-form.label>
-                        <x-form.input id="name_en" name="name_en" type="text" value="{{ old('name_en') }}" placeholder="e.g. Mohammed Ahmed Ali Shnnib" dir="ltr" required />
+                        <x-form.input id="name_en" name="name_en" type="text" value="{{ old('name_en') }}" placeholder="e.g. Mohammed Ahmed Ali Shnnib" dir="ltr" required @input="englishGuard($event, 'name_en')" />
                         <p class="mt-1 text-xs text-slate-400">يرجى كتابة الاسم كما هو مدوّن في جواز السفر بالضبط</p>
+                        <p x-show="englishErrors.name_en" x-cloak class="mt-1 text-xs font-medium text-red-500">يرجى إدخال البيانات باللغة الإنجليزية فقط</p>
                         <x-form.error name="name_en" />
                     </div>
 
@@ -941,6 +942,8 @@
                     permanent_address: false, profession: false, workplace: false,
                 },
                 _arabicTimers: {},
+                englishErrors: { name_en: false },
+                _englishTimers: {},
 
                 // Strip any non-Arabic character as the user types and flash an
                 // inline message. Mirrors the server-side ArabicOnly rule.
@@ -955,6 +958,21 @@
                         this.arabicErrors[key] = true;
                         clearTimeout(this._arabicTimers[key]);
                         this._arabicTimers[key] = setTimeout(() => { this.arabicErrors[key] = false; }, 3000);
+                    }
+                },
+
+                // Strip any non-English character as the user types and flash an
+                // inline message. Mirrors the server-side name_en regex (Latin letters,
+                // spaces, hyphens and apostrophes only — as printed in a passport).
+                englishGuard(event, key) {
+                    const pattern = /[^a-zA-Z\s\-']/g;
+                    const el = event.target;
+                    const cleaned = el.value.replace(pattern, '');
+                    if (cleaned !== el.value) {
+                        el.value = cleaned;
+                        this.englishErrors[key] = true;
+                        clearTimeout(this._englishTimers[key]);
+                        this._englishTimers[key] = setTimeout(() => { this.englishErrors[key] = false; }, 3000);
                     }
                 },
 
@@ -1108,7 +1126,7 @@
             const submitBtn = document.getElementById('submit-btn');
             const csrf = document.querySelector('input[name="_token"]')?.value;
 
-            let verified = false;
+            let verified = @json($otpVerified ?? false);
             let cooldownTimer = null;
 
             const setStatus = (msg, ok = false) => {
@@ -1281,8 +1299,17 @@
                 }
             });
 
-            // Gate submission until verified.
-            lockSubmit();
+            // After a failed submit the server may still consider this phone verified
+            // (30-minute grace window) — reflect that so the applicant isn't forced to
+            // re-request the OTP just to fix an unrelated field. Otherwise gate submit.
+            if (verified) {
+                badge.classList.remove('hidden');
+                verifyRow.classList.add('hidden');
+                sendBtn.classList.add('hidden');
+                unlockSubmit();
+            } else {
+                lockSubmit();
+            }
         })();
     </script>
     @endif

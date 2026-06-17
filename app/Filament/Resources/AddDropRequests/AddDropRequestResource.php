@@ -16,7 +16,6 @@ use App\Models\AddDropRequest;
 use App\Models\Semester;
 use App\Services\AuditService;
 use App\Services\GradeCalculationService;
-use App\Services\NotificationService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -183,11 +182,11 @@ class AddDropRequestResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (
                         AddDropRequest $record,
-                        NotificationService $notifier,
                         AuditService $audit,
                         EnrollStudentInOffering $enroll,
                         DropStudentFromOffering $drop,
                         GradeCalculationService $calculator,
+                        \Livewire\Component $livewire,
                     ) {
                         $student = $record->student;
                         $offering = $record->courseOffering;
@@ -248,8 +247,9 @@ class AddDropRequestResource extends Resource
                         ]);
 
                         $audit->log('add_drop_approved', $record);
-                        $notifier->notifyAddDropDecision($record);
                         Notification::make()->title('تم قبول الطلب')->success()->send();
+
+                        $livewire->dispatch('refresh-sidebar');
                     }),
 
                 Action::make('reject')
@@ -266,7 +266,7 @@ class AddDropRequestResource extends Resource
                         return $semester?->is_active && $semester?->isAddDropOpen();
                     })
                     ->requiresConfirmation()
-                    ->action(function (AddDropRequest $record, NotificationService $notifier, AuditService $audit) {
+                    ->action(function (AddDropRequest $record, AuditService $audit, \Livewire\Component $livewire) {
                         $record->update([
                             'status' => 'rejected',
                             'decided_by' => auth()->id(),
@@ -274,8 +274,9 @@ class AddDropRequestResource extends Resource
                         ]);
 
                         $audit->log('add_drop_rejected', $record);
-                        $notifier->notifyAddDropDecision($record);
                         Notification::make()->title('تم رفض الطلب')->success()->send();
+
+                        $livewire->dispatch('refresh-sidebar');
                     }),
             ])
             ->defaultSort('created_at', 'desc');

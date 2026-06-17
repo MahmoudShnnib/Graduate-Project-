@@ -47,7 +47,7 @@ class ApplicationFactory extends Factory
             'birth_place' => $city,
             'gender' => $gender,
             'marital_status' => fake()->randomElement(['single', 'married', 'divorced', 'widowed']),
-            'nationality' => 'ليبية',
+            'nationality' => 'ليبيا',
             'national_id' => ($gender === 'male' ? '1' : '2').fake()->numerify('###########'),
             'card_number' => fake()->optional(0.7)->numerify('#####'),
             'residence' => $city,

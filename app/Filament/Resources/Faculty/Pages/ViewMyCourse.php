@@ -9,7 +9,6 @@ use App\Models\Grade;
 use App\Models\StudentEnrollment;
 use App\Services\AuditService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -52,6 +51,13 @@ class ViewMyCourse extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('print_results')
+                ->label('طباعة نتائج المادة')
+                ->icon(Heroicon::Printer)
+                ->color('gray')
+                ->url(fn (): string => route('print.course-results', $this->record))
+                ->openUrlInNewTab(),
+
             Action::make('grade_distribution')
                 ->label('توزيع الدرجات')
                 ->icon(Heroicon::AdjustmentsHorizontal)
@@ -121,46 +127,39 @@ class ViewMyCourse extends Page implements HasTable
                         ->send();
                 }),
 
-            Action::make('upload_paper_sheet')
-                ->label($this->record->paper_sheet_path ? 'تحديث ورقة الدرجات' : 'رفع ورقة الدرجات')
-                ->icon(Heroicon::ArrowUpTray)
-                ->color('info')
-                ->modalHeading('رفع ورقة الدرجات (Hard Copy)')
-                ->form([
-                    FileUpload::make('paper_sheet_path')
-                        ->label('ورقة الدرجات (صورة أو PDF)')
-                        ->disk('public')
-                        ->directory('grades/sheets')
-                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])
-                        ->maxSize(5120)
-                        ->required(),
-                ])
-                ->action(function (array $data): void {
-                    $this->record->update(['paper_sheet_path' => $data['paper_sheet_path']]);
-
-                    Notification::make()
-                        ->title('تم رفع ورقة الدرجات بنجاح')
-                        ->success()
-                        ->send();
-                }),
-
             Action::make('submit_grades')
                 ->label('إرسال الدرجات للاعتماد')
                 ->icon(Heroicon::PaperAirplane)
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('إرسال الدرجات للاعتماد')
-                ->modalDescription('سيتم إرسال جميع الدرجات المحفوظة (المسودة) إلى الإدارة للمراجعة والاعتماد. لا يمكن تعديلها بعد الإرسال.')
+                ->modalDescription('سيتم إرسال الدرجات المكتملة (أعمال الفصل + الامتحان النهائي) إلى الإدارة للمراجعة والاعتماد. لا يمكن تعديلها بعد الإرسال. لن تُرسل الدرجات الناقصة.')
                 ->modalSubmitActionLabel('إرسال الآن')
                 ->action(function (AuditService $audit): void {
-                    $count = Grade::whereHas('enrollment', fn (Builder $q) => $q->where('course_offering_id', $this->record->id))
-                        ->where('status', GradeStatus::Draft)
+                    $draftQuery = fn () => Grade::whereHas('enrollment', fn (Builder $q) => $q->where('course_offering_id', $this->record->id))
+                        ->where('status', GradeStatus::Draft);
+
+                    // A grade may only be submitted once both marks are entered.
+                    $incomplete = (clone $draftQuery)()->whereNull('final_grade')->count();
+
+                    $count = (clone $draftQuery)()->whereNotNull('final_grade')->whereNotNull('coursework_grade')
                         ->update(['status' => GradeStatus::PendingApproval]);
+
+                    if ($count === 0) {
+                        Notification::make()
+                            ->title('لا توجد درجات مكتملة للإرسال')
+                            ->body($incomplete > 0 ? "يوجد {$incomplete} مسودة بدون درجة امتحان نهائي." : null)
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
 
                     $audit->log('grade_submitted', $this->record);
 
                     Notification::make()
                         ->title("تم إرسال {$count} درجة للاعتماد")
+                        ->body($incomplete > 0 ? "لم تُرسل {$incomplete} درجة ناقصة (بدون امتحان نهائي)." : null)
                         ->success()
                         ->send();
                 })
@@ -240,23 +239,9 @@ class ViewMyCourse extends Page implements HasTable
                     ->visible(function (StudentEnrollment $record): bool {
                         $grade = $record->grade;
 
-                        if (! $grade) {
-                            return true;
-                        }
-
-                        // Locked while the admin reviews a submitted grade.
-                        if ($grade->status === GradeStatus::PendingApproval) {
-                            return false;
-                        }
-
-                        // After coursework was approved, re-open only to add the
-                        // still-missing final exam grade.
-                        if ($grade->status === GradeStatus::Approved) {
-                            return $grade->final_grade === null;
-                        }
-
-                        // Draft: freely editable.
-                        return true;
+                        // Editable only before it is sent for approval: no grade
+                        // yet, or still a draft. Pending/approved grades are locked.
+                        return $grade === null || $grade->status === GradeStatus::Draft;
                     })
                     ->modalHeading(fn (StudentEnrollment $record): string => 'إدخال درجة — '.$record->student->user->name)
                     ->form([
@@ -270,8 +255,7 @@ class ViewMyCourse extends Page implements HasTable
 
                         TextInput::make('final_grade')
                             ->label('الامتحان النهائي (من '.$this->record->final_max.')')
-                            ->placeholder('اتركه فارغاً إذا لم يُجر الامتحان بعد')
-                            ->helperText('يمكن إدخال أعمال الفصل وحدها الآن وإضافة درجة الامتحان النهائي لاحقاً.')
+                            ->helperText('يمكن حفظ أعمال الفصل كمسودة الآن، لكن يجب إدخال الامتحان النهائي قبل إرسال الدرجات للاعتماد.')
                             ->numeric()
                             ->minValue(0)
                             ->maxValue($this->record->final_max)

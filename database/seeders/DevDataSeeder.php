@@ -126,7 +126,6 @@ class DevDataSeeder extends Seeder
                     'coursework_grade' => $row['coursework'],
                     'final_grade' => $row['final'],
                     'status' => GradeStatus::Approved,
-                    'midterm_published_at' => now(),
                     'published_at' => now(),
                 ]
             );
@@ -214,7 +213,6 @@ class DevDataSeeder extends Seeder
                     'coursework_grade' => $row['coursework'],
                     'final_grade' => $row['final'],
                     'status' => GradeStatus::Approved,
-                    'midterm_published_at' => now(),
                     'published_at' => now(),
                 ]
             );

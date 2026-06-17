@@ -4,7 +4,6 @@
         $courses         = $this->getAvailableCourses();
         $selectedCount   = count($this->selections);
         $statuses        = $this->getEnrollmentStatuses();
-        $surveySubmitted = $selectedCount > 0 && $semester && ! $semester->survey_open;
         $student         = auth()->user()->student;
     @endphp
 
@@ -101,7 +100,50 @@
                     </span>
                 </div>
             </x-slot>
-            <x-slot name="description">اختر المقررات التي ترغب في دراستها هذا الفصل. يمكنك تعديل اختياراتك في أي وقت قبل إغلاق الاستطلاع.</x-slot>
+            <x-slot name="description">اختر المقررات التي ترغب في دراستها هذا الفصل بعناية. لا يمكنك تعديل اختياراتك بعد إرسالها.</x-slot>
+
+            @php $alreadySubmitted = $this->hasSubmittedSurvey(); @endphp
+
+            @if($alreadySubmitted)
+                {{-- Locked: the survey was already submitted this semester — read-only --}}
+                <div class="mb-5 flex items-start gap-3 rounded-xl border border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10 px-4 py-3">
+                    <x-heroicon-o-check-circle style="width: 1.25rem; height: 1.25rem;" class="mt-0.5 shrink-0 text-success-600 dark:text-success-400" />
+                    <div>
+                        <p class="text-sm font-semibold text-success-800 dark:text-success-300">تم إرسال اختياراتك</p>
+                        <p class="text-xs text-success-700 dark:text-success-400">لا يمكن تعديل الاستطلاع بعد إرساله. يمكنك متابعة حالة التسجيل أدناه.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    @foreach($courses->whereIn('id', array_keys($this->selections))->sortBy(fn($c) => $this->selections[$c->id]) as $course)
+                        @php
+                            $status = $statuses[$course->id] ?? 'pending';
+                            $priority = $this->selections[$course->id];
+                        @endphp
+                        <div class="flex items-center justify-between rounded-xl border border-gray-200 dark:border-white/10 p-3">
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex size-7 items-center justify-center rounded-full bg-primary-600 dark:bg-primary-500 text-xs font-bold text-white">{{ $priority }}</span>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $course->name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $course->code }} — {{ $course->credits }} وحدة</p>
+                                </div>
+                            </div>
+                            <span @class([
+                                'rounded-lg px-2.5 py-1 text-xs font-semibold',
+                                'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $status === 'enrolled',
+                                'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $status === 'pending',
+                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'unavailable' || $status === 'rejected',
+                            ])>
+                                @if($status === 'enrolled') مُسجَّل
+                                @elseif($status === 'pending') قيد المراجعة
+                                @elseif($status === 'rejected') مرفوض
+                                @else المادة غير متاحة هذا الفصل
+                                @endif
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
 
             {{-- Selection summary --}}
             <div class="mb-5 flex items-center justify-between rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/60 dark:bg-white/5 px-4 py-3 text-sm">
@@ -165,10 +207,11 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                         تم اختيار <strong class="text-gray-900 dark:text-white">{{ count($this->selections) }}</strong> مقرر
                     </p>
-                    <x-filament::button wire:click="submit" icon="heroicon-o-check">
-                        حفظ الاختيارات
+                    <x-filament::button wire:click="confirmSubmit" icon="heroicon-o-check">
+                        إرسال الاختيارات
                     </x-filament::button>
                 </div>
+            @endif
             @endif
         </x-filament::section>
 
@@ -307,6 +350,32 @@
                         </x-filament::button>
                         <x-filament::button wire:click="submitRetake({{ $confirmCourse->id }})" color="warning" icon="heroicon-o-arrow-path" class="flex-1">
                             تأكيد الطلب
+                        </x-filament::button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Submit confirmation modal — submitting the survey is final --}}
+        @if($this->confirmingSubmit)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" wire:click.self="cancelSubmit">
+                <div class="w-full max-w-md mx-4 rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <div class="p-6 text-center">
+                        <div class="flex items-center justify-center w-14 h-14 rounded-full bg-warning-100 dark:bg-warning-500/20 mx-auto mb-4">
+                            <x-heroicon-o-exclamation-triangle style="width: 1.75rem; height: 1.75rem;" class="text-warning-600 dark:text-warning-400" />
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">تأكيد إرسال الاستطلاع</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">أنت على وشك إرسال <strong class="text-gray-900 dark:text-white">{{ count($this->selections) }}</strong> مقرر.</p>
+                        <div class="rounded-xl bg-warning-50 dark:bg-warning-500/10 border border-warning-200 dark:border-warning-500/20 p-3 text-sm text-warning-800 dark:text-warning-300 mt-4 text-start">
+                            <p class="font-medium">تنبيه: لا يمكنك تعديل اختياراتك بعد الإرسال. تأكد من اختياراتك قبل المتابعة.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 px-6 py-4 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-white/10">
+                        <x-filament::button wire:click="cancelSubmit" color="gray" class="flex-1">
+                            إلغاء
+                        </x-filament::button>
+                        <x-filament::button wire:click="submit" color="primary" icon="heroicon-o-check" class="flex-1">
+                            تأكيد الإرسال
                         </x-filament::button>
                     </div>
                 </div>

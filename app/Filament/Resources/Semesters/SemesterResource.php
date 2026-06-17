@@ -287,16 +287,33 @@ class SemesterResource extends Resource
 
             CheckboxList::make('course_ids')
                 ->label('المقررات')
-                ->options(fn (Get $get) => Course::where('is_active', true)
-                    ->when($get('specialization_filter'), fn ($q, $id) => $q->whereHas('specializations', fn ($s) => $s->where('specializations.id', $id)))
-                    ->orderBy('name')
-                    ->get()
-                    ->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code]))
+                ->options(fn (Get $get) => self::surveyCourseOptions($get('specialization_filter'), (array) $get('course_ids')))
                 ->columns(2)
                 ->searchable()
                 ->bulkToggleable()
                 ->required(),
         ];
+    }
+
+    /**
+     * Active courses for the survey checkbox list. The specialization filter only
+     * narrows what is shown — any already-selected course is always kept in the
+     * list, otherwise Filament rejects it as "المقررات المختار غير صالح" once it
+     * is filtered out of the options.
+     *
+     * @param  array<int|string>  $selectedIds
+     * @return array<int, string>
+     */
+    public static function surveyCourseOptions(int|string|null $specializationFilter, array $selectedIds = []): array
+    {
+        return Course::where('is_active', true)
+            ->when($specializationFilter, fn ($q, $id) => $q->where(fn ($q) => $q
+                ->whereHas('specializations', fn ($s) => $s->where('specializations.id', $id))
+                ->orWhereIn('id', $selectedIds)))
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code])
+            ->all();
     }
 
     public static function openSurveyAction(): Action

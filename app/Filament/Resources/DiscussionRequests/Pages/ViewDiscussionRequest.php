@@ -88,6 +88,8 @@ class ViewDiscussionRequest extends ViewRecord
                     ->title('تم رفض طلب المناقشة')
                     ->success()
                     ->send();
+
+                $this->dispatch('refresh-sidebar');
             });
     }
 
@@ -124,6 +126,8 @@ class ViewDiscussionRequest extends ViewRecord
                     ->body('موعد المناقشة: '.$this->record->fresh()->discussion_date->format('Y/m/d'))
                     ->success()
                     ->send();
+
+                $this->dispatch('refresh-sidebar');
             });
     }
 

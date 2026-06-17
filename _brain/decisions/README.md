@@ -51,3 +51,4 @@ File names use `YYYY-MM-DD-decision-title.md`. Each note should link back to the
 - [[2026-05-08-suspension-request-blocking-rules]] — Approved=permanent block, rejected=semester block
 - [[2026-05-08-nav-badge-pending-counts]] — Pending count badges on 7 admin sidebar nav items
 - [[2026-05-08-remove-audit-log-restore]] — Removed restore action from audit logs (observer-unsafe)
+- [[2026-06-17-suspended-student-grade-visibility]] — Hide flushed current-term courses from a suspended student's transcript + tree (display mirror of the 2026-06-15 GPA-flush decision)

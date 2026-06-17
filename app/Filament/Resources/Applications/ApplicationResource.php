@@ -139,9 +139,11 @@ class ApplicationResource extends Resource
                             'widowed' => 'أرمل / أرملة',
                         ]),
 
-                    TextInput::make('nationality')
+                    Select::make('nationality')
                         ->label('الجنسية')
-                        ->default('ليبية'),
+                        ->options(collect(config('nationalities.list'))->mapWithKeys(fn (array $c): array => [$c['name'] => $c['flag'].' '.$c['name']]))
+                        ->default(config('nationalities.default'))
+                        ->searchable(),
 
                     TextInput::make('national_id')
                         ->label('الرقم الوطني'),
@@ -405,6 +407,8 @@ class ApplicationResource extends Resource
                             ->title("تم القبول المبدئي لـ {$count} طالب")
                             ->success()
                             ->send();
+
+                        $livewire->dispatch('refresh-sidebar');
                     })
                     ->deselectRecordsAfterCompletion(),
                 DeleteBulkAction::make(),
@@ -517,6 +521,8 @@ class ApplicationResource extends Resource
                 $notifications->notifyApplicationInitiallyApproved($application);
 
                 Notification::make()->title('تم القبول المبدئي بنجاح')->success()->send();
+
+                $livewire->dispatch('refresh-sidebar');
             })
             ->visible(fn (Application $record): bool => $record->status === ApplicationStatus::Pending);
     }
@@ -530,11 +536,13 @@ class ApplicationResource extends Resource
             ->requiresConfirmation()
             ->modalHeading(fn (Application $record): string => "قبول مباشر — {$record->name}")
             ->modalDescription(fn (Application $record): string => "سيتم قبول {$record->name} نهائياً وإنشاء سجل طالب بدون امتحان.")
-            ->action(function (Application $application, ApproveApplication $approve, AuditService $audit): void {
+            ->action(function (Application $application, ApproveApplication $approve, AuditService $audit, \Livewire\Component $livewire): void {
                 try {
                     $approve->handle($application);
                     $audit->log('application_approved', $application);
                     Notification::make()->title('تم القبول بنجاح')->success()->send();
+
+                    $livewire->dispatch('refresh-sidebar');
                 } catch (\Exception $e) {
                     Notification::make()->title('خطأ')->body($e->getMessage())->danger()->send();
                 }
