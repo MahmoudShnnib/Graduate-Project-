@@ -42,4 +42,23 @@ enum StudentStatus: string implements HasColor, HasLabel
             self::Dismissed => 'danger',
         };
     }
+
+    /**
+     * Whether this status freezes the GPA as a permanent snapshot. For these
+     * statuses the cascade withdraws every enrollment but the GPA keeps its last
+     * value, so the student's transcript + course tree must show their FULL record.
+     *
+     * The live statuses (Active, OnHold, Inactive) instead compute the GPA from
+     * `activeEnrollments()` (Enrolled only) — so their views must show Enrolled
+     * courses only, hiding any dropped/flushed (Withdrawn) course. This keeps the
+     * visible set equal to the GPA-counted set for every status, including a
+     * student reactivated from suspension back to Active.
+     */
+    public function freezesGpa(): bool
+    {
+        return match ($this) {
+            self::Graduated, self::Transferred, self::Dismissed => true,
+            self::Active, self::OnHold, self::Inactive => false,
+        };
+    }
 }

@@ -46,6 +46,12 @@ class StudentPanelProvider extends PanelProvider
                 fn (): string => '<div style="margin-top:1rem;text-align:center;"><a href="'.e(route('password.forgot.student')).'" style="font-size:.875rem;font-weight:600;color:#1F4E79;">نسيت كلمة المرور؟</a></div>',
             )
             ->brandName('بوابة الطالب')
+            // Re-sync app pages on browser back/forward — wire:navigate's history cache
+            // otherwise shows stale data until a hard refresh.
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => view('filament.navigate-refresh')->render(),
+            )
             ->colors([
                 'primary' => Color::hex('#1F4E79'),
             ])

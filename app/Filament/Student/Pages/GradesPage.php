@@ -3,7 +3,6 @@
 namespace App\Filament\Student\Pages;
 
 use App\Enums\EnrollmentStatus;
-use App\Enums\StudentStatus;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
@@ -26,41 +25,18 @@ class GradesPage extends Page
 
     public ?int $selectedSemesterId = null;
 
-    private ?int $activeSemesterId = null;
-
-    private bool $activeSemesterResolved = false;
-
-    private function activeSemesterId(): ?int
-    {
-        if (! $this->activeSemesterResolved) {
-            $this->activeSemesterId = Semester::active()?->id;
-            $this->activeSemesterResolved = true;
-        }
-
-        return $this->activeSemesterId;
-    }
-
     /**
-     * For a suspended (قيده موقوف) or dropped-out (منقطع) student, hide the
-     * current-semester enrollments that were flushed (withdrawn AND removed from
-     * the GPA) from the transcript, while keeping prior semesters intact. Other
-     * statuses — including Graduated, whose GPA is frozen WITH the term — are
-     * left untouched.
+     * The transcript must show exactly the courses that count toward the student's
+     * GPA. For a live-record student (Active / OnHold / Inactive) the GPA is computed
+     * from Enrolled enrollments only, so withdrawn/flushed courses are hidden — this
+     * also covers a student reactivated from suspension back to مستمر. Frozen-record
+     * students (Graduated / Transferred / Dismissed) keep their full snapshot.
      */
-    private function excludeSuspendedCurrent(Builder $query, Student $student): void
+    private function applyRecordVisibility(Builder $query, Student $student): void
     {
-        $activeSemesterId = $this->activeSemesterId();
-
-        $isSuspended = in_array($student->status, [StudentStatus::OnHold, StudentStatus::Inactive], true);
-
-        if ($activeSemesterId === null || ! $isSuspended) {
-            return;
+        if (! $student->status->freezesGpa()) {
+            $query->where('status', EnrollmentStatus::Enrolled);
         }
-
-        $query->where(function (Builder $q) use ($activeSemesterId): void {
-            $q->where('status', EnrollmentStatus::Enrolled)
-                ->orWhereHas('courseOffering', fn (Builder $co) => $co->where('semester_id', '!=', $activeSemesterId));
-        });
     }
 
     public function getSemesters(): Collection
@@ -76,7 +52,7 @@ class GradesPage extends Page
             function (Builder $q) use ($student): void {
                 $q->where('student_id', $student->id)
                     ->whereHas('grade', fn (Builder $g) => $g->whereNotNull('published_at'));
-                $this->excludeSuspendedCurrent($q, $student);
+                $this->applyRecordVisibility($q, $student);
             }
         )
             ->orderByDesc('year')
@@ -95,7 +71,7 @@ class GradesPage extends Page
             ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
             ->whereHas('grade', fn (Builder $g) => $g->whereNotNull('published_at'));
 
-        $this->excludeSuspendedCurrent($query, $student);
+        $this->applyRecordVisibility($query, $student);
 
         if ($this->selectedSemesterId) {
             $query->whereHas('courseOffering', fn (Builder $q) => $q->where('semester_id', $this->selectedSemesterId));

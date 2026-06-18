@@ -66,6 +66,12 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): \Illuminate\Contracts\View\View => view('filament.admin-activity-bell'),
             )
+            // Re-sync app pages on browser back/forward — wire:navigate's history cache
+            // otherwise shows stale counts/statuses until a hard refresh.
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => view('filament.navigate-refresh')->render(),
+            )
             ->font('Noto Kufi Arabic', url: asset('css/noto-kufi-arabic.css'), provider: LocalFontProvider::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
