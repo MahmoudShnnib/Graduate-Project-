@@ -19,13 +19,15 @@ This is a **graduation project**: a single-faculty graduate-studies admissions, 
 
 The entire interface is authored in **Arabic and runs right-to-left**. English appears only in raw identifiers (emails, enrollment numbers, and the applicant's English name required for the bachelor certificate).
 
-The application is built around **three actors**, each with their own experience:
+The system serves **five distinct actors**, each with their own experience and access level. Three of them share the `/admin` panel but see very different things — the office head has everything, the assistant runs day-to-day admissions and academics, and a faculty member sees only their own courses.
 
-| Actor | Entry point | What they can do |
-|---|---|---|
-| **Applicants** | `/apply` (public) | Submit a multi-step application, then track its status at `/apply/track` using a tracking code + national ID |
-| **Staff** — super-admin · secretary · faculty | `/admin` (Filament) | Review applications, manage students & courses, enter and approve grades, run reports, and generate official PDFs |
-| **Students** | `/portal` (Filament, RTL) | Browse the course tree, submit course surveys, view grades, and file add/drop · suspension · thesis · clearance requests |
+| Actor | Role | Entry point | What they can do |
+|---|---|---|---|
+| **Applicant** (متقدم) | — (public, not a user) | `/apply`, `/apply/track` | Submit a multi-step application, then track its status with a tracking code + national ID. Becomes a Student only on approval. |
+| **Office Head** (رئيس مكتب الدراسات العليا) | `super_admin` | `/admin` | Full access — every permission, plus a `Gate::before` bypass. Manages users/roles, audit log, and everything the assistant can do. |
+| **Administrative Assistant** (مساعد إداري) | `manager_assistant` | `/admin` | The day-to-day operator: reviews applications, manages students, courses, semesters & offerings, rosters enrollments, approves grades, and handles add/drop · suspension · thesis requests. Read access to everything *except* admin-only models (users, roles, audit & notification logs). |
+| **Faculty Member** (عضو هيئة التدريس) | `faculty` | `/admin` → "موادي" | Sees **only their own course offerings** — enters coursework/final grades for them. Nothing else in the admin panel is visible. |
+| **Student** (الطالب) | `student` | `/portal` (RTL) | Browse the course tree, submit course surveys, view approved grades, and file add/drop · suspension · thesis · clearance requests. |
 
 ---
 
@@ -36,14 +38,14 @@ The application is built around **three actors**, each with their own experience
 - Self-service status tracking by tracking code + national ID.
 
 ### Admin review (`/admin`)
-- Secretaries/super-admins review applications and set exam results.
+- The administrative assistant (or office head) reviews applications and sets exam results.
 - On approval, the system **auto-provisions the student**: creates the `User` + `Student` rows, generates a year/specialization/transfer-scoped **enrollment number**, and sends a welcome notification — all in a single DB transaction.
 
 ### Academic cycle
 - Per-semester course offerings with a configurable coursework/final grade split (default 40/60).
 - A pre-enrollment **course survey** where students rank desired courses; staff then roster students manually.
 - **Add/drop** requests (max 3 each), open only during the semester's add-drop window.
-- Faculty-scoped grade entry ("موادي") with auto-computed letter grade and grade points, followed by super-admin/secretary **grade approval** that triggers GPA recalculation.
+- Faculty-scoped grade entry ("موادي") with auto-computed letter grade and grade points, followed by **grade approval** (assistant/office head) that triggers GPA recalculation.
 
 ### Student portal (`/portal`)
 - Course tree, transcript/grades, course surveys, and add/drop · suspension · thesis · clearance requests.
@@ -88,7 +90,7 @@ public form ─► Action ─► Model ─► (Observer) ─► Service ─► N
 - **Observers** are the glue: dropping a student cascades their enrollments to `Withdrawn`; approving a grade recalculates GPA — the caller never has to remember to do it.
 - **Status-as-pivot:** `StudentEnrollment` is a rich pivot carrying `enrolled / dropped / withdrawn` rather than being deleted, so every query filters by status (`activeEnrollments`, …).
 - **Single active semester:** exactly one `Semester` is active at a time and acts as the canonical "current term".
-- **Hybrid roles:** a simple `users.role` column **and** Spatie roles are both checked; `super_admin` bypasses all gates via `Gate::before`.
+- **Hybrid roles:** a simple `users.role` column **and** Spatie/Shield roles are both checked. The four roles are `super_admin` (office head), `manager_assistant` (assistant), `faculty`, and `student`; `super_admin` bypasses all gates via `Gate::before`, and faculty are narrowed to their own offerings at the resource level.
 
 ---
 
