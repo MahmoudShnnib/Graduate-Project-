@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Channels\WhatsAppMessage;
+use App\Models\Setting;
 use App\Models\Student;
 use App\Notifications\Concerns\HasWhatsAppChannel;
 use Illuminate\Bus\Queueable;
@@ -21,9 +22,10 @@ class WelcomeStudentNotification extends Notification
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {
         $enrollmentNo = $this->student->enrollment_no ?? '—';
+        $collegeName = Setting::get('college_name');
 
         return new WhatsAppMessage(
-            message: "مرحباً {$notifiable->name}، يسرنا إبلاغك بأنك اجتزت اختبار القبول وتم قبولك رسمياً في برنامج الدراسات العليا.\n"
+            message: "مرحباً {$notifiable->name}، يسرنا إبلاغك بأنك اجتزت اختبار القبول وتم قبولك رسمياً في برنامج الدراسات العليا في {$collegeName}.\n"
                 ."رقمك الجامعي: {$enrollmentNo}\n"
                 ."البريد: {$notifiable->email}",
         );

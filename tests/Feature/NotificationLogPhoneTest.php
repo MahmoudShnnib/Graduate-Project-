@@ -10,8 +10,9 @@ beforeEach(function () {
     config()->set('services.qonvo.sender_phone', '0911111111');
 });
 
-it('logs a sent notification with the recipient phone number', function () {
-    Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+it('logs a pending notification with the recipient phone + provider id when Qonvo queues it', function () {
+    // Qonvo's send endpoint only QUEUES the message and returns status "pending".
+    Http::fake(['*' => Http::response(['data' => ['id' => 555, 'status' => 'pending']], 200)]);
 
     ['user' => $user, 'student' => $student] = studentWithRecord();
     $user->update(['phone' => '0912345678']);
@@ -25,8 +26,9 @@ it('logs a sent notification with the recipient phone number', function () {
     $log = NotificationLog::first();
 
     expect($log)->not->toBeNull()
-        ->and($log->status)->toBe('sent')
-        ->and($log->phone)->toBe('0912345678');
+        ->and($log->status)->toBe('pending')
+        ->and($log->phone)->toBe('0912345678')
+        ->and($log->provider_message_id)->toBe('555');
 });
 
 it('logs a failed notification (never "sent") when the provider errors, keeping the phone', function () {

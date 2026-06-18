@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Channels\WhatsAppMessage;
+use App\Models\Setting;
 use App\Models\WhatsAppOtp;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -24,6 +25,17 @@ class WhatsAppOtpService
     private const VERIFIED_GRACE_MINUTES = 30;
 
     public function __construct(private WhatsAppService $whatsApp) {}
+
+    /**
+     * Whether the /apply page must enforce WhatsApp OTP verification. Requires both
+     * the Qonvo integration to be configured AND the admin's `apply_otp_required`
+     * setting to be on — an admin can disable it (e.g. while WhatsApp is down).
+     */
+    public function isRequired(): bool
+    {
+        return $this->whatsApp->isConfigured()
+            && Setting::get('apply_otp_required', '1') === '1';
+    }
 
     /**
      * Generate and send a one-time code to the given phone for a purpose.

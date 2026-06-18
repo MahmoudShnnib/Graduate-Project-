@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
     Storage::fake('public');
+    // The Setting static memo survives RefreshDatabase, so a value set in one test
+    // would leak into the next — reset it for deterministic apply_otp_required reads.
+    \App\Models\Setting::flushCache();
     // An open active semester so the admissions window gate lets submissions through.
     \App\Models\Semester::factory()->active()->create();
 });
@@ -205,6 +208,51 @@ it('blocks application submission when the phone is not verified', function () {
         ->assertSessionHasErrors('phone');
 
     expect(Application::where('phone', '0915555555')->exists())->toBeFalse();
+});
+
+it('reports OTP required only when configured AND the apply_otp_required setting is on', function () {
+    $svc = app(WhatsAppOtpService::class);
+
+    configureQonvo(false);
+    expect($svc->isRequired())->toBeFalse();
+
+    configureQonvo(true);
+    App\Models\Setting::set('apply_otp_required', '1');
+    expect($svc->isRequired())->toBeTrue();
+
+    App\Models\Setting::set('apply_otp_required', '0');
+    expect($svc->isRequired())->toBeFalse();
+});
+
+it('allows submission without OTP when the admin disables the requirement (WhatsApp still configured)', function () {
+    configureQonvo();
+    App\Models\Setting::set('apply_otp_required', '0');
+
+    $payload = validApplicationPayload(['phone' => '0915555555']);
+
+    $this->post(route('registration.store'), $payload)
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('registration.create'));
+
+    expect(Application::where('phone', '0915555555')->exists())->toBeTrue();
+});
+
+it('the settings popup toggle persists apply_otp_required', function () {
+    $this->actingAs(adminUser());
+
+    expect(App\Models\Setting::get('apply_otp_required', '1'))->toBe('1');
+
+    Livewire\Livewire::test(App\Filament\Widgets\DashboardHeaderWidget::class)
+        ->callAction('editSettings', data: [
+            'college_name' => 'كلية التقنية الإلكترونية',
+            'office_name' => 'مكتب الدراسات العليا',
+            'director_name' => 'مدير',
+            'dean_name' => 'عميد',
+            'apply_otp_required' => false,
+        ])
+        ->assertHasNoActionErrors();
+
+    expect(App\Models\Setting::get('apply_otp_required', '1'))->toBe('0');
 });
 
 it('allows application submission when the phone is verified', function () {

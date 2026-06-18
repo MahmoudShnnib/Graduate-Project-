@@ -75,6 +75,7 @@ class NotificationLogResource extends Resource
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'sent' => 'تم الإرسال',
                         'failed' => 'فشل',
+                        'pending' => 'قيد الإرسال',
                         default => $state,
                     }),
 
@@ -96,6 +97,7 @@ class NotificationLogResource extends Resource
                     ->options([
                         'sent' => 'تم الإرسال',
                         'failed' => 'فشل',
+                        'pending' => 'قيد الإرسال',
                     ]),
 
                 SelectFilter::make('event')

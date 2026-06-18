@@ -72,8 +72,15 @@ Success → `201 {"message":"Message queued for sending.","data":{...,"status":"
 GET https://qonvo.ly/api/whatsapp/numbers   → {"data":[{ "phone_number":"+218...", "status":"authenticated", ... }]}
 ```
 
+**Get a message's REAL delivery status** (the send only QUEUES it — `2026-06-18`):
+```
+GET https://qonvo.ly/api/whatsapp/messages/{id}
+  → { "id":.., "status":"pending|sent|delivered|failed", "error_message":.., "whatsapp_message_id":.. }
+```
+`POST .../send` returns `status:"pending"` (2xx) even for sends that ultimately **fail** — the true outcome is only available here, by the `data.id` the send returned. Used by `WhatsAppService::reconcilePendingLogs()` to flip `notification_logs` `pending → sent/failed`. See [[../bugs-and-fixes/2026-06-18-whatsapp-log-status-reconciliation]].
+
 **Known error**
-- `422 {"message":"The sender phone number is not registered.","errors":{"sender_whatsapp_number_phone":[...]}}` — the sender number is **not connected/authenticated** in the Qonvo account. Fix in the Qonvo dashboard (WhatsApp → connect number → scan QR). Not a code/format issue: all formats (+218…, 218…, 09…) fail the same way until the number is `authenticated`. `200`/`422` (not `401`) means the **token is valid**.
+- `422 {"message":"The sender phone number is not registered.",...}` **or** `400 {"message":"WhatsApp number is not authenticated."}` — the sender number is **not connected/authenticated** in the Qonvo account. Fix in the Qonvo dashboard (WhatsApp → connect number → scan QR). Not a code/format issue: all formats (+218…, 218…, 09…) fail the same way until the number is `authenticated`. `200`/`422` (not `401`) means the **token is valid**.
 
 ## 4. The two kinds of messages
 
@@ -131,12 +138,15 @@ app(\App\Services\WhatsAppService::class)->sendText('0912345678', new \App\Chann
 
 - Routes (`routes/web.php`): `POST /apply/otp/send` (throttle:6,1), `POST /apply/otp/verify` (throttle:10,1).
 - `RegistrationController::sendOtp/verifyOtp` — JSON endpoints; share `phoneRules()` with `store()`.
-- `store()` guard: when `isConfigured()`, rejects with a `phone` error unless `WhatsAppOtpService::hasVerified($phone)` (a still-valid verified OTP within 30 min, **keyed by the exact phone** — verifying number A can't authorize submitting B).
+- `store()` guard: rejects with a `phone` error unless `WhatsAppOtpService::hasVerified($phone)` (a still-valid verified OTP within 30 min, **keyed by the exact phone** — verifying number A can't authorize submitting B).
 - UI: `resources/views/registration/create.blade.php` — inline widget by the phone field, gated on `$whatsappEnabled`. Vanilla JS (`fetch()`), no Livewire. Changing the phone resets verification; submit is client-gated (server is the real boundary).
+- **OTP requirement is admin-toggleable** (`2026-06-18`): the single gate is now `WhatsAppOtpService::isRequired()` = `isConfigured() && Setting::get('apply_otp_required','1') === '1'`. Both `create()` (sets `$whatsappEnabled`) and `store()` use it. The toggle lives **inside the dashboard الإعدادات العامة modal** ("إعدادات التقديم" → "طلب رمز تحقق (OTP) من المتقدمين عبر واتساب"); the dashboard header shows a **read-only** status pill. Turn it off to keep admissions open while WhatsApp is down. See [[../daily-notes/2026-06-18-whatsapp-log-reconciliation]].
 
 ## 8. Gotchas
 
-- **Sender must be `authenticated` in Qonvo first** — newly added numbers take ~1 min to finish QR authentication; sends `422` until then. Check `GET /whatsapp/numbers`.
+- **`POST .../send` 2xx ≠ delivered.** It only *queues* (`status:"pending"`). A self-send, an unauthenticated sender, or a downstream WhatsApp failure still comes back `2xx` "pending" and only later reads `failed` via `GET .../messages/{id}`. So `WhatsAppChannel` now logs `pending` and `reconcilePendingLogs()` (cmd `whatsapp:reconcile` every 5 min + a "تحديث حالات الإرسال" button on `/admin/notification-logs`) fills in the real `sent`/`failed`. Never treat a 2xx as proof of delivery.
+- **Don't test against a personal / primary WhatsApp number.** Bursts of automated sends (and self-sends) trip WhatsApp's anti-automation and get the number **temporarily restricted** (a real number caught a 17-hour ban, `2026-06-18`). Use a throwaway sender SIM, throttle, and prefer `Http::fake()` in tests over real sends. Long-term, the official WhatsApp Cloud API / a BSP avoids these bans (Qonvo drives unofficial WhatsApp-Web automation).
+- **Sender must be `authenticated` in Qonvo first** — newly added numbers take ~1 min to finish QR authentication; sends `422`/`400` until then. Check `GET /whatsapp/numbers`.
 - **`APP_URL` matters** — was `cl` (garbage), fixed to `http://pgsms.test`; also pinned in `phpunit.xml`. A broken `APP_URL` makes `route()` produce malformed URLs and tests 404.
 - **`.env` is gitignored** — credentials must be set per environment; they are never in the repo.
 - **Token hygiene** — the initial API token was shared in a chat session; rotate tokens that may have been exposed.
