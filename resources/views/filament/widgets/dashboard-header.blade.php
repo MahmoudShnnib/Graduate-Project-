@@ -34,6 +34,17 @@
             {{-- Actions --}}
             <div class="flex items-center gap-2">
                 @if ($header['canEditSettings'])
+                    {{-- Display-only status (the actual toggle lives in the settings modal) --}}
+                    <div title="متطلب رمز التحقق (OTP) على صفحة التقديم — يُضبط من إعدادات النظام"
+                         @class([
+                             'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white ring-1',
+                             'bg-white/10 ring-white/20' => $header['applyOtpEnabled'],
+                             'bg-amber-500/30 ring-amber-300/50' => ! $header['applyOtpEnabled'],
+                         ])>
+                        @svg($header['applyOtpEnabled'] ? 'heroicon-o-shield-check' : 'heroicon-o-shield-exclamation', 'size-5')
+                        <span class="hidden sm:inline">رمز التحقق: {{ $header['applyOtpEnabled'] ? 'مُفعّل' : 'مُعطّل' }}</span>
+                    </div>
+
                     <button type="button" wire:click="mountAction('editSettings')"
                             class="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/25">
                         @svg('heroicon-o-cog-6-tooth', 'size-5')

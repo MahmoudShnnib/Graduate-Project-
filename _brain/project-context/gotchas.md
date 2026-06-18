@@ -87,13 +87,17 @@ Despite `composer run dev` launching `php artisan queue:listen`, **no notificati
 
 If you add a new notification that may be slow, you probably want `ShouldQueue`. Just be aware there's no precedent in the codebase and Laravel queue driver config may need validation.
 
-## Notification status is optimistic
+## WhatsApp `NotificationLog` status is reconciled, not optimistic (2026-06-18)
 
-`NotificationService::dispatch` marks email as `'sent'` if `notifiable->notify()` doesn't throw. For Laravel's mail channel, that means "handed off to the mail transport" — not "delivered to the recipient."
+Qonvo's **send** endpoint (`POST /whatsapp/messages/send`) only **queues** the message: it returns `2xx` with `data.status = "pending"` even for sends that ultimately **fail** (e.g. self-send, or a downstream WhatsApp error — Qonvo's dashboard then shows "Failed: Failed to send message through WhatsApp service"). So a `2xx` is NOT proof of delivery.
 
-For WhatsApp, it's even murkier: the service sets `$whatsappStatus = 'sent'` just because `config('services.qonvo.api_token')` exists, **before** the Qonvo call is made. The actual send happens inside `$notifiable->notify($notification)` through the `WhatsAppChannel`, which logs failures to Laravel log but doesn't propagate them back. So a `NotificationLog` row with `status='sent'` for WhatsApp means "we attempted it" — not "it delivered."
+The fix: `WhatsAppChannel` now logs the message as **`pending`** (mapped from Qonvo's response via `WhatsAppService::mapStatus()`) and stores `notification_logs.provider_message_id` (Qonvo's id). The **real** status is fetched later from `GET /whatsapp/messages/{id}` (returns `status` + `error_message`) by `WhatsAppService::reconcilePendingLogs()`, run via:
+- the `whatsapp:reconcile` command (scheduled every 5 min in `routes/console.php` — needs `schedule:work`/cron), and
+- a **"تحديث حالات الإرسال"** header button on `/admin/notification-logs` (fallback, no scheduler needed).
 
-Don't use `NotificationLog.status='sent'` as evidence the student saw the message.
+Statuses: `pending` (قيد الإرسال, queued at Qonvo) → reconciles to `sent` or `failed`. An exception during send (Qonvo unreachable) still logs `failed` immediately. So `status='failed'` is now trustworthy; `status='pending'` means "not yet reconciled". See [[../bugs-and-fixes/2026-06-18-whatsapp-log-status-reconciliation]].
+
+(Email is still optimistic — `notify()` not throwing means "handed to the mail transport", not delivered.)
 
 ## Libyan phone format is baked in
 
@@ -346,6 +350,7 @@ Key points: a `window.__cetNavRefreshInstalled` guard keeps the listeners singul
 
 ## Testing gotchas
 
+- **`Setting`'s static memo leaks across tests.** `Setting::$cached` is a per-request static; `RefreshDatabase` rolls back rows but **not** statics. A value set in one test (e.g. `Setting::set('apply_otp_required','0')`) bleeds into the next, which then reads stale config. Call `Setting::flushCache()` in `beforeEach` of any test that mutates or depends on settings (done in `WhatsAppOtpVerificationTest`). Same trap applies to any model using static memoization.
 - `tests/Pest.php` provides `studentWithRecord()` and `adminUser()` — **always** use these instead of manually creating User+Student+Role
 - `adminUser()` creates both the Spatie role AND the `role` column — mirror this if you hand-build admins
 - `RefreshDatabase` is applied to both Feature and Unit dirs — Unit tests have DB access (unusual but intentional here because `GradeCalculationServiceTest` needs it)

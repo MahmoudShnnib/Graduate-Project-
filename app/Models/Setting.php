@@ -24,6 +24,9 @@ class Setting extends Model
         'contact_email' => 'info@cet.edu.ly',
         'contact_address' => 'طرابلس — ليبيا',
         'contact_hours' => 'الأحد — الخميس: 9ص — 3م',
+        // '1' = applicants must verify their phone via WhatsApp OTP before submitting
+        // /apply; '0' = OTP requirement disabled (e.g. while WhatsApp is down).
+        'apply_otp_required' => '1',
     ];
 
     /**
@@ -53,6 +56,16 @@ class Setting extends Model
     {
         static::saved(fn () => self::$cached = null);
         static::deleted(fn () => self::$cached = null);
+    }
+
+    /**
+     * Drop the per-request static memo. Needed in tests: RefreshDatabase rolls back
+     * the rows but not this static property, so a value set in one test would leak
+     * into the next.
+     */
+    public static function flushCache(): void
+    {
+        self::$cached = null;
     }
 
     /**

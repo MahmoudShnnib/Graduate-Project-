@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
 use App\Services\WhatsAppOtpService;
-use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,10 +25,12 @@ class RegistrationController extends Controller
         public WhatsAppOtpService $otpService,
     ) {}
 
-    public function create(WhatsAppService $whatsApp): View
+    public function create(): View
     {
         $specializations = Specialization::orderBy('name')->get();
-        $whatsappEnabled = $whatsApp->isConfigured();
+        // OTP is shown/required only when Qonvo is configured AND the admin hasn't
+        // disabled it via the apply_otp_required setting.
+        $whatsappEnabled = $this->otpService->isRequired();
         $applicationsOpen = Semester::active()?->acceptsApplications() ?? false;
 
         // After a failed submit (back()->withInput()), keep the phone's still-valid
@@ -75,7 +76,7 @@ class RegistrationController extends Controller
         return response()->json($result, $result['verified'] ? 200 : 422);
     }
 
-    public function store(Request $request, WhatsAppService $whatsApp): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
         // Hard gate: refuse new submissions once admissions are closed, even on a
         // stale page or a direct POST. The UI also hides the form (see create()).
@@ -204,7 +205,7 @@ class RegistrationController extends Controller
         ]);
 
         try {
-            if ($whatsApp->isConfigured() && ! $this->otpService->hasVerified($validated['phone'])) {
+            if ($this->otpService->isRequired() && ! $this->otpService->hasVerified($validated['phone'])) {
                 return back()
                     ->withInput()
                     ->withErrors(['phone' => 'يرجى التحقق من رقم النقال عبر واتساب قبل إرسال الطلب.']);

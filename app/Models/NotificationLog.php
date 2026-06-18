@@ -18,6 +18,7 @@ class NotificationLog extends Model
         'message',
         'status',
         'error_message',
+        'provider_message_id',
         'sent_at',
         'created_at',
     ];

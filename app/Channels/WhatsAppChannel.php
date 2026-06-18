@@ -39,15 +39,21 @@ class WhatsAppChannel
         $messageText = $message->message;
 
         try {
-            $this->whatsApp->sendText($phone, $message);
-            $this->writeLog($studentId, $phone, $event, $messageText, 'sent');
+            // The send endpoint only QUEUES the message and returns status "pending".
+            // We log that real status + Qonvo's message id; the actual sent/failed
+            // outcome is filled in later by reconcilePendingLogs() (button + command).
+            $result = $this->whatsApp->sendText($phone, $message);
+            $data = $result['data'] ?? [];
+            $status = WhatsAppService::mapStatus($data['status'] ?? null);
+            $error = $status === 'failed' ? ($data['error_message'] ?? null) : null;
+            $this->writeLog($studentId, $phone, $event, $messageText, $status, $error, $data['id'] ?? null);
         } catch (\Throwable $e) {
             Log::warning('WhatsApp notification failed: '.$e->getMessage());
             $this->writeLog($studentId, $phone, $event, $messageText, 'failed', $e->getMessage());
         }
     }
 
-    private function writeLog(?int $studentId, string $phone, string $event, string $message, string $status, ?string $errorMessage = null): void
+    private function writeLog(?int $studentId, string $phone, string $event, string $message, string $status, ?string $errorMessage = null, int|string|null $providerMessageId = null): void
     {
         try {
             NotificationLog::create([
@@ -58,6 +64,7 @@ class WhatsAppChannel
                 'message' => $message,
                 'status' => $status,
                 'error_message' => $errorMessage,
+                'provider_message_id' => $providerMessageId,
                 'sent_at' => now(),
                 'created_at' => now(),
             ]);

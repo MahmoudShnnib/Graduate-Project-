@@ -25,3 +25,4 @@ File names use `YYYY-MM-DD-bug-title.md`. Link to the related [[decisions]] or [
 ### 2026-06-18
 - [[2026-06-18-survey-choice-shows-unavailable-not-pending]] — Submitted survey choices showed "المادة غير متاحة هذا الفصل" before offerings opened; now "قيد المراجعة" (pending) until enrolled/rejected
 - [[2026-06-18-filament-cached-action-state-stale]] — Header-action button (`disabled`/`visible`) baked as a scalar stayed stale after a same-page action; needs closures so it re-evaluates. Fixed grades publish button + exceptional summon
+- [[2026-06-18-whatsapp-log-status-reconciliation]] — notification-logs showed "sent" for messages Qonvo actually failed; now logs `pending` + reconciles real status via `GET /whatsapp/messages/{id}` (command + button)
