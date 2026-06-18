@@ -12,13 +12,17 @@ related: [[architecture]], [[gotchas]], [[../../CLAUDE]]
 
 A **graduate-studies management system** for a Libyan university faculty, built as a graduation project. The core value proposition is automating the academic-lifecycle paperwork that admin secretaries currently do by hand: intake of applications, admissions tracking, enrollment, add/drop, grade entry + approval, GPA calculation, thesis supervision registration, suspension requests, and end-of-studies clearance.
 
-Three actor types, three user experiences:
+Five actor types, five user experiences (three of them share the `/admin` panel but see very different things):
 
-| Actor | Entry point | Powers |
-|---|---|---|
-| **Applicants** (not yet users) | `/apply` (public) | Submit an application, track it via `/apply/track` |
-| **Admin + secretary + faculty** | `/admin` (Filament) | Review applications, manage students & courses, enter grades, approve grades, run reports, generate PDFs |
-| **Students** | `/portal` (Filament, RTL Arabic) | See their tree, surveys, grades, submit add/drop/suspension/thesis/clearance requests |
+| Actor | Role (`users.role`) | Entry point | Powers |
+|---|---|---|---|
+| **Applicant** (متقدم) | — (not yet a user) | `/apply` (public) | Submit an application, track it via `/apply/track`. Promoted to Student on approval. |
+| **Office Head** (رئيس مكتب الدراسات العليا) | `super_admin` | `/admin` (Filament) | Everything — all permissions + `Gate::before` bypass; manages users/roles/audit log on top of all academic operations |
+| **Administrative Assistant** (مساعد إداري) | `manager_assistant` | `/admin` (Filament) | Day-to-day operator: applications, students, courses, semesters/offerings, enrollment rostering, grade approval, add/drop/suspension/thesis requests. Reads everything **except** admin-only models (`Role`, `User`, `AuditLog`, `NotificationLog`). |
+| **Faculty Member** (عضو هيئة التدريس) | `faculty` | `/admin` → "موادي" only | Sees only their own course offerings (`faculty_id == auth()->id()`) and enters grades for them. Holds just `ViewAny:CourseOffering` + `View:CourseOffering`; everything else is hidden. |
+| **Student** (الطالب) | `student` | `/portal` (Filament, RTL Arabic) | See their tree, surveys, grades, submit add/drop/suspension/thesis/clearance requests |
+
+> **Note on role naming:** the Spatie/Shield role for the assistant is `manager_assistant` (the `users.role` column may carry the legacy value `secretary`, which `canAccessPanel` and `repairUserRoles` still accept and map across). Earlier docs called this actor "secretary."
 
 The UI is **entirely in Arabic** (right-to-left). English appears only in raw identifiers (emails, enrollment numbers, the applicant's English name — required for the bachelor certificate).
 
