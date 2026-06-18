@@ -3,7 +3,6 @@
 namespace App\Filament\Student\Pages;
 
 use App\Enums\EnrollmentStatus;
-use App\Enums\StudentStatus;
 use App\Models\Course;
 use App\Models\Semester;
 use App\Models\Student;
@@ -96,13 +95,13 @@ class CourseTreePage extends Page
             ->with(['courseOffering.course', 'courseOffering.semester', 'grade'])
             ->get();
 
-        // When the student is suspended (قيده موقوف) or has dropped out (منقطع),
-        // the current term is flushed: its enrollments are withdrawn AND excluded
-        // from the GPA. So its courses must not surface as passed even if a
-        // coursework grade was published before the suspension. Graduated students
-        // also have withdrawn enrollments, but their GPA is frozen WITH them, so
-        // their transcript is left intact (only these two states hide the term).
-        $isSuspended = in_array($student->status, [StudentStatus::OnHold, StudentStatus::Inactive], true);
+        // For a live-record student (Active / OnHold / Inactive) the GPA is computed
+        // from Enrolled enrollments only, so a withdrawn course — a dropped one, or a
+        // course flushed by a suspension (even after the student is reactivated to
+        // مستمر) — must NOT surface as passed. Frozen-record students (Graduated /
+        // Transferred / Dismissed) keep their full snapshot: every enrollment is
+        // withdrawn by the cascade but the GPA froze WITH them, so show them all.
+        $showFullRecord = $student->status->freezesGpa();
 
         $map = [];
 
@@ -111,14 +110,12 @@ class CourseTreePage extends Page
             $isCurrentSemester = $activeSemester && $enrollment->courseOffering->semester_id === $activeSemester->id;
             $grade = $enrollment->grade;
 
-            $isFlushedCurrent = $isSuspended
-                && $isCurrentSemester
-                && $enrollment->status !== EnrollmentStatus::Enrolled;
+            $countsForStudent = $showFullRecord || $enrollment->status === EnrollmentStatus::Enrolled;
 
             $isPassed = $grade
                 && $grade->published_at !== null
                 && $grade->letter !== 'F'
-                && ! $isFlushedCurrent;
+                && $countsForStudent;
 
             $isCurrentlyTaking = $enrollment->status === EnrollmentStatus::Enrolled
                 && $isCurrentSemester

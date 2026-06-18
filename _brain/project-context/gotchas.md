@@ -312,15 +312,37 @@ This app runs `CACHE_STORE=database`. With the database cache store, `cache()->r
 
 **Rule:** before reaching for `cache()->remember()` as an N+1 fix, check `config('cache.default')`. On a `database`/`dynamodb` store the cache lookup is itself a query — a static (per-request) memo is the driver-agnostic win. See [[../decisions/2026-06-03-n1-eager-loading-deviations]]. (⚠️ static memo persists across requests under Octane — not used here.)
 
-## Student grade visibility must mirror the GPA, gated on STUDENT STATUS not enrollment status
+## Student grade visibility must mirror the GPA, gated on `StudentStatus::freezesGpa()`
 
 The course tree (`CourseTreePage`) walks **all** enrollments (not just active) on purpose, so a `Graduated` student — whose cascade withdraws *every* enrollment but whose GPA is **frozen with them** — keeps their transcript. So you **cannot** filter the transcript/tree by `status = Enrolled`: that wipes graduates.
 
-The real distinction is the **student's status**, not the enrollment's:
-- `OnHold`/`Inactive` flush the current term AND recalc the GPA *without* it → the flushed current-semester courses must be **hidden** from كشف الدرجات + المقررات العامة.
-- `Graduated` (and others) freeze the GPA *with* the term → transcript stays intact.
+The distinction is whether the GPA is a **live computation** or a **frozen snapshot** — captured by `StudentStatus::freezesGpa()`:
+- **Live** (`Active`, `OnHold`, `Inactive`): the GPA is computed from `activeEnrollments()` (Enrolled only). So the transcript + tree must show **Enrolled only** — every withdrawn/dropped/flushed course is hidden. This includes a student **reactivated from suspension back to `Active`** — the flushed course stays `Withdrawn` and out of the GPA, so it must stay hidden even though the student is مستمر again.
+- **Frozen** (`Graduated`, `Transferred`, `Dismissed`): GPA is a snapshot; show the **full record** (no status filter).
 
-Rule: hide an enrollment only when `in_array($student->status, [OnHold, Inactive]) && isCurrentSemester && status !== Enrolled`. The visible set must always equal the GPA-counted set. See [[../decisions/2026-06-17-suspended-student-grade-visibility]] (display side) + [[../decisions/2026-06-15-flush-current-semester-on-suspend]] (GPA side). Watch for tests that assert the *old* "grades stay visible after an OnHold cascade" behavior — that was reversed 2026-06-17.
+Rule: `if (! $student->status->freezesGpa()) { showEnrolledOnly(); }`. The visible set must always equal the GPA-counted set, for every status. ⚠️ An earlier fix gated this on `OnHold/Inactive` only — that was **wrong**: it missed reactivated-to-Active students. See [[../decisions/2026-06-17-suspended-student-grade-visibility]] (revised) + [[../decisions/2026-06-15-flush-current-semester-on-suspend]] (GPA side). Watch for tests asserting the *old* "grades stay visible after an OnHold cascade" — reversed 2026-06-17.
+
+## Filament cached action props need closures (`disabled`/`visible`/`tooltip`/`label`), not scalars
+
+Filament **caches** a page's header/record actions on first build. A persistently-rendered prop set to a **pre-computed scalar** — e.g. `->disabled($readyCount === 0)` or `->visible($flag)` — is baked once and will NOT re-evaluate after another action on the same page mutates the underlying data. The table refreshes (record actions auto-refresh the table) and `refresh-sidebar` fires, but that header button stays stale until a full page reload.
+
+Fix: pass a **closure** so Filament re-evaluates it on every render (it re-runs closures even on cached actions): `->disabled(fn (): bool => $this->readyToPublishCount() === 0)`. Move the DB count into a small private method.
+
+- `modalDescription`/`form` are evaluated when the action **mounts** (which re-runs `getHeaderActions()` fresh), so a scalar there is usually fine — only persistently-rendered props bite.
+- Actions that `redirect()` after running are immune (full reload). The ones that mutate in place + `dispatch('refresh-sidebar')` are the risk.
+- Fixed in `ViewCourseGrades` (publish button `disabled`) and `ViewExceptionalStudent` (summon `visible`), 2026-06-18. See [[../bugs-and-fixes/2026-06-18-filament-cached-action-state-stale]].
+
+## `wire:navigate` back/forward cache shows stale page data until a hard refresh
+
+Separate from the cached-action issue above: Livewire's `wire:navigate` keeps a **back/forward cache**. Clicking a *link* forward to a page re-renders it fresh, but pressing the **browser Back button** (or any history restore) shows the **cached DOM snapshot** — so server-side blade `@php` counts (e.g. the `ViewCourseGrades` hero "X / Y درجة مدخلة") and Filament table rows reflect the state from the last visit, not the DB. The user must hard-refresh. (Reproduced 2026-06-18: approve a grade in one tab/flow, Back to the grades page → still shows "بانتظار الاعتماد".)
+
+Because it is **panel-wide** (every Filament page, list + view), the fix is a **single global render hook** — `resources/views/filament/navigate-refresh.blade.php`, registered via `PanelsRenderHook::BODY_END` in **both** `AdminPanelProvider` and `StudentPanelProvider`. It listens for `popstate` (browser back/forward) and, on the next `livewire:navigated`, refreshes only the app's own page component(s):
+```js
+window.Livewire.all()
+    .filter(c => (c.name || '').startsWith('App\\'))  // skip Filament chrome (topbar/sidebar/etc.)
+    .forEach(c => c.$wire.$refresh());
+```
+Key points: a `window.__cetNavRefreshInstalled` guard keeps the listeners singular even though the hook re-renders on every page; it fires **only on history restore**, so normal forward link-clicks (which already revalidate) pay nothing. Browser-verified on both the grades **view** (status معتمد updates) and the grades **list** (count columns `1 0 1 0` → `1 0 0 1`). Don't re-add per-page `@script` refreshers — the global hook covers them.
 
 ## Testing gotchas
 

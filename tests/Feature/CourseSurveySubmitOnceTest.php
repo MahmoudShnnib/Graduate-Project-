@@ -1,10 +1,21 @@
 <?php
 
+use App\Enums\EnrollmentStatus;
 use App\Filament\Student\Pages\CourseSurveyPage;
 use App\Models\Course;
+use App\Models\CourseOffering;
 use App\Models\CourseSurvey;
 use App\Models\Semester;
+use App\Models\StudentEnrollment;
 use Livewire\Livewire;
+
+function surveyStatusFor(array $ctx): string
+{
+    return Livewire::actingAs($ctx['user'])
+        ->test(CourseSurveyPage::class)
+        ->instance()
+        ->getEnrollmentStatuses()[$ctx['course']->id] ?? 'missing';
+}
 
 function openSurveyContext(): array
 {
@@ -70,6 +81,54 @@ it('locks course toggling after the survey is submitted', function () {
     // The selection set is unchanged — only the originally submitted course remains.
     expect($component->get('selections'))->toHaveCount(1)
         ->and(array_key_exists($other->id, $component->get('selections')))->toBeFalse();
+});
+
+it('keeps a submitted choice pending (not "unavailable") while no offering exists yet', function () {
+    $ctx = openSurveyContext();
+
+    Livewire::actingAs($ctx['user'])
+        ->test(CourseSurveyPage::class)
+        ->set('selections', [$ctx['course']->id => 1])
+        ->call('submit');
+
+    // No CourseOffering opened yet — the choice is under review, not unavailable.
+    expect(surveyStatusFor($ctx))->toBe('pending');
+});
+
+it('marks a surveyed choice enrolled once the admin registers the student', function () {
+    $ctx = openSurveyContext();
+
+    Livewire::actingAs($ctx['user'])
+        ->test(CourseSurveyPage::class)
+        ->set('selections', [$ctx['course']->id => 1])
+        ->call('submit');
+
+    $offering = CourseOffering::factory()->create([
+        'course_id' => $ctx['course']->id,
+        'semester_id' => $ctx['semester']->id,
+    ]);
+    StudentEnrollment::factory()->create([
+        'student_id' => $ctx['student']->id,
+        'course_offering_id' => $offering->id,
+        'status' => EnrollmentStatus::Enrolled,
+    ]);
+
+    expect(surveyStatusFor($ctx))->toBe('enrolled');
+});
+
+it('marks a surveyed choice rejected when the admin rejects it', function () {
+    $ctx = openSurveyContext();
+
+    Livewire::actingAs($ctx['user'])
+        ->test(CourseSurveyPage::class)
+        ->set('selections', [$ctx['course']->id => 1])
+        ->call('submit');
+
+    CourseSurvey::where('student_id', $ctx['student']->id)
+        ->where('course_id', $ctx['course']->id)
+        ->update(['is_processed' => true, 'rejected_at' => now()]);
+
+    expect(surveyStatusFor($ctx))->toBe('rejected');
 });
 
 it('reports hasSubmittedSurvey correctly', function () {

@@ -73,7 +73,12 @@ class CourseSurveyPage extends Page
 
     /**
      * Returns the enrollment status for each surveyed course in the active semester.
-     * Possible values: 'enrolled' | 'pending' | 'rejected' | 'unavailable'
+     * Possible values: 'enrolled' | 'pending' | 'rejected'
+     *
+     * A surveyed choice stays 'pending' (قيد المراجعة) until the admin either
+     * enrolls the student or rejects the choice. The course offering usually does
+     * NOT exist yet at survey time — that is the whole point of the survey — so a
+     * missing offering must read as "under review", never as "unavailable".
      *
      * @return array<int, string>
      */
@@ -94,26 +99,19 @@ class CourseSurveyPage extends Page
 
         $statuses = [];
         foreach (array_keys($this->selections) as $courseId) {
-            // Rejected takes precedence over everything else so the student
-            // sees the final decision even if the offering was also closed.
+            // Rejected takes precedence so the student sees the final decision.
             if ($surveys->get($courseId)?->rejected_at !== null) {
                 $statuses[$courseId] = 'rejected';
 
                 continue;
             }
 
-            $offering = \App\Models\CourseOffering::where('course_id', $courseId)
-                ->where('semester_id', $activeSemester->id)
-                ->first();
-
-            if (! $offering) {
-                $statuses[$courseId] = 'unavailable';
-
-                continue;
-            }
-
+            // Enrolled once the admin opens an offering and registers the student.
+            // Anything before that — including no offering yet — is "under review".
             $enrolled = \App\Models\StudentEnrollment::where('student_id', $student->id)
-                ->where('course_offering_id', $offering->id)
+                ->whereHas('courseOffering', fn ($q) => $q
+                    ->where('course_id', $courseId)
+                    ->where('semester_id', $activeSemester->id))
                 ->active()
                 ->exists();
 

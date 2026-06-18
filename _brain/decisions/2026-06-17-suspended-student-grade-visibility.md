@@ -54,6 +54,25 @@ the set that counts in their GPA**, for every status.
   id is memoized.
 - `$isSuspended = in_array($student->status, [OnHold, Inactive], true)`.
 
+## Revision (2026-06-18) — gate on `freezesGpa()`, not `OnHold/Inactive`
+
+The `OnHold/Inactive`-only gate above was **wrong**: when an admin uses تغيير حالة الطالب to
+reactivate a suspended student back to `Active` (مستمر), the flushed course stays `Withdrawn`
+and out of the GPA — but the student is now `Active`, so the `OnHold/Inactive` gate stopped
+hiding it and its grade reappeared in كشف الدرجات + المقررات العامة.
+
+Corrected rule: hide based on whether the GPA is **live vs frozen**, via a new
+`StudentStatus::freezesGpa()`:
+- **Live** (`Active`/`OnHold`/`Inactive`): GPA = `activeEnrollments()` (Enrolled only) →
+  show **Enrolled only** (hides every withdrawn/flushed course, reactivated case included).
+- **Frozen** (`Graduated`/`Transferred`/`Dismissed`): GPA snapshot → show the full record.
+
+Implementation: `GradesPage::applyRecordVisibility()` adds `where('status', Enrolled)` unless
+`freezesGpa()`; `CourseTreePage` uses `$countsForStudent = $showFullRecord || status === Enrolled`.
+New regression test: "keeps flushed current courses hidden after reactivation to مستمر".
+Browser-verified with student `flefel.akram@example.org` (Active, a Withdrawn published-C+
+course) — the course shows "لم يُدرس بعد" with no grade and the transcript is empty.
+
 ## Consequences
 
 - A pre-existing test (`StudentStatusGateTest` "keeps approved grades visible after

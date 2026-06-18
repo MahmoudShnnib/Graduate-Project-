@@ -57,7 +57,7 @@
                             'flex items-center justify-between rounded-xl border p-3 transition-colors',
                             'border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10' => $status === 'enrolled',
                             'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10' => $status === 'pending',
-                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10'     => $status === 'unavailable' || $status === 'rejected',
+                            'border-danger-200 bg-danger-50 dark:border-danger-500/30 dark:bg-danger-500/10'     => $status === 'rejected',
                         ])>
                             <div class="flex items-center gap-3">
                                 <span class="inline-flex size-7 items-center justify-center rounded-full bg-primary-600 dark:bg-primary-500 text-xs font-bold text-white">
@@ -72,12 +72,11 @@
                                 'rounded-lg px-2.5 py-1 text-xs font-semibold',
                                 'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $status === 'enrolled',
                                 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $status === 'pending',
-                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'unavailable' || $status === 'rejected',
+                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'rejected',
                             ])>
                                 @if($status === 'enrolled') مُسجَّل
-                                @elseif($status === 'pending') قيد المراجعة
                                 @elseif($status === 'rejected') مرفوض
-                                @else المادة غير متاحة هذا الفصل
+                                @else قيد المراجعة
                                 @endif
                             </span>
                         </div>
@@ -132,12 +131,11 @@
                                 'rounded-lg px-2.5 py-1 text-xs font-semibold',
                                 'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400' => $status === 'enrolled',
                                 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $status === 'pending',
-                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'unavailable' || $status === 'rejected',
+                                'bg-danger-100 text-danger-700 dark:bg-danger-500/20 dark:text-danger-400'     => $status === 'rejected',
                             ])>
                                 @if($status === 'enrolled') مُسجَّل
-                                @elseif($status === 'pending') قيد المراجعة
                                 @elseif($status === 'rejected') مرفوض
-                                @else المادة غير متاحة هذا الفصل
+                                @else قيد المراجعة
                                 @endif
                             </span>
                         </div>
