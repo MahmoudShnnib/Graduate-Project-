@@ -51,6 +51,8 @@ class ApproveApplication
                 'email' => $application->email,
                 'phone' => $application->phone,
                 'password' => $application->password ?? Hash::make(Str::random(10)),
+                'telegram_chat_id' => $application->telegram_chat_id,
+                'telegram_linked_at' => $application->telegram_chat_id ? now() : null,
                 'role' => 'student',
                 'specialization_id' => $application->specialization_id,
                 'is_active' => true,

@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Channels\TelegramChannel;
+use App\Channels\TelegramMessage;
 use App\Channels\WhatsAppChannel;
 use App\Channels\WhatsAppMessage;
 use Illuminate\Bus\Queueable;
@@ -13,9 +15,11 @@ use Illuminate\Notifications\Notification;
  * phone-based OTP password reset, an unverified phone/email change is an
  * account-takeover vector — this notifies the likely victim so they can react.
  *
- * Sent on-demand (Notification::route) to a bare phone number, so it does NOT
- * use HasWhatsAppChannel (whose via() inspects $notifiable->phone). via() here
- * only checks Qonvo config; the channel resolves the routed number itself.
+ * Sent on-demand (Notification::route) to a bare phone number and/or telegram
+ * chat, so it does NOT use the channel traits (whose via() inspects model
+ * attributes). via() here sends over whichever route is present + configured —
+ * a security alert goes over BOTH channels for the best chance of reaching the
+ * real owner, regardless of the notification_channel_policy.
  */
 class ContactInfoChangedNotification extends Notification
 {
@@ -29,10 +33,20 @@ class ContactInfoChangedNotification extends Notification
     /** @return array<int, class-string> */
     public function via(object $notifiable): array
     {
-        return ! empty(config('services.qonvo.api_token')) ? [WhatsAppChannel::class] : [];
+        $channels = [];
+
+        if (! empty(config('services.qonvo.api_token')) && $notifiable->routeNotificationFor('whatsapp')) {
+            $channels[] = WhatsAppChannel::class;
+        }
+
+        if (! empty(config('services.telegram.bot_token')) && $notifiable->routeNotificationFor('telegram')) {
+            $channels[] = TelegramChannel::class;
+        }
+
+        return $channels;
     }
 
-    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    private function alertText(): string
     {
         $what = match (true) {
             in_array('phone', $this->changedFields, true) && in_array('email', $this->changedFields, true) => 'رقم الهاتف والبريد الإلكتروني',
@@ -40,9 +54,17 @@ class ContactInfoChangedNotification extends Notification
             default => 'البريد الإلكتروني',
         };
 
-        return new WhatsAppMessage(
-            message: "تنبيه أمني: تم تغيير {$what} المرتبط بحسابك في بوابة الدراسات العليا. إذا لم تقم بهذا التغيير، يرجى التواصل مع مكتب الدراسات العليا فوراً.",
-        );
+        return "تنبيه أمني: تم تغيير {$what} المرتبط بحسابك في بوابة الدراسات العليا. إذا لم تقم بهذا التغيير، يرجى التواصل مع مكتب الدراسات العليا فوراً.";
+    }
+
+    public function toWhatsApp(object $notifiable): WhatsAppMessage
+    {
+        return new WhatsAppMessage(message: $this->alertText());
+    }
+
+    public function toTelegram(object $notifiable): TelegramMessage
+    {
+        return new TelegramMessage(message: $this->alertText());
     }
 
     /** @return array<string, mixed> */

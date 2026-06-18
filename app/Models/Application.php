@@ -21,6 +21,7 @@ class Application extends Model
         'email',
         'password',
         'phone',
+        'telegram_chat_id',
         'specialization_id',
         'semester_id',
         'tracking_code',

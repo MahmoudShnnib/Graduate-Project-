@@ -11,12 +11,37 @@ use App\Models\DiscussionRequest;
 use App\Models\ExceptionalRequest;
 use App\Models\Semester;
 use App\Models\Student;
+use App\Services\TelegramVerificationService;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
 class StudentDashboard extends Page
 {
     protected string $view = 'filament.student.pages.dashboard';
+
+    public ?string $telegramDeepLink = null;
+
+    public function telegramLinkingEnabled(): bool
+    {
+        return app(TelegramVerificationService::class)->isConfigured();
+    }
+
+    public function isTelegramLinked(): bool
+    {
+        return ! empty(auth()->user()->fresh()->telegram_chat_id);
+    }
+
+    public function startTelegramLink(): void
+    {
+        $service = app(TelegramVerificationService::class);
+        $this->telegramDeepLink = $service->deepLink($service->startForUser(auth()->user()));
+    }
+
+    public function unlinkTelegram(): void
+    {
+        app(TelegramVerificationService::class)->unlinkUser(auth()->user()->fresh());
+        $this->telegramDeepLink = null;
+    }
 
     protected static ?string $navigationLabel = 'الرئيسية';
 
