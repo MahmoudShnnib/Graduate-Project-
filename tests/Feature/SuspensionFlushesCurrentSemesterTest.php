@@ -180,6 +180,30 @@ it('excludes suspension-flushed current courses from the course tree but keeps p
         ->and($map)->not->toHaveKey($currentCourseId);
 });
 
+it('keeps flushed current courses hidden after the student is reactivated to مستمر (transcript + tree)', function () {
+    ['student' => $student, 'prior' => $prior, 'current' => $current] = flushFixture();
+
+    $student->update(['status' => StudentStatus::OnHold]);   // suspend → flush current
+    $student->update(['status' => StudentStatus::Active]);   // admin: تغيير حالة الطالب → مستمر
+
+    // The flushed course stays withdrawn and out of the GPA after reactivation.
+    expect($current->fresh()->status)->toBe(EnrollmentStatus::Withdrawn);
+
+    $this->actingAs($student->user);
+
+    $priorCourseId = $prior->courseOffering->course_id;
+    $currentCourseId = $current->courseOffering->course_id;
+
+    $enrollmentIds = (new GradesPage)->getGrades()->pluck('id');
+    expect($enrollmentIds)->toContain($prior->id)
+        ->and($enrollmentIds)->not->toContain($current->id);
+
+    $map = (new CourseTreePage)->getEnrollmentMap();
+    expect($map)->toHaveKey($priorCourseId)
+        ->and($map[$priorCourseId]['status'])->toBe('passed')
+        ->and($map)->not->toHaveKey($currentCourseId);
+});
+
 it('keeps a graduated student full transcript visible even though all enrollments are withdrawn', function () {
     ['student' => $student, 'prior' => $prior, 'current' => $current] = flushFixture();
     $student->update(['status' => StudentStatus::Graduated]);

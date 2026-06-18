@@ -68,13 +68,36 @@ class ViewExceptionalStudent extends Page
         ];
     }
 
+    private function latestExceptionalRequest(): ?ExceptionalRequest
+    {
+        return $this->record->exceptionalRequests->first();
+    }
+
+    /**
+     * A pending/summoned request the admin can still act on. Read live (via a
+     * closure on each button's ->visible()) so the accept/reject/summon buttons
+     * update in place after an action — the summon action refreshes the record
+     * without a redirect, so a baked scalar would leave the button stale.
+     */
+    private function hasActionableRequest(): bool
+    {
+        $request = $this->latestExceptionalRequest();
+
+        return $request !== null && in_array($request->status->value, ['pending', 'summoned'], true);
+    }
+
+    private function isAlreadySummoned(): bool
+    {
+        return (bool) $this->latestExceptionalRequest()?->summon_message;
+    }
+
     private function acceptAction(?ExceptionalRequest $request, bool $visible): Action
     {
         return Action::make('accept')
             ->label('قبول')
             ->icon(Heroicon::Check)
             ->color('success')
-            ->visible($visible && $request)
+            ->visible(fn (): bool => $this->hasActionableRequest())
             ->requiresConfirmation()
             ->modalHeading('قبول الطلب الاستثنائي')
             ->modalDescription('سيتم إعادة الطالب إلى الحالة النشطة. هل أنت متأكد؟')
@@ -138,7 +161,7 @@ class ViewExceptionalStudent extends Page
             ->label('رفض')
             ->icon(Heroicon::XMark)
             ->color('danger')
-            ->visible($visible && $request)
+            ->visible(fn (): bool => $this->hasActionableRequest())
             ->requiresConfirmation()
             ->modalHeading('رفض الطلب الاستثنائي')
             ->modalDescription('هل أنت متأكد من رفض هذا الطلب؟')
@@ -169,7 +192,7 @@ class ViewExceptionalStudent extends Page
             ->label('استدعاء')
             ->icon(Heroicon::OutlinedMegaphone)
             ->color('info')
-            ->visible($visible && $request && ! $alreadySummoned)
+            ->visible(fn (): bool => $this->hasActionableRequest() && ! $this->isAlreadySummoned())
             ->requiresConfirmation()
             ->modalHeading('استدعاء الطالب')
             ->modalDescription('اكتب رسالة الاستدعاء التي ستظهر للطالب على لوحة التحكم الخاصة به.')

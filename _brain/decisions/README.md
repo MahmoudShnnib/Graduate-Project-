@@ -51,4 +51,5 @@ File names use `YYYY-MM-DD-decision-title.md`. Each note should link back to the
 - [[2026-05-08-suspension-request-blocking-rules]] — Approved=permanent block, rejected=semester block
 - [[2026-05-08-nav-badge-pending-counts]] — Pending count badges on 7 admin sidebar nav items
 - [[2026-05-08-remove-audit-log-restore]] — Removed restore action from audit logs (observer-unsafe)
-- [[2026-06-17-suspended-student-grade-visibility]] — Hide flushed current-term courses from a suspended student's transcript + tree (display mirror of the 2026-06-15 GPA-flush decision)
+- [[2026-06-17-suspended-student-grade-visibility]] — Hide flushed current-term courses from a suspended student's transcript + tree (display mirror of the GPA-flush; **revised 2026-06-18** to gate on `StudentStatus::freezesGpa()` so reactivated-to-Active students stay correct)
+- [[2026-06-18-global-spa-back-refresh-hook]] — One global render hook refreshes app pages on browser Back/Forward (wire:navigate history-cache staleness), instead of per-page patches

@@ -60,41 +60,19 @@ class ViewCourseGrades extends Page implements HasTable
             return [];
         }
 
-        $baseQuery = fn () => Grade::whereHas('enrollment', fn ($q) => $q->where('course_offering_id', $this->record->id)
-            ->where('status', \App\Enums\EnrollmentStatus::Enrolled));
-
-        $totalEnrolled = \App\Models\StudentEnrollment::where('course_offering_id', $this->record->id)
-            ->where('status', \App\Enums\EnrollmentStatus::Enrolled)->count();
-        $withGrade = (clone $baseQuery)()->count();
-        $noGrade = $totalEnrolled - $withGrade;
-
-        $readyFinal = (clone $baseQuery)()->where('status', GradeStatus::Approved)
-            ->whereNull('published_at')->whereNotNull('total')->count();
-        $approvedNoFinal = (clone $baseQuery)()->where('status', GradeStatus::Approved)
-            ->whereNull('total')->count();
-
-        $finalWarning = '';
-        if ($noGrade > 0) {
-            $finalWarning .= "\n\n⚠️ يوجد {$noGrade} طالب بدون درجات مدخلة.";
-        }
-        if ($approvedNoFinal > 0) {
-            $finalWarning .= "\n⚠️ يوجد {$approvedNoFinal} طالب بدرجات أعمال فصل فقط (بدون نهائي).";
-        }
-
         return [
             Action::make('publish_finals')
                 ->label('نشر الدرجات النهائية')
                 ->icon(Heroicon::OutlinedCheckBadge)
                 ->color('success')
-                ->disabled($readyFinal === 0)
-                ->tooltip($readyFinal === 0 ? 'لا توجد درجات نهائية جاهزة للنشر' : null)
+                // Closures (not pre-computed scalars) so the button re-evaluates on
+                // every render — after approving a grade in the table the button
+                // enables without a manual page reload.
+                ->disabled(fn (): bool => $this->readyToPublishCount() === 0)
+                ->tooltip(fn (): ?string => $this->readyToPublishCount() === 0 ? 'لا توجد درجات نهائية جاهزة للنشر' : null)
                 ->requiresConfirmation()
                 ->modalHeading('نشر الدرجات النهائية')
-                ->modalDescription(
-                    "سيتم نشر الدرجات النهائية لـ {$readyFinal} طالب من أصل {$totalEnrolled} مسجل."
-                    ."\nسيتم تحديث المعدل التراكمي وتفعيل التحذيرات."
-                    .$finalWarning
-                )
+                ->modalDescription(fn (): string => $this->publishModalDescription())
                 ->action(function (GradeCalculationService $calculator, WarningService $warningService, NotificationService $notifier, AuditService $audit): void {
                     $grades = Grade::whereHas('enrollment', fn ($q) => $q->where('course_offering_id', $this->record->id)
                         ->where('status', \App\Enums\EnrollmentStatus::Enrolled))
@@ -141,6 +119,45 @@ class ViewCourseGrades extends Page implements HasTable
                     Notification::make()->title("تم نشر {$grades->count()} درجة نهائية وتحديث المعدلات")->success()->send();
                 }),
         ];
+    }
+
+    /** Approved, fully-marked, not-yet-published grades for this offering's active students. */
+    private function publishableGradesQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return Grade::whereHas('enrollment', fn ($q) => $q
+            ->where('course_offering_id', $this->record->id)
+            ->where('status', \App\Enums\EnrollmentStatus::Enrolled));
+    }
+
+    private function readyToPublishCount(): int
+    {
+        return $this->publishableGradesQuery()
+            ->where('status', GradeStatus::Approved)
+            ->whereNull('published_at')
+            ->whereNotNull('total')
+            ->count();
+    }
+
+    private function publishModalDescription(): string
+    {
+        $totalEnrolled = \App\Models\StudentEnrollment::where('course_offering_id', $this->record->id)
+            ->where('status', \App\Enums\EnrollmentStatus::Enrolled)->count();
+        $ready = $this->readyToPublishCount();
+        $noGrade = $totalEnrolled - $this->publishableGradesQuery()->count();
+        $approvedNoFinal = $this->publishableGradesQuery()
+            ->where('status', GradeStatus::Approved)->whereNull('total')->count();
+
+        $description = "سيتم نشر الدرجات النهائية لـ {$ready} طالب من أصل {$totalEnrolled} مسجل."
+            ."\nسيتم تحديث المعدل التراكمي وتفعيل التحذيرات.";
+
+        if ($noGrade > 0) {
+            $description .= "\n\n⚠️ يوجد {$noGrade} طالب بدون درجات مدخلة.";
+        }
+        if ($approvedNoFinal > 0) {
+            $description .= "\n⚠️ يوجد {$approvedNoFinal} طالب بدرجات أعمال فصل فقط (بدون نهائي).";
+        }
+
+        return $description;
     }
 
     public function table(Table $table): Table

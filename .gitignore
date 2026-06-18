@@ -22,3 +22,29 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Stray git-worktree pointer files
+/.claude/worktrees
+
+# Pre-refactor backups (history is in git)
+/_backups
+
+# Other-AI-tool configs (project uses Claude Code)
+/.cursor
+/.junie
+/.codex
+/.gemini
+/.agents
+/.ai
+/GEMINI.md
+/AGENTS.md
+
+# Graduation-report figures & diagram artifacts (not app runtime)
+/diagram-shots
+/doc-screenshots
+/diagrams.html
+/use-case-diagrams.html
+/chen-erd.svg
+/chen-erd.dot
+/chen-erd-web.png
+/schema.dbml
