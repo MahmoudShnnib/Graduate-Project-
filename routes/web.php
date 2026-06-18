@@ -20,6 +20,12 @@ Route::post('/apply/otp/send', [RegistrationController::class, 'sendOtp'])
 Route::post('/apply/otp/verify', [RegistrationController::class, 'verifyOtp'])
     ->middleware('throttle:10,1')
     ->name('registration.otp.verify');
+Route::post('/apply/telegram/init', [RegistrationController::class, 'telegramInit'])
+    ->middleware('throttle:6,1')
+    ->name('registration.telegram.init');
+Route::get('/apply/telegram/status', [RegistrationController::class, 'telegramStatus'])
+    ->middleware('throttle:60,1')
+    ->name('registration.telegram.status');
 // Public WhatsApp-OTP password reset. Two entry points so each panel asks for the
 // right identifier: students by national ID (/portal), staff by email (/admin). The
 // OTP always goes to the phone ALREADY on file for the matched account — never a typed

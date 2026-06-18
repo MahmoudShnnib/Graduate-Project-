@@ -33,5 +33,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Never let the real Telegram bot credentials from .env leak into tests;
+             each test opts into Telegram explicitly via config()->set(). -->
+        <env name="TELEGRAM_BOT_TOKEN" value=""/>
+        <env name="TELEGRAM_BOT_USERNAME" value=""/>
     </php>
 </phpunit>

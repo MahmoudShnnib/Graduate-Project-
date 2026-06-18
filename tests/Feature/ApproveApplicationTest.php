@@ -34,6 +34,24 @@ it('creates a student with a generated enrollment number on approval', function 
         ->and($student->enrollment_no)->toStartWith('26421'); // YY=26, spec=42, autumn=1
 });
 
+it('propagates the application telegram chat id to the new user on approval', function () {
+    $spec = Specialization::factory()->create(['code' => 9]);
+    Semester::factory()->active()->create(['year' => 2026, 'season' => \App\Enums\Season::Autumn]);
+    $application = Application::factory()->create([
+        'specialization_id' => $spec->id,
+        'status' => ApplicationStatus::Pending,
+        'is_transfer' => false,
+        'telegram_chat_id' => '556677',
+    ]);
+
+    app(ApproveApplication::class)->handle($application);
+
+    $user = User::firstWhere('email', $application->email);
+
+    expect($user->telegram_chat_id)->toBe('556677')
+        ->and($user->telegram_linked_at)->not->toBeNull();
+});
+
 it('refuses approval when no semester is active (no NULL enrollment number)', function () {
     $spec = Specialization::factory()->create(['code' => 7]);
     $application = Application::factory()->create([

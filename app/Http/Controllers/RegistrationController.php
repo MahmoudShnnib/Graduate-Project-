@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Actions\CreateApplication;
 use App\Models\Application;
 use App\Models\Semester;
+use App\Models\Setting;
 use App\Models\Specialization;
 use App\Models\User;
 use App\Rules\ArabicOnly;
 use App\Rules\MinArabicWords;
+use App\Services\TelegramVerificationService;
 use App\Services\WhatsAppOtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,24 +25,64 @@ class RegistrationController extends Controller
     public function __construct(
         public CreateApplication $createApplication,
         public WhatsAppOtpService $otpService,
+        public TelegramVerificationService $telegramVerification,
     ) {}
 
     public function create(): View
     {
         $specializations = Specialization::orderBy('name')->get();
-        // OTP is shown/required only when Qonvo is configured AND the admin hasn't
-        // disabled it via the apply_otp_required setting.
+        // Phone verification is shown/required only when a channel is configured AND
+        // the admin hasn't disabled it via the apply_otp_required setting. WhatsApp is
+        // the primary method; Telegram (share-contact) is an opt-in alternative.
         $whatsappEnabled = $this->otpService->isRequired();
+        $telegramEnabled = $this->telegramVerification->isConfigured()
+            && Setting::get('apply_otp_required', '1') === '1';
         $applicationsOpen = Semester::active()?->acceptsApplications() ?? false;
 
         // After a failed submit (back()->withInput()), keep the phone's still-valid
-        // verification so the applicant doesn't have to re-request the OTP just to
-        // fix an unrelated field. The 30-minute grace window lives in WhatsAppOtpService.
-        $otpVerified = $whatsappEnabled
-            && filled(old('phone'))
-            && $this->otpService->hasVerified(old('phone'));
+        // verification so the applicant doesn't have to re-verify just to fix an
+        // unrelated field. The 30-minute grace windows live in the services.
+        $phone = old('phone');
+        $otpVerified = $whatsappEnabled && filled($phone) && $this->otpService->hasVerified($phone);
+        $telegramVerified = $telegramEnabled && filled($phone) && $this->telegramVerification->hasVerified($phone);
 
-        return view('registration.create', compact('specializations', 'whatsappEnabled', 'applicationsOpen', 'otpVerified'));
+        return view('registration.create', compact(
+            'specializations', 'whatsappEnabled', 'telegramEnabled', 'applicationsOpen', 'otpVerified', 'telegramVerified',
+        ));
+    }
+
+    /**
+     * Start a Telegram share-contact verification: returns the deep link the
+     * applicant opens to start the bot and share their number.
+     */
+    public function telegramInit(Request $request): JsonResponse
+    {
+        if (! $this->telegramVerification->isConfigured()) {
+            return response()->json(['ok' => false, 'message' => 'خدمة التحقق عبر تيليجرام غير مفعّلة حالياً.'], 422);
+        }
+
+        $validated = $request->validate(
+            ['phone' => $this->phoneRules()],
+            ['phone.required' => 'يرجى إدخال رقم النقال'],
+        );
+
+        $verification = $this->telegramVerification->start($validated['phone']);
+
+        return response()->json([
+            'ok' => true,
+            'token' => $verification->token,
+            'deep_link' => $this->telegramVerification->deepLink($verification),
+        ]);
+    }
+
+    /**
+     * Polled by the /apply page to learn whether the share-contact step completed.
+     */
+    public function telegramStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['token' => ['required', 'string']]);
+
+        return response()->json($this->telegramVerification->status($validated['token']));
     }
 
     /**
@@ -205,13 +247,27 @@ class RegistrationController extends Controller
         ]);
 
         try {
-            if ($this->otpService->isRequired() && ! $this->otpService->hasVerified($validated['phone'])) {
+            // Verification is required when the admin switch is on and at least one
+            // channel is configured; the applicant may satisfy it via WhatsApp OTP
+            // OR a Telegram share-contact verification.
+            $verificationRequired = $this->otpService->isRequired()
+                || ($this->telegramVerification->isConfigured() && Setting::get('apply_otp_required', '1') === '1');
+            $phoneVerified = $this->otpService->hasVerified($validated['phone'])
+                || $this->telegramVerification->hasVerified($validated['phone']);
+
+            if ($verificationRequired && ! $phoneVerified) {
                 return back()
                     ->withInput()
-                    ->withErrors(['phone' => 'يرجى التحقق من رقم النقال عبر واتساب قبل إرسال الطلب.']);
+                    ->withErrors(['phone' => 'يرجى التحقق من رقم النقال (عبر واتساب أو تيليجرام) قبل إرسال الطلب.']);
             }
 
             $data = $validated;
+
+            // Capture the Telegram chat id so the applicant's later notifications can
+            // be delivered over Telegram.
+            if ($this->telegramVerification->hasVerified($validated['phone'])) {
+                $data['telegram_chat_id'] = $this->telegramVerification->chatIdForVerifiedPhone($validated['phone']);
+            }
 
             // Extract last word from the 4-part name as last_name
             $nameParts = preg_split('/\s+/', trim($validated['name']));

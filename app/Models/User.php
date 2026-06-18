@@ -26,6 +26,8 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'phone',
+        'telegram_chat_id',
+        'telegram_linked_at',
         'national_id',
         'birth_date',
         'birth_place',
@@ -52,6 +54,7 @@ class User extends Authenticatable implements FilamentUser
             'is_active' => 'boolean',
             'birth_date' => 'date',
             'last_seen_activity_id' => 'integer',
+            'telegram_linked_at' => 'datetime',
         ];
     }
 

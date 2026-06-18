@@ -27,6 +27,7 @@ class CreateApplication
             'specialization_id' => $data['specialization_id'],
             'semester_id' => Semester::where('is_active', true)->value('id'),
             'tracking_code' => $this->trackingCodeService->generate(),
+            'telegram_chat_id' => $data['telegram_chat_id'] ?? null,
             'status' => ApplicationStatus::Pending,
             'last_name' => $data['last_name'] ?? null,
             'mother_name' => $data['mother_name'] ?? null,

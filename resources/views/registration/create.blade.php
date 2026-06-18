@@ -742,6 +742,42 @@
                                 <span id="otp-verified-badge" class="mt-1 hidden text-xs font-bold text-emerald-700">✓ تم التحقق من رقم النقال</span>
                             </div>
                         @endif
+
+                        @if($telegramEnabled)
+                            <div class="mt-3">
+                                @if($whatsappEnabled)
+                                    <div class="my-3 flex items-center gap-3 text-[11px] font-semibold text-slate-400">
+                                        <span class="h-px flex-1 bg-slate-200"></span>
+                                        <span>أو</span>
+                                        <span class="h-px flex-1 bg-slate-200"></span>
+                                    </div>
+                                    <button type="button" id="tg-toggle"
+                                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50/60 px-4 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-100 active:scale-[.99]">
+                                        <svg class="size-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71l-4.14-3.05-1.99 1.93c-.23.23-.42.42-.86.42z"/></svg>
+                                        لا تستخدم واتساب؟ التحقق عبر تيليجرام
+                                    </button>
+                                @endif
+                                <div id="tg-widget" class="@if($whatsappEnabled) hidden @endif mt-3 rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50/70 to-white p-4 shadow-sm">
+                                    <p class="mb-3 flex items-start gap-2 text-xs leading-relaxed text-slate-600">
+                                        <svg class="mt-px size-4 shrink-0 text-sky-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71l-4.14-3.05-1.99 1.93c-.23.23-.42.42-.86.42z"/></svg>
+                                        <span>تأكيد رقمك عبر <span class="font-semibold text-sky-700">تيليجرام</span> — اتبع الخطوات التالية:</span>
+                                    </p>
+                                    <ol class="mb-3 list-none space-y-1.5 text-xs leading-relaxed text-slate-600">
+                                        <li class="flex gap-2"><span class="font-bold text-sky-600">١.</span> <span>اضغط زر «فتح بوت تيليجرام» بالأسفل (تأكد من إدخال رقمك أولاً).</span></li>
+                                        <li class="flex gap-2"><span class="font-bold text-sky-600">٢.</span> <span>داخل تيليجرام اضغط زر «Start / تشغيل».</span></li>
+                                        <li class="flex gap-2"><span class="font-bold text-sky-600">٣.</span> <span>اضغط زر «📱 مشاركة رقمي للتأكيد» ثم أكّد المشاركة.</span></li>
+                                        <li class="flex gap-2"><span class="font-bold text-sky-600">٤.</span> <span>ستظهر «✓ تم التحقق» هنا تلقائياً — أبقِ هذه الصفحة مفتوحة.</span></li>
+                                    </ol>
+                                    <button type="button" id="tg-open"
+                                        class="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-l from-sky-500 to-sky-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-sky-600/25 transition hover:from-sky-600 hover:to-sky-700 hover:shadow-lg active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60">
+                                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71l-4.14-3.05-1.99 1.93c-.23.23-.42.42-.86.42z"/></svg>
+                                        فتح بوت تيليجرام
+                                    </button>
+                                    <p id="tg-status" class="mt-2 text-xs text-slate-500"></p>
+                                    <span id="tg-verified-badge" class="mt-1 hidden text-xs font-bold text-emerald-700">✓ تم التحقق من رقم النقال</span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="md:col-span-2">
@@ -1309,6 +1345,116 @@
                 unlockSubmit();
             } else {
                 lockSubmit();
+            }
+        })();
+    </script>
+    @endif
+
+    @if($telegramEnabled)
+    <script>
+        // Telegram share-contact verification (opt-in alternative to WhatsApp OTP).
+        // The applicant starts the bot via a deep link and shares their Telegram-
+        // verified phone; we poll the server until the contact arrives. The server
+        // (RegistrationController::store) re-checks verification — this is a UX guard.
+        (() => {
+            const phoneInput = document.getElementById('phone');
+            const submitBtn = document.getElementById('submit-btn');
+            const toggle = document.getElementById('tg-toggle');
+            const widget = document.getElementById('tg-widget');
+            const openBtn = document.getElementById('tg-open');
+            const status = document.getElementById('tg-status');
+            const badge = document.getElementById('tg-verified-badge');
+            const csrf = document.querySelector('input[name="_token"]')?.value;
+
+            let verified = @json($telegramVerified ?? false);
+            const otpVerified = @json($otpVerified ?? false);
+            let token = null;
+            let pollTimer = null;
+
+            const setStatus = (msg, ok = false) => {
+                status.textContent = msg ?? '';
+                status.className = 'mt-2 text-xs ' + (ok ? 'text-emerald-700' : 'text-slate-500');
+            };
+            const lock = () => { submitBtn.disabled = true; submitBtn.classList.add('opacity-50', 'cursor-not-allowed'); };
+            const unlock = () => { submitBtn.disabled = false; submitBtn.classList.remove('opacity-50', 'cursor-not-allowed'); };
+            const stopPolling = () => { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } };
+
+            // Verification is bound to a number — changing it resets state.
+            const reset = () => {
+                verified = false;
+                token = null;
+                stopPolling();
+                badge.classList.add('hidden');
+                lock();
+            };
+            phoneInput.addEventListener('input', reset);
+
+            if (toggle) {
+                toggle.addEventListener('click', () => widget.classList.toggle('hidden'));
+            }
+
+            const startPolling = () => {
+                stopPolling();
+                pollTimer = setInterval(async () => {
+                    if (! token) { return; }
+                    try {
+                        const res = await fetch('{{ route('registration.telegram.status') }}?token=' + encodeURIComponent(token), {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin',
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (data.verified) {
+                            verified = true;
+                            stopPolling();
+                            badge.classList.remove('hidden');
+                            setStatus('', true);
+                            unlock();
+                        } else if (data.state === 'mismatch') {
+                            setStatus('الرقم الذي شاركته لا يطابق الرقم المُدخل. صحّح الرقم وأعد المحاولة.');
+                        }
+                    } catch (e) { /* keep polling */ }
+                }, 3000);
+            };
+
+            openBtn.addEventListener('click', async () => {
+                const phone = phoneInput.value.trim();
+                if (! /^09\d{8}$/.test(phone)) {
+                    setStatus('أدخل رقم نقال صحيح (10 أرقام يبدأ بـ 09) أولاً.');
+                    return;
+                }
+                openBtn.disabled = true;
+                setStatus('جاري تجهيز رابط التحقق...');
+                try {
+                    const res = await fetch('{{ route('registration.telegram.init') }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ phone }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    openBtn.disabled = false;
+                    if (res.ok && data.deep_link) {
+                        token = data.token;
+                        window.open(data.deep_link, '_blank', 'noopener');
+                        setStatus('⏳ بعد الضغط على «Start» ومشاركة رقمك، سيتأكد التحقق هنا تلقائياً...');
+                        startPolling();
+                    } else {
+                        setStatus(data.message ?? 'تعذّر بدء التحقق عبر تيليجرام.');
+                    }
+                } catch (e) {
+                    openBtn.disabled = false;
+                    setStatus('حدث خطأ في الاتصال. حاول مرة أخرى.');
+                }
+            });
+
+            // Initial state: honour a server-side grace verification, and don't fight
+            // the WhatsApp script when the phone was verified that way instead.
+            if (verified) {
+                badge.classList.remove('hidden');
+                if (widget && toggle) { widget.classList.remove('hidden'); }
+                unlock();
+            } else if (! otpVerified) {
+                lock();
             }
         })();
     </script>

@@ -4,13 +4,13 @@ namespace App\Observers;
 
 use App\Models\User;
 use App\Notifications\ContactInfoChangedNotification;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Notifications\AnonymousNotifiable;
 
 /**
  * Watches student contact-detail changes. When a student's phone or email is
  * changed (admin edit or self-service), alert the likely account owner over
- * WhatsApp so an unverified change can't silently enable a phone-OTP takeover.
- * Audit logging of the same change is handled separately by AuditObserver.
+ * WhatsApp and/or Telegram so an unverified change can't silently enable a
+ * phone-OTP takeover. Audit logging is handled separately by AuditObserver.
  */
 class UserObserver
 {
@@ -36,16 +36,26 @@ class UserObserver
 
         // Alert the OLD phone when the phone itself changed (the new number may
         // belong to an attacker); otherwise the current phone for an email-only
-        // change. No phone on record means there's no one to warn.
+        // change. The Telegram chat id is not part of contact info, so it still
+        // belongs to the real owner and is alerted too when linked.
         $alertPhone = in_array('phone', $changed, true)
             ? $user->getOriginal('phone')
             : $user->phone;
 
-        if (empty($alertPhone)) {
+        if (empty($alertPhone) && empty($user->telegram_chat_id)) {
             return;
         }
 
-        Notification::route('whatsapp', $alertPhone)
-            ->notify(new ContactInfoChangedNotification($changed));
+        $target = new AnonymousNotifiable;
+
+        if (! empty($alertPhone)) {
+            $target->route('whatsapp', $alertPhone);
+        }
+
+        if (! empty($user->telegram_chat_id)) {
+            $target->route('telegram', $user->telegram_chat_id);
+        }
+
+        $target->notify(new ContactInfoChangedNotification($changed));
     }
 }

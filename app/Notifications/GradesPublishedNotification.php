@@ -2,8 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Channels\TelegramMessage;
 use App\Channels\WhatsAppMessage;
-use App\Notifications\Concerns\HasWhatsAppChannel;
+use App\Notifications\Concerns\HasMessagingChannels;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -14,13 +15,20 @@ use Illuminate\Notifications\Notification;
  */
 class GradesPublishedNotification extends Notification
 {
-    use HasWhatsAppChannel, Queueable;
+    use HasMessagingChannels, Queueable;
 
     public string $logEvent = 'grades_published';
 
     public function toWhatsApp(object $notifiable): WhatsAppMessage
     {
         return new WhatsAppMessage(
+            message: "عزيزي {$notifiable->name}، تم نشر درجاتك لهذا الفصل. يمكنك الاطلاع عليها من خلال بوابة الطالب.",
+        );
+    }
+
+    public function toTelegram(object $notifiable): TelegramMessage
+    {
+        return new TelegramMessage(
             message: "عزيزي {$notifiable->name}، تم نشر درجاتك لهذا الفصل. يمكنك الاطلاع عليها من خلال بوابة الطالب.",
         );
     }

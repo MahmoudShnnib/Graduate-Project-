@@ -7,6 +7,7 @@ use App\Models\Setting;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -68,9 +69,27 @@ class DashboardHeaderWidget extends Widget implements HasActions, HasSchemas
             ->modalCancelActionLabel('إلغاء')
             ->fillForm(fn (): array => array_merge(
                 Setting::allKeyed(),
-                ['apply_otp_required' => $this->applyOtpEnabled()],
+                [
+                    'apply_otp_required' => $this->applyOtpEnabled(),
+                    'notification_channel_policy' => Setting::get('notification_channel_policy', 'whatsapp_first'),
+                ],
             ))
             ->form([
+                Section::make('قنوات الإشعارات')
+                    ->description('تحدد كيف تُرسَل إشعارات القبول والترحيب للطلاب عند توفر واتساب وتيليجرام معاً.')
+                    ->components([
+                        Select::make('notification_channel_policy')
+                            ->label('قناة الإرسال المفضّلة')
+                            ->options([
+                                'whatsapp_first' => 'واتساب أولاً (تيليجرام عند عدم توفر واتساب)',
+                                'telegram_first' => 'تيليجرام أولاً (واتساب عند عدم توفر تيليجرام)',
+                                'both' => 'كلاهما معاً (قد يصل الإشعار على التطبيقين)',
+                            ])
+                            ->default('whatsapp_first')
+                            ->selectablePlaceholder(false)
+                            ->native(false),
+                    ]),
+
                 Section::make('إعدادات التقديم')
                     ->description('تتحكم في صفحة التقديم العامة (/apply).')
                     ->components([
