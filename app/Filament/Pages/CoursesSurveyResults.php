@@ -167,7 +167,13 @@ class CoursesSurveyResults extends Page
                 ->modalSubmitActionLabel('فتح')
                 ->modalCancelActionLabel('إلغاء')
                 ->fillForm(fn (): array => [
+                    // Drop any selected course that already has an offering in the active
+                    // semester — it's already open, so don't show it in the popup again.
                     'courses' => collect($this->selectedCourses)
+                        ->reject(fn (int $courseId): bool => CourseOffering::query()
+                            ->where('course_id', $courseId)
+                            ->where('semester_id', $this->getActiveSemester()?->id)
+                            ->exists())
                         ->map(fn (int $courseId): array => [
                             'course_id' => $courseId,
                             'faculty_id' => null,

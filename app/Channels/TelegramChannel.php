@@ -14,7 +14,7 @@ class TelegramChannel
 
     public function send(object $notifiable, Notification $notification): void
     {
-        if (! $this->telegram->isConfigured()) {
+        if (! $this->telegram->isEnabled()) {
             return;
         }
 
@@ -37,24 +37,26 @@ class TelegramChannel
         $studentId = $notifiable instanceof User ? $notifiable->student?->id : null;
         $event = $notification->logEvent ?? class_basename($notification);
         $phone = $notifiable->phone ?? (string) $chatId;
+        $batchId = $notification->batchId ?? null;
 
         try {
             // Telegram reports delivery synchronously, so a successful send is
             // logged 'sent' immediately — no pending/reconcile step like WhatsApp.
             $result = $this->telegram->sendText($chatId, $message);
             $providerMessageId = $result['result']['message_id'] ?? null;
-            $this->writeLog($studentId, $phone, $event, $message->message, 'sent', null, $providerMessageId);
+            $this->writeLog($studentId, $batchId, $phone, $event, $message->message, 'sent', null, $providerMessageId);
         } catch (\Throwable $e) {
             Log::warning('Telegram notification failed: '.$e->getMessage());
-            $this->writeLog($studentId, $phone, $event, $message->message, 'failed', $e->getMessage());
+            $this->writeLog($studentId, $batchId, $phone, $event, $message->message, 'failed', $e->getMessage());
         }
     }
 
-    private function writeLog(?int $studentId, string $phone, string $event, string $message, string $status, ?string $errorMessage = null, int|string|null $providerMessageId = null): void
+    private function writeLog(?int $studentId, ?string $batchId, string $phone, string $event, string $message, string $status, ?string $errorMessage = null, int|string|null $providerMessageId = null): void
     {
         try {
             NotificationLog::create([
                 'student_id' => $studentId,
+                'batch_id' => $batchId,
                 'channel' => 'telegram',
                 'phone' => $phone,
                 'event' => $event,

@@ -60,6 +60,35 @@ it('unlinks a user and removes pending link rows', function () {
         ->and($user->fresh()->telegram_linked_at)->toBeNull();
 });
 
+it('shows the link card before linking and a compact chip after', function () {
+    $user = studentWithRecord()['user'];
+    $this->actingAs($user);
+
+    // Not linked: the call-to-action card is shown, no "linked" chip.
+    Livewire::test(StudentDashboard::class)
+        ->assertSee('استلم إشعاراتك عبر تيليجرام')
+        ->assertDontSee('تيليجرام مربوط');
+
+    // Linked: the big card is gone, only the compact chip remains.
+    $user->forceFill(['telegram_chat_id' => '555000'])->save();
+
+    Livewire::test(StudentDashboard::class)
+        ->assertSee('تيليجرام مربوط')
+        ->assertDontSee('استلم إشعاراتك عبر تيليجرام');
+});
+
+it('unlinks via a Filament confirmation action (not a native confirm)', function () {
+    $user = studentWithRecord()['user'];
+    $user->forceFill(['telegram_chat_id' => '555000', 'telegram_linked_at' => now()])->saveQuietly();
+    $this->actingAs($user);
+
+    Livewire::test(StudentDashboard::class)
+        ->assertActionExists('unlinkTelegram')
+        ->callAction('unlinkTelegram');
+
+    expect($user->fresh()->telegram_chat_id)->toBeNull();
+});
+
 it('exposes a deep link from the student dashboard and can unlink', function () {
     $user = studentWithRecord()['user'];
     $this->actingAs($user);

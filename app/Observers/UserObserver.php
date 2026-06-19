@@ -56,6 +56,7 @@ class UserObserver
             $target->route('telegram', $user->telegram_chat_id);
         }
 
+        // A security alert is a single message — no batch id, so it shows as a plain row.
         $target->notify(new ContactInfoChangedNotification($changed));
     }
 }

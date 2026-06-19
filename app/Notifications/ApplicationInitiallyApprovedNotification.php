@@ -6,13 +6,14 @@ use App\Channels\TelegramMessage;
 use App\Channels\WhatsAppMessage;
 use App\Models\Application;
 use App\Models\Setting;
+use App\Notifications\Concerns\Batchable;
 use App\Notifications\Concerns\HasMessagingChannels;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class ApplicationInitiallyApprovedNotification extends Notification
 {
-    use HasMessagingChannels, Queueable;
+    use Batchable, HasMessagingChannels, Queueable;
 
     public string $logEvent = 'application_initially_approved';
 

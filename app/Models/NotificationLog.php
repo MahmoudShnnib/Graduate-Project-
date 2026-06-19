@@ -12,6 +12,7 @@ class NotificationLog extends Model
 
     protected $fillable = [
         'student_id',
+        'batch_id',
         'channel',
         'phone',
         'event',
@@ -29,6 +30,7 @@ class NotificationLog extends Model
             'channel' => NotificationChannel::class,
             'sent_at' => 'datetime',
             'created_at' => 'datetime',
+            'last_sent_at' => 'datetime',
         ];
     }
 

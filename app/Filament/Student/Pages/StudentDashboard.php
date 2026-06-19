@@ -12,7 +12,9 @@ use App\Models\ExceptionalRequest;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Services\TelegramVerificationService;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 
 class StudentDashboard extends Page
@@ -41,6 +43,22 @@ class StudentDashboard extends Page
     {
         app(TelegramVerificationService::class)->unlinkUser(auth()->user()->fresh());
         $this->telegramDeepLink = null;
+    }
+
+    public function unlinkTelegramAction(): Action
+    {
+        return Action::make('unlinkTelegram')
+            ->label('إلغاء')
+            ->link()
+            ->color('danger')
+            ->size('xs')
+            ->requiresConfirmation()
+            ->modalIcon(Heroicon::OutlinedXCircle)
+            ->modalHeading('إلغاء ربط حساب تيليجرام')
+            ->modalDescription('سيتوقف وصول إشعارات الدراسات العليا إلى تيليجرام. يمكنك إعادة الربط في أي وقت.')
+            ->modalSubmitActionLabel('نعم، إلغاء الربط')
+            ->modalCancelActionLabel('تراجع')
+            ->action(fn () => $this->unlinkTelegram());
     }
 
     protected static ?string $navigationLabel = 'الرئيسية';

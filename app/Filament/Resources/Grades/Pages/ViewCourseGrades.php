@@ -98,14 +98,16 @@ class ViewCourseGrades extends Page implements HasTable
                     });
 
                     $uniqueStudentIds = $studentIds->unique();
-                    foreach ($uniqueStudentIds as $studentId) {
-                        $student = \App\Models\Student::find($studentId);
-                        if ($student) {
-                            $calculator->recalculateStudentGPA($student);
-                            // One general "grades published" message per student.
-                            $notifier->notifyGradesPublished($student);
+                    $notifier->batch(function () use ($uniqueStudentIds, $calculator, $notifier) {
+                        foreach ($uniqueStudentIds as $studentId) {
+                            $student = \App\Models\Student::find($studentId);
+                            if ($student) {
+                                $calculator->recalculateStudentGPA($student);
+                                // One general "grades published" message per student.
+                                $notifier->notifyGradesPublished($student);
+                            }
                         }
-                    }
+                    });
 
                     foreach ($grades as $grade) {
                         $student = $grade->enrollment->student;

@@ -36,10 +36,24 @@ class PollTelegramUpdates extends Command
         $loop = (bool) $this->option('loop');
 
         do {
-            $processed = $this->drain($telegram, $verification, $loop ? 50 : 0);
+            try {
+                $processed = $this->drain($telegram, $verification, $loop ? 50 : 0);
 
-            if (! $loop && $processed === 0) {
-                break;
+                if (! $loop && $processed === 0) {
+                    break;
+                }
+            } catch (\Throwable $e) {
+                // A transient network blip (e.g. cURL 28 timeout reaching Telegram)
+                // must not kill a long-running --loop worker — log and retry. A
+                // single-drain run just stops; the next scheduled run picks up.
+                report($e);
+                $this->warn('telegram:poll transient error, retrying: '.$e->getMessage());
+
+                if (! $loop) {
+                    break;
+                }
+
+                sleep(3);
             }
         } while ($loop);
 
