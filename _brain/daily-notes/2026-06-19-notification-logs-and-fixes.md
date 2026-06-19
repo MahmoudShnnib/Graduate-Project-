@@ -8,7 +8,7 @@ related:
 
 # Notification-logs overhaul + Telegram polish + two small fixes
 
-Branch `feature/telegram-notifications` (PR #63). **Uncommitted.** Full suite **449 green**.
+Branch `feature/telegram-notifications` (PR #63). **Committed `c3e50af`.** Full suite **453 green**.
 
 ## 1. Default channel policy → `both` (was `whatsapp_first`)
 A linked student was getting WhatsApp-only (which fails — Qonvo banned) while their working
@@ -72,5 +72,5 @@ to `sent`/`failed`. So: WhatsApp `sent` = Qonvo GET confirmed; `failed` = GET-co
 resilience tests across the day. **449 green.**
 
 ## Loose ends
-- All uncommitted on PR #63. Retention/prune of old logs not built (sent kept indefinitely).
+- Committed `c3e50af` + pushed to PR #63. Retention/prune of old logs not built (sent kept indefinitely).
 - A few demo NotificationLog rows + one demo batch left in dev DB (dummy, refreshable).

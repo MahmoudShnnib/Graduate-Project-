@@ -9,7 +9,7 @@ related:
 # Telegram channel — Phase 1 + Phase 2 (branch `feature/telegram-notifications`)
 
 Adding Telegram as a free, ban-proof second channel alongside the flaky Qonvo/WhatsApp.
-Bot created: **@The_Creators67_bot** (token in `.env`, gitignored). **Uncommitted.**
+Bot created: **@The_Creators67_bot** (token in `.env`, gitignored). **Committed `65b80ea` (PR #63).**
 
 ## Phase 1 — sending pipeline (DONE)
 `TelegramService` (sendText/sendMessage/getUpdates/requestContactKeyboard/isConfigured/
@@ -104,4 +104,4 @@ Durable guide: [[../project-context/telegram-integration-guide]].
   success message verified, but the real `/portal` card→Start→✓ flow is unexercised by a human.
 - QR on `/apply` for desktop applicants (share-contact is mobile-only anyway).
 - WhatsApp PR #62 still open; this branch is off `origin/main` → rebase once #62 merges.
-- **Not committed** (per user) — awaiting their go-ahead.
+- **Committed** `65b80ea` (Telegram feature) + `c3e50af` (notification-logs/batching/toggles) on PR #63.
