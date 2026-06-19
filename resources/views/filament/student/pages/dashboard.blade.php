@@ -16,54 +16,39 @@
             </div>
         </x-filament::section>
     @else
-        {{-- Telegram linking --}}
-        @if($this->telegramLinkingEnabled())
+        {{-- Telegram linking — the call-to-action card only shows BEFORE linking; once
+             linked, a compact chip lives in the welcome banner below instead. --}}
+        @if($this->telegramLinkingEnabled() && ! $this->isTelegramLinked())
             <x-filament::section>
-                <div @if($this->telegramDeepLink && ! $this->isTelegramLinked()) wire:poll.6s @endif>
-                    @if($this->isTelegramLinked())
-                        <div class="flex items-center justify-between gap-4">
-                            <div class="flex items-center gap-3">
-                                <x-heroicon-s-check-badge class="w-6 h-6 text-success-500" />
-                                <div>
-                                    <p class="font-semibold text-gray-800 dark:text-gray-100">حساب تيليجرام مربوط</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">ستصلك إشعارات الدراسات العليا على تيليجرام.</p>
-                                </div>
+                <div @if($this->telegramDeepLink) wire:poll.6s @endif>
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-3">
+                            <x-heroicon-o-bell-alert class="w-6 h-6 text-sky-500" />
+                            <div>
+                                <p class="font-semibold text-gray-800 dark:text-gray-100">استلم إشعاراتك عبر تيليجرام</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">اربط حسابك لاستلام إشعارات القبول والدرجات وغيرها على تيليجرام مجاناً.</p>
                             </div>
-                            <x-filament::button color="gray" size="sm" wire:click="unlinkTelegram"
-                                wire:confirm="هل تريد إلغاء ربط حساب تيليجرام؟">
-                                إلغاء الربط
-                            </x-filament::button>
                         </div>
-                    @else
-                        <div class="flex flex-col gap-3">
+                        @if($this->telegramDeepLink)
+                            <ol class="list-none space-y-1 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                                <li>١. اضغط «فتح بوت تيليجرام» بالأسفل.</li>
+                                <li>٢. داخل تيليجرام اضغط «Start / تشغيل».</li>
+                                <li>٣. سيظهر «✓ مربوط» هنا تلقائياً — أبقِ الصفحة مفتوحة.</li>
+                            </ol>
                             <div class="flex items-center gap-3">
-                                <x-heroicon-o-bell-alert class="w-6 h-6 text-sky-500" />
-                                <div>
-                                    <p class="font-semibold text-gray-800 dark:text-gray-100">استلم إشعاراتك عبر تيليجرام</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">اربط حسابك لاستلام إشعارات القبول والدرجات وغيرها على تيليجرام مجاناً.</p>
-                                </div>
+                                <x-filament::button tag="a" href="{{ $this->telegramDeepLink }}" target="_blank" rel="noopener" color="info" size="sm">
+                                    فتح بوت تيليجرام
+                                </x-filament::button>
+                                <span class="text-xs text-gray-400">⏳ في انتظار الربط...</span>
                             </div>
-                            @if($this->telegramDeepLink)
-                                <ol class="list-none space-y-1 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                                    <li>١. اضغط «فتح بوت تيليجرام» بالأسفل.</li>
-                                    <li>٢. داخل تيليجرام اضغط «Start / تشغيل».</li>
-                                    <li>٣. سيظهر «✓ مربوط» هنا تلقائياً — أبقِ الصفحة مفتوحة.</li>
-                                </ol>
-                                <div class="flex items-center gap-3">
-                                    <x-filament::button tag="a" href="{{ $this->telegramDeepLink }}" target="_blank" rel="noopener" color="info" size="sm">
-                                        فتح بوت تيليجرام
-                                    </x-filament::button>
-                                    <span class="text-xs text-gray-400">⏳ في انتظار الربط...</span>
-                                </div>
-                            @else
-                                <div>
-                                    <x-filament::button color="info" size="sm" wire:click="startTelegramLink">
-                                        ربط حساب تيليجرام
-                                    </x-filament::button>
-                                </div>
-                            @endif
-                        </div>
-                    @endif
+                        @else
+                            <div>
+                                <x-filament::button color="info" size="sm" wire:click="startTelegramLink">
+                                    ربط حساب تيليجرام
+                                </x-filament::button>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </x-filament::section>
         @endif
@@ -190,6 +175,13 @@
                     <div>
                         <h2 class="text-lg font-bold text-gray-900 dark:text-white">مرحباً، {{ auth()->user()->name }}</h2>
                         <p class="text-sm text-primary-700 dark:text-primary-300 mt-0.5">{{ $student->specialization?->name ?? 'بوابة الطالب الجامعي' }}</p>
+                        @if($this->telegramLinkingEnabled() && $this->isTelegramLinked())
+                            <span class="inline-flex items-center gap-1.5 mt-1.5 text-xs font-medium text-success-700 dark:text-success-400">
+                                <x-heroicon-s-check-badge style="width: 0.95rem; height: 0.95rem;" />
+                                تيليجرام مربوط
+                                {{ $this->unlinkTelegramAction }}
+                            </span>
+                        @endif
                     </div>
                 </div>
                 @if($semester)

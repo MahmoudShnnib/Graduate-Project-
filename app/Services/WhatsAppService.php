@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Channels\WhatsAppMessage;
 use App\Models\NotificationLog;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
 class WhatsAppService
@@ -30,6 +31,16 @@ class WhatsAppService
     {
         return ! empty(config('services.qonvo.api_token'))
             && ! empty(config('services.qonvo.sender_phone'));
+    }
+
+    /**
+     * Whether WhatsApp may actually be used: configured AND not closed by the admin
+     * (the `whatsapp_enabled` setting). Reconciliation still runs on `isConfigured()`
+     * so old pending logs finalize even after the channel is closed.
+     */
+    public function isEnabled(): bool
+    {
+        return $this->isConfigured() && Setting::get('whatsapp_enabled', '1') === '1';
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Channels\TelegramMessage;
 use App\Channels\WhatsAppMessage;
+use App\Notifications\Concerns\Batchable;
 use App\Notifications\Concerns\HasMessagingChannels;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -15,7 +16,7 @@ use Illuminate\Notifications\Notification;
  */
 class GradesPublishedNotification extends Notification
 {
-    use HasMessagingChannels, Queueable;
+    use Batchable, HasMessagingChannels, Queueable;
 
     public string $logEvent = 'grades_published';
 

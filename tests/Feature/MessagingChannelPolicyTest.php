@@ -66,6 +66,38 @@ it('both returns both channels when available', function () {
         ->toBe([WhatsAppChannel::class, TelegramChannel::class]);
 });
 
+it('defaults to BOTH channels when no policy is set (so a linked Telegram always gets it)', function () {
+    configureChannels(true, true);
+    // No Setting::set — exercise the default.
+
+    expect(policyNotification()->via(notifiableWith('0911111111', '123')))
+        ->toBe([WhatsAppChannel::class, TelegramChannel::class]);
+});
+
+it('drops WhatsApp when the admin has closed that channel', function () {
+    configureChannels(true, true);
+    Setting::set('notification_channel_policy', 'both');
+    Setting::set('whatsapp_enabled', '0');
+
+    expect(policyNotification()->via(notifiableWith('0911111111', '123')))->toBe([TelegramChannel::class]);
+});
+
+it('drops Telegram when the admin has closed that channel', function () {
+    configureChannels(true, true);
+    Setting::set('notification_channel_policy', 'both');
+    Setting::set('telegram_enabled', '0');
+
+    expect(policyNotification()->via(notifiableWith('0911111111', '123')))->toBe([WhatsAppChannel::class]);
+});
+
+it('sends nothing when both channels are closed', function () {
+    configureChannels(true, true);
+    Setting::set('whatsapp_enabled', '0');
+    Setting::set('telegram_enabled', '0');
+
+    expect(policyNotification()->via(notifiableWith('0911111111', '123')))->toBe([]);
+});
+
 it('returns no channels when nothing is configured or reachable', function () {
     configureChannels(false, false);
 

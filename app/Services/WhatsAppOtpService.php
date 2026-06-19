@@ -33,7 +33,7 @@ class WhatsAppOtpService
      */
     public function isRequired(): bool
     {
-        return $this->whatsApp->isConfigured()
+        return $this->whatsApp->isEnabled()
             && Setting::get('apply_otp_required', '1') === '1';
     }
 
@@ -44,7 +44,7 @@ class WhatsAppOtpService
      */
     public function request(string $phone, string $purpose = 'apply_phone'): array
     {
-        if (! $this->whatsApp->isConfigured()) {
+        if (! $this->whatsApp->isEnabled()) {
             return ['sent' => false, 'message' => 'خدمة التحقق عبر واتساب غير مفعّلة حالياً.'];
         }
 

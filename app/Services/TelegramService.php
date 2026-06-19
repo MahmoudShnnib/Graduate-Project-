@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Channels\TelegramMessage;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
 class TelegramService
@@ -61,8 +62,9 @@ class TelegramService
     public function getUpdates(int $offset = 0, int $timeout = 0): array
     {
         $response = Http::acceptJson()
-            ->connectTimeout(5)
-            ->timeout($timeout + 10)
+            ->connectTimeout(15)
+            ->timeout($timeout + 15)
+            ->retry(2, 1000, throw: false)
             ->get($this->endpoint('getUpdates'), array_filter([
                 'offset' => $offset > 0 ? $offset : null,
                 'timeout' => $timeout > 0 ? $timeout : null,
@@ -93,6 +95,15 @@ class TelegramService
     public function isConfigured(): bool
     {
         return ! empty(config('services.telegram.bot_token'));
+    }
+
+    /**
+     * Whether Telegram may actually be used: configured AND not closed by the admin
+     * (the `telegram_enabled` setting).
+     */
+    public function isEnabled(): bool
+    {
+        return $this->isConfigured() && Setting::get('telegram_enabled', '1') === '1';
     }
 
     public function botUsername(): ?string

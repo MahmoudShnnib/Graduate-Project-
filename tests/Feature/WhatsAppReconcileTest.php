@@ -66,6 +66,42 @@ it('leaves a log pending while Qonvo still reports pending', function () {
         ->and($log->fresh()->status)->toBe('pending');
 });
 
+it('never records a WhatsApp send as sent — only reconcile can confirm delivery', function () {
+    \App\Models\Setting::flushCache();
+    // Qonvo returns 2xx with an optimistic "sent" — which is NOT proof of delivery.
+    Http::fake(['*' => Http::response(['data' => ['status' => 'sent', 'id' => 999]], 200)]);
+
+    $notifiable = new class
+    {
+        public string $name = 'أحمد';
+
+        public string $phone = '0912345678';
+
+        public function routeNotificationFor(string $channel): mixed
+        {
+            return null;
+        }
+    };
+
+    $notification = new class extends \Illuminate\Notifications\Notification
+    {
+        public string $logEvent = 'welcome_student';
+
+        public function toWhatsApp(object $notifiable): \App\Channels\WhatsAppMessage
+        {
+            return new \App\Channels\WhatsAppMessage(message: 'مرحبا');
+        }
+    };
+
+    app(\App\Channels\WhatsAppChannel::class)->send($notifiable, $notification);
+
+    $log = NotificationLog::query()->where('channel', 'whatsapp')->sole();
+
+    // Logged as pending (queued) with the provider id — sent is reachable ONLY via reconcile.
+    expect($log->status)->toBe('pending')
+        ->and($log->provider_message_id)->toBe('999');
+});
+
 it('maps Qonvo statuses to log statuses', function () {
     expect(WhatsAppService::mapStatus('delivered'))->toBe('sent')
         ->and(WhatsAppService::mapStatus('sent'))->toBe('sent')

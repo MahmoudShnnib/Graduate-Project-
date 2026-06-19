@@ -18,7 +18,7 @@ class TelegramVerificationService
 
     public function isConfigured(): bool
     {
-        return $this->telegram->isConfigured() && ! empty($this->telegram->botUsername());
+        return $this->telegram->isEnabled() && ! empty($this->telegram->botUsername());
     }
 
     /**

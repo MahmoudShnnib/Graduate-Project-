@@ -6,6 +6,9 @@ use App\Channels\TelegramChannel;
 use App\Channels\TelegramMessage;
 use App\Channels\WhatsAppChannel;
 use App\Channels\WhatsAppMessage;
+use App\Notifications\Concerns\Batchable;
+use App\Services\TelegramService;
+use App\Services\WhatsAppService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -23,7 +26,7 @@ use Illuminate\Notifications\Notification;
  */
 class ContactInfoChangedNotification extends Notification
 {
-    use Queueable;
+    use Batchable, Queueable;
 
     public string $logEvent = 'contact_info_changed';
 
@@ -35,11 +38,11 @@ class ContactInfoChangedNotification extends Notification
     {
         $channels = [];
 
-        if (! empty(config('services.qonvo.api_token')) && $notifiable->routeNotificationFor('whatsapp')) {
+        if (app(WhatsAppService::class)->isEnabled() && $notifiable->routeNotificationFor('whatsapp')) {
             $channels[] = WhatsAppChannel::class;
         }
 
-        if (! empty(config('services.telegram.bot_token')) && $notifiable->routeNotificationFor('telegram')) {
+        if (app(TelegramService::class)->isEnabled() && $notifiable->routeNotificationFor('telegram')) {
             $channels[] = TelegramChannel::class;
         }
 

@@ -71,12 +71,15 @@ class DashboardHeaderWidget extends Widget implements HasActions, HasSchemas
                 Setting::allKeyed(),
                 [
                     'apply_otp_required' => $this->applyOtpEnabled(),
-                    'notification_channel_policy' => Setting::get('notification_channel_policy', 'whatsapp_first'),
+                    'notification_channel_policy' => Setting::get('notification_channel_policy', 'both'),
+                    'whatsapp_enabled' => Setting::get('whatsapp_enabled', '1') === '1',
+                    'telegram_enabled' => Setting::get('telegram_enabled', '1') === '1',
                 ],
             ))
             ->form([
                 Section::make('قنوات الإشعارات')
-                    ->description('تحدد كيف تُرسَل إشعارات القبول والترحيب للطلاب عند توفر واتساب وتيليجرام معاً.')
+                    ->description('تحدد كيف تُرسَل إشعارات الطلاب. يمكنك إغلاق أي قناة كلياً (مثلاً عند تعطّل واتساب).')
+                    ->columns(2)
                     ->components([
                         Select::make('notification_channel_policy')
                             ->label('قناة الإرسال المفضّلة')
@@ -85,9 +88,24 @@ class DashboardHeaderWidget extends Widget implements HasActions, HasSchemas
                                 'telegram_first' => 'تيليجرام أولاً (واتساب عند عدم توفر تيليجرام)',
                                 'both' => 'كلاهما معاً (قد يصل الإشعار على التطبيقين)',
                             ])
-                            ->default('whatsapp_first')
+                            ->default('both')
                             ->selectablePlaceholder(false)
-                            ->native(false),
+                            ->native(false)
+                            ->columnSpanFull(),
+
+                        Toggle::make('whatsapp_enabled')
+                            ->label('تفعيل قناة واتساب')
+                            ->helperText('عند الإغلاق، يتوقف إرسال جميع الإشعارات والتحقق عبر واتساب.')
+                            ->onColor('success')
+                            ->offColor('danger')
+                            ->default(true),
+
+                        Toggle::make('telegram_enabled')
+                            ->label('تفعيل قناة تيليجرام')
+                            ->helperText('عند الإغلاق، يتوقف إرسال جميع الإشعارات والربط عبر تيليجرام.')
+                            ->onColor('success')
+                            ->offColor('danger')
+                            ->default(true),
                     ]),
 
                 Section::make('إعدادات التقديم')

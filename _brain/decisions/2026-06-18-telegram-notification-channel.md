@@ -83,7 +83,8 @@ DDoS is handled by the existing route throttles.)
   ("ربط حساب تيليجرام" → deep link + `wire:poll` until linked → ✓ + unlink). `ApproveApplication`
   propagates the application's `telegram_chat_id` → the new user. 5 tests.
 - **Phase 4 — DONE (2026-06-18):** policy-aware routing. `HasMessagingChannels` trait reads
-  `notification_channel_policy` (`whatsapp_first` default / `telegram_first` / `both`) and
+  `notification_channel_policy` (`both` **default** since 2026-06-19 / `whatsapp_first` /
+  `telegram_first`) and
   returns WhatsApp and/or Telegram channels by availability; swapped into WelcomeStudent +
   ApplicationInitiallyApproved. Admin selector in the dashboard الإعدادات modal ("قنوات
   الإشعارات"). 6 tests. **Notifications now actually deliver over Telegram.**

@@ -5,6 +5,7 @@ use App\Models\Semester;
 use App\Models\Setting;
 use App\Models\TelegramVerification;
 use App\Services\TelegramVerificationService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -192,6 +193,12 @@ it('telegram:poll drains updates and advances the offset', function () {
 
     expect($verification->fresh()->status)->toBe('awaiting_contact')
         ->and((int) Cache::get('telegram:poll:offset'))->toBe(11);
+});
+
+it('telegram:poll survives a connection timeout without crashing', function () {
+    Http::fake(fn () => throw new ConnectionException('cURL error 28: Connection timed out'));
+
+    $this->artisan('telegram:poll')->assertSuccessful();
 });
 
 it('allows submission when verified via Telegram and stores the chat id on the application', function () {

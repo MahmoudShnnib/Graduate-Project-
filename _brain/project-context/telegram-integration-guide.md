@@ -47,9 +47,10 @@ real bot creds never leak into tests (each test sets config explicitly).
 
 ## 4. Sending notifications (Phase 4)
 `HasMessagingChannels::via()` reads the admin setting **`notification_channel_policy`**:
-- `whatsapp_first` (default) — WhatsApp if reachable, else Telegram.
+- `both` (**default**) — send over both whenever each is available. Chosen as the default
+  so a linked Telegram ALWAYS gets the message even when WhatsApp/Qonvo is down/banned.
+- `whatsapp_first` — WhatsApp if reachable, else Telegram.
 - `telegram_first` — Telegram if linked, else WhatsApp.
-- `both` — send over both.
 "Reachable" = `notifiable->phone` + Qonvo token (WhatsApp) / `notifiable->telegram_chat_id`
 + bot token (Telegram). Set the policy in the dashboard **الإعدادات** modal → "قنوات
 الإشعارات".
