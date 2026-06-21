@@ -85,6 +85,8 @@ class ApproveApplication
                 'delegation_number' => $application->delegation_number,
                 'delegation_entity' => $application->delegation_entity,
                 'is_transfer' => $application->is_transfer,
+                'bachelor_certificate' => $application->bachelor_certificate,
+                'remedial_statement' => $application->remedial_statement,
             ]);
 
             $this->enrollmentNumberService->generate($student, $activeSemester, (bool) $application->is_transfer);

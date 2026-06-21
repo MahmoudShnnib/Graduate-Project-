@@ -52,6 +52,25 @@ it('propagates the application telegram chat id to the new user on approval', fu
         ->and($user->telegram_linked_at)->not->toBeNull();
 });
 
+it('copies the admission documents to the new student on approval', function () {
+    $spec = Specialization::factory()->create(['code' => 11]);
+    Semester::factory()->active()->create(['year' => 2026, 'season' => \App\Enums\Season::Autumn]);
+    $application = Application::factory()->create([
+        'specialization_id' => $spec->id,
+        'status' => ApplicationStatus::Pending,
+        'is_transfer' => false,
+        'bachelor_certificate' => 'applications/cert-123.pdf',
+        'remedial_statement' => 'applications/remedial-123.pdf',
+    ]);
+
+    app(ApproveApplication::class)->handle($application);
+
+    $student = Student::firstWhere('specialization_id', $spec->id);
+
+    expect($student->bachelor_certificate)->toBe('applications/cert-123.pdf')
+        ->and($student->remedial_statement)->toBe('applications/remedial-123.pdf');
+});
+
 it('refuses approval when no semester is active (no NULL enrollment number)', function () {
     $spec = Specialization::factory()->create(['code' => 7]);
     $application = Application::factory()->create([

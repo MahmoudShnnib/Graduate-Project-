@@ -44,6 +44,8 @@ class Student extends Model
         'delegation_entity',
         'is_transfer',
         'degree_image',
+        'bachelor_certificate',
+        'remedial_statement',
         'dismissed_at',
         'dismissal_type',
         'dismissal_course_id',

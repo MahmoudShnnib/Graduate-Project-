@@ -242,6 +242,26 @@ class StudentResource extends Resource
                 // الوثيقة العلمية والمعدل rendered directly in the Blade view
                 // for richer layout — see view-student.blade.php.
 
+                Section::make('مستندات القبول')
+                    ->columnSpanFull()
+                    ->extraAttributes(['class' => 'fsv-card fsv-card-docs'])
+                    ->columns(2)
+                    ->components([
+                        TextEntry::make('bachelor_certificate')
+                            ->label('الشهادة العلمية (بكالوريوس / دبلوم عالي)')
+                            ->icon(Heroicon::DocumentText)
+                            ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : 'لم يُرفق')
+                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
+                            ->openUrlInNewTab(),
+
+                        TextEntry::make('remedial_statement')
+                            ->label('كشف المواد التكميلية')
+                            ->icon(Heroicon::DocumentText)
+                            ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : 'لم يُرفق')
+                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
+                            ->openUrlInNewTab(),
+                    ]),
+
                 Section::make('مواد المعادلة')
                     ->columnSpanFull()
                     ->extraAttributes(['class' => 'fsv-card fsv-card-transfer'])
@@ -328,6 +348,22 @@ class StudentResource extends Resource
                     TextInput::make('user_phone')
                         ->label('رقم النقال')
                         ->tel()
+                        ->helperText('رقم ليبي يبدأ بـ 09 ويتكوّن من 10 أرقام (مثال: 0912345678)')
+                        ->rules([
+                            fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                                $v = trim((string) $value);
+                                if ($v === '') {
+                                    return;
+                                }
+                                if (! preg_match('/^\d+$/', $v)) {
+                                    $fail('رقم النقال يتكون من أرقام فقط');
+                                } elseif (! str_starts_with($v, '09')) {
+                                    $fail('رقم النقال يبدأ بـ 09');
+                                } elseif (strlen($v) !== 10) {
+                                    $fail('رقم النقال يتكون من 10 أرقام (مثال: 0912345678)');
+                                }
+                            },
+                        ])
                         ->maxLength(20),
 
                     TextInput::make('user_password')
@@ -351,15 +387,26 @@ class StudentResource extends Resource
 
                     TextInput::make('mother_name')
                         ->label('اسم الأم')
-                        ->required(),
+                        ->required()
+                        ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(2, 'يرجى إدخال اسم الأم (كلمتين على الأقل)')])
+                        ->maxLength(255),
 
                     DatePicker::make('birth_date')
                         ->label('تاريخ الميلاد')
-                        ->required(),
+                        ->required()
+                        ->maxDate(now()->subYears(22))
+                        ->minDate(now()->subYears(60))
+                        ->helperText('يجب أن يكون عمر الطالب بين 22 و 60 سنة')
+                        ->validationMessages([
+                            'before_or_equal' => 'يجب ألا يقل عمر الطالب عن 22 سنة',
+                            'after_or_equal' => 'يجب ألا يزيد عمر الطالب عن 60 سنة',
+                        ]),
 
                     TextInput::make('birth_place')
                         ->label('مكان الميلاد')
-                        ->required(),
+                        ->required()
+                        ->rules([new \App\Rules\ArabicOnly(allowNumbers: true)])
+                        ->maxLength(255),
 
                     Select::make('gender')
                         ->label('الجنس')
@@ -384,11 +431,34 @@ class StudentResource extends Resource
                         ->options(collect(config('nationalities.list'))->mapWithKeys(fn (array $c): array => [$c['name'] => $c['flag'].' '.$c['name']]))
                         ->default(config('nationalities.default'))
                         ->searchable()
-                        ->required(),
-
-                    TextInput::make('national_id')
-                        ->label('الرقم الوطني')
                         ->required()
+                        ->live(),
+
+                    // Label + format mirror the public /apply form: Libyans enter a
+                    // 12-digit national number; everyone else a 4–20 char ID / passport.
+                    TextInput::make('national_id')
+                        ->label(fn (Get $get): string => $get('nationality') === config('nationalities.default')
+                            ? 'الرقم الوطني'
+                            : 'رقم الهوية / جواز السفر')
+                        ->helperText(fn (Get $get): string => $get('nationality') === config('nationalities.default')
+                            ? 'يتكوّن من 12 رقماً'
+                            : 'رقم الهوية الوطنية أو جواز السفر (من 4 إلى 20 حرفاً/رقماً)')
+                        ->maxLength(fn (Get $get): int => $get('nationality') === config('nationalities.default') ? 12 : 20)
+                        ->required()
+                        ->rules([
+                            fn (Get $get): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($get): void {
+                                $isLibyan = $get('nationality') === config('nationalities.default');
+                                $v = trim((string) $value);
+
+                                if ($isLibyan) {
+                                    if (! preg_match('/^\d{12}$/', $v)) {
+                                        $fail('الرقم الوطني يتكون من 12 رقماً بالضبط');
+                                    }
+                                } elseif (! preg_match('/^[A-Za-z0-9]{4,20}$/', $v)) {
+                                    $fail('يرجى إدخال رقم الهوية أو جواز السفر (4 إلى 20 حرفاً/رقماً)');
+                                }
+                            },
+                        ])
                         ->unique(table: 'students', ignoreRecord: true)
                         ->validationMessages([
                             'unique' => 'هذا الرقم الوطني مسجل بالفعل لطالب آخر.',
@@ -399,18 +469,26 @@ class StudentResource extends Resource
 
                     TextInput::make('residence')
                         ->label('مكان الإقامة')
-                        ->required(),
+                        ->required()
+                        ->rules([new \App\Rules\ArabicOnly(allowNumbers: true)])
+                        ->maxLength(255),
 
                     TextInput::make('permanent_address')
                         ->label('العنوان الدائم')
                         ->required()
+                        ->rules([new \App\Rules\ArabicOnly(allowNumbers: true), 'max:500'])
+                        ->maxLength(500)
                         ->columnSpan(2),
 
                     TextInput::make('profession')
-                        ->label('المهنة'),
+                        ->label('المهنة')
+                        ->rules(['nullable', new \App\Rules\ArabicOnly])
+                        ->maxLength(255),
 
                     TextInput::make('workplace')
-                        ->label('مكان العمل'),
+                        ->label('مكان العمل')
+                        ->rules(['nullable', new \App\Rules\ArabicOnly(allowNumbers: true)])
+                        ->maxLength(255),
                 ]),
 
             Section::make('نوع الدراسة')
@@ -419,6 +497,7 @@ class StudentResource extends Resource
                     Radio::make('study_type')
                         ->label('نوع الدراسة')
                         ->required()
+                        ->live()
                         ->options([
                             'self_funded' => 'الدراسة على حسابي الخاص',
                             'internally_delegated' => 'موفد بموجب قرار إيفاد داخلي',
@@ -429,11 +508,15 @@ class StudentResource extends Resource
 
                     TextInput::make('delegation_number')
                         ->label('رقم قرار الإيفاد')
-                        ->visible(fn ($get): bool => $get('study_type') === 'internally_delegated'),
+                        ->columnSpan(2)
+                        ->required(fn (Get $get): bool => $get('study_type') === 'internally_delegated')
+                        ->visible(fn (Get $get): bool => $get('study_type') === 'internally_delegated'),
 
                     TextInput::make('delegation_entity')
                         ->label('جهة الإيفاد')
-                        ->visible(fn ($get): bool => in_array($get('study_type'), ['faculty_assistant', 'public_delegation'])),
+                        ->columnSpan(2)
+                        ->required(fn (Get $get): bool => in_array($get('study_type'), ['faculty_assistant', 'public_delegation']))
+                        ->visible(fn (Get $get): bool => in_array($get('study_type'), ['faculty_assistant', 'public_delegation'])),
 
                     Toggle::make('is_transfer')
                         ->label('منتقل من كلية أخرى؟')
@@ -534,6 +617,27 @@ class StudentResource extends Resource
                         ->directory('students/degrees')
                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                         ->maxSize(5120),
+                ]),
+
+            Section::make('مستندات القبول')
+                ->columns(2)
+                ->components([
+                    FileUpload::make('bachelor_certificate')
+                        ->label('الشهادة العلمية (بكالوريوس / دبلوم عالي)')
+                        ->disk('public')
+                        ->directory('students/documents')
+                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                        ->maxSize(5120)
+                        ->required(fn (string $operation): bool => $operation === 'create')
+                        ->helperText('PDF أو صورة، بحد أقصى 5 ميجابايت'),
+
+                    FileUpload::make('remedial_statement')
+                        ->label('كشف المواد التكميلية')
+                        ->disk('public')
+                        ->directory('students/documents')
+                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                        ->maxSize(5120)
+                        ->helperText('اختياري — إن وُجد'),
                 ]),
 
             Section::make('الحالة الإدارية')
