@@ -77,7 +77,7 @@ class ApplicationResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
 
             Section::make('البيانات الشخصية')
                 ->columns(2)
@@ -169,6 +169,7 @@ class ApplicationResource extends Resource
                 ->components([
                     Radio::make('study_type')
                         ->label('نوع الدراسة')
+                        ->live()
                         ->options([
                             'self_funded' => 'الدراسة على حسابي الخاص',
                             'internally_delegated' => 'موفد بموجب قرار إيفاد داخلي',
@@ -179,10 +180,12 @@ class ApplicationResource extends Resource
 
                     TextInput::make('delegation_number')
                         ->label('رقم قرار الإيفاد')
+                        ->columnSpan(2)
                         ->visible(fn ($get): bool => $get('study_type') === 'internally_delegated'),
 
                     TextInput::make('delegation_entity')
                         ->label('جهة الإيفاد')
+                        ->columnSpan(2)
                         ->visible(fn ($get): bool => in_array($get('study_type'), ['faculty_assistant', 'public_delegation'])),
 
                     \Filament\Forms\Components\Toggle::make('is_transfer')
