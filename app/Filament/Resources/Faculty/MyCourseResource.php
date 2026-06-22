@@ -6,12 +6,14 @@ use App\Enums\GradeStatus;
 use App\Filament\Resources\Faculty\Pages\ListMyCourses;
 use App\Filament\Resources\Faculty\Pages\ViewMyCourse;
 use App\Models\CourseOffering;
+use App\Models\Semester;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -128,6 +130,12 @@ class MyCourseResource extends Resource
                     ->extraAttributes(fn (CourseOffering $record): array => [
                         'aria-label' => $record->is_open ? 'مفتوح للتسجيل' : 'مغلق للتسجيل',
                     ]),
+            ])
+            ->filters([
+                SelectFilter::make('semester_id')
+                    ->label('الفصل الدراسي')
+                    ->relationship('semester', 'name')
+                    ->default(Semester::activeId()),
             ])
             ->paginated(false);
     }

@@ -16,7 +16,7 @@ class WhatsAppService
             ->connectTimeout(5)
             ->timeout(10)
             ->post(config('services.qonvo.base_url').'/whatsapp/messages/send', [
-                'sender_whatsapp_number_phone' => config('services.qonvo.sender_phone'),
+                'sender_whatsapp_number_phone' => $this->senderPhone(),
                 'recipient_number' => $this->formatPhone($recipientPhone),
                 'type' => $message->type,
                 'message' => $message->message,
@@ -121,6 +121,18 @@ class WhatsAppService
         }
 
         return $updated;
+    }
+
+    /**
+     * Qonvo matches the sender against its registered WhatsApp number, which is
+     * stored WITHOUT a leading "+". Operators routinely set QONVO_SENDER_PHONE in
+     * international form ("+218…"), which Qonvo then rejects with 422 "The sender
+     * phone number is not registered." Strip the "+" (and surrounding spaces) so
+     * both "+218…" and "218…" resolve to the registered number.
+     */
+    private function senderPhone(): string
+    {
+        return ltrim(trim((string) config('services.qonvo.sender_phone')), '+');
     }
 
     /**

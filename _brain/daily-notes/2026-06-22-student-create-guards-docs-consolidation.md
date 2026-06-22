@@ -80,6 +80,12 @@ covers only the required fields: `user_name`, `mother_name`, `birth_place`, `res
   (`ApplicationNationalityValidationTest` unchanged) — this relaxation is admin-form-only, per the
   user's preference. Intentional divergence from strict apply-parity.
 
+## Follow-up 3 — apply-page OTP fixed (Qonvo sender "+" prefix)
+Separate bug surfaced same day: `/apply` OTP failed with 422 "sender not registered". Root cause =
+`QONVO_SENDER_PHONE` had a leading `+`; Qonvo's registered sender has none. Fixed dev `.env` +
+made `WhatsAppService::senderPhone()` strip a leading `+`. Proven live (422 vs 201). Full detail:
+[[../bugs-and-fixes/2026-06-22-qonvo-otp-sender-plus-prefix]].
+
 ## Notes / loose ends
 - The `oninput` guards are client-side only; server-side `ArabicOnly` / phone-closure rules from the
   [[2026-06-21-student-form-docs-and-validation|2026-06-21 batch]] remain the backstop.
