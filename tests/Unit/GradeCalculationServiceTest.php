@@ -126,3 +126,56 @@ test('counts only the latest attempt when a course is retaken', function () {
     // Only the latest attempt (A = 4.0) counts — NOT the average of both (2.0).
     expect((float) $this->student->gpa)->toBe(4.0);
 });
+
+test('a transfer course studied in-system is counted once, with the in-system grade winning', function () {
+    $course = Course::factory()->create(['credits' => 3]);
+    $course->specializations()->attach($this->student->specialization_id, ['type' => 'general']);
+
+    // Transfer (معادلة) equivalence: 88 → A → 4.0.
+    $this->student->transferCourses()->create([
+        'course_id' => $course->id,
+        'coursework_grade' => 50,
+        'final_grade' => 38,
+    ]);
+
+    // Later studied the same course in-system: 70 → B → 3.0 (lower than the transfer).
+    $offering = CourseOffering::factory()->create([
+        'course_id' => $course->id,
+        'semester_id' => $this->semester->id,
+    ]);
+    $enrollment = StudentEnrollment::factory()->create([
+        'student_id' => $this->student->id,
+        'course_offering_id' => $offering->id,
+    ]);
+    Grade::factory()->create([
+        'enrollment_id' => $enrollment->id,
+        'coursework_grade' => 40,
+        'final_grade' => 30, // 70 → B → 3.0
+        'status' => GradeStatus::Approved,
+        'published_at' => now(),
+    ]);
+
+    $this->service->recalculateStudentGPA($this->student);
+    $this->student->refresh();
+
+    // Counted ONCE with the in-system (latest) grade — 3.0 — not 4.0, and not the
+    // double-counted average (3.5) the old code produced.
+    expect((float) $this->student->gpa)->toBe(3.0);
+});
+
+test('a transfer course with no in-system attempt still counts toward gpa', function () {
+    $course = Course::factory()->create(['credits' => 2]);
+    $course->specializations()->attach($this->student->specialization_id, ['type' => 'general']);
+
+    // Transfer (معادلة) equivalence: 88 → A → 4.0, never studied in-system.
+    $this->student->transferCourses()->create([
+        'course_id' => $course->id,
+        'coursework_grade' => 50,
+        'final_grade' => 38,
+    ]);
+
+    $this->service->recalculateStudentGPA($this->student);
+    $this->student->refresh();
+
+    expect((float) $this->student->gpa)->toBe(4.0);
+});

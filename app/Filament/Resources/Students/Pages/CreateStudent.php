@@ -58,7 +58,6 @@ class CreateStudent extends CreateRecord
             'delegation_number' => $data['delegation_number'] ?? null,
             'delegation_entity' => $data['delegation_entity'] ?? null,
             'is_transfer' => $data['is_transfer'] ?? false,
-            'degree_image' => $data['degree_image'] ?? null,
             'bachelor_certificate' => $data['bachelor_certificate'] ?? null,
             'remedial_statement' => $data['remedial_statement'] ?? null,
         ]);

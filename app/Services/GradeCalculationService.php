@@ -54,6 +54,14 @@ class GradeCalculationService
             ->get();
 
         foreach ($transferCourses as $transferCourse) {
+            // A transfer (معادلة) course is a passed course. If the student later
+            // studied the same course in-system, that latest grade already counted
+            // above and supersedes the equivalence — skip the transfer record so
+            // the course is never counted twice.
+            if ($latestPerCourse->has($transferCourse->course_id)) {
+                continue;
+            }
+
             $credits = $transferCourse->course->credits;
             $points = (float) $transferCourse->points;
             $totalPoints += $points * $credits;

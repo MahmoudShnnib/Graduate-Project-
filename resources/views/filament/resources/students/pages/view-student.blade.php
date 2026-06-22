@@ -569,6 +569,20 @@
             border-color: rgba(239, 68, 68, 0.3) !important;
         }
 
+        /* ---------- Admission-document blocks (one per document, inside a Section) ---------- */
+        .figma-student-view .fsv-doc-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+        .figma-student-view .fsv-doc-block__label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #3f3f46;
+        }
+        .dark .figma-student-view .fsv-doc-block__label { color: #d4d4d8; }
+
         /* ---------- Degree document panel (rendered inside a Filament Section) ---------- */
         .figma-student-view .fsv-degree-doc {
             display: flex;
