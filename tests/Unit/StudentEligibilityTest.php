@@ -126,6 +126,32 @@ test('failed grades do not count toward completed courses', function () {
     expect($this->student->completedCoursesCount())->toBe(0);
 });
 
+test('a course passed both as a transfer equivalence and in-system counts once', function () {
+    $course = Course::factory()->create();
+    $course->specializations()->attach($this->specialization->id, ['type' => 'general']);
+
+    // Transfer (معادلة) equivalence for the course.
+    $this->student->transferCourses()->create([
+        'course_id' => $course->id,
+        'coursework_grade' => 50,
+        'final_grade' => 38, // 88 → A
+    ]);
+
+    // Same course later studied and passed in-system.
+    $offering = CourseOffering::factory()->create([
+        'course_id' => $course->id,
+        'semester_id' => $this->semester->id,
+    ]);
+    $enrollment = StudentEnrollment::factory()->create([
+        'student_id' => $this->student->id,
+        'course_offering_id' => $offering->id,
+    ]);
+    Grade::factory()->passing()->create(['enrollment_id' => $enrollment->id]);
+
+    // One distinct course passed — not double-counted across the two tables.
+    expect($this->student->completedCoursesCount())->toBe(1);
+});
+
 test('breakdown returns correct counts per type', function () {
     $general = createCoursesForSpecialization($this->specialization, 'general', 4);
     $specialized = createCoursesForSpecialization($this->specialization, 'specialized', 4);

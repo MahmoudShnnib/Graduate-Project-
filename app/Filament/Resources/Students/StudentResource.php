@@ -151,12 +151,6 @@ class StudentResource extends Resource
                                     ->inlineLabel()
                                     ->placeholder('-'),
                             ]),
-
-                        Section::make('الوثيقة العلمية')
-                            ->extraAttributes(['class' => 'fsv-card fsv-card-degree'])
-                            ->components([
-                                \Filament\Schemas\Components\View::make('filament.resources.students.partials.degree-document'),
-                            ]),
                     ]),
 
                 // Left column (RTL): two stacked cards — Contact, then Study.
@@ -247,19 +241,17 @@ class StudentResource extends Resource
                     ->extraAttributes(['class' => 'fsv-card fsv-card-docs'])
                     ->columns(2)
                     ->components([
-                        TextEntry::make('bachelor_certificate')
-                            ->label('الشهادة العلمية (بكالوريوس / دبلوم عالي)')
-                            ->icon(Heroicon::DocumentText)
-                            ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : 'لم يُرفق')
-                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
-                            ->openUrlInNewTab(),
+                        \Filament\Schemas\Components\View::make('filament.resources.students.partials.document-preview')
+                            ->viewData([
+                                'field' => 'bachelor_certificate',
+                                'title' => 'الشهادة العلمية (بكالوريوس / دبلوم عالي)',
+                            ]),
 
-                        TextEntry::make('remedial_statement')
-                            ->label('كشف المواد التكميلية')
-                            ->icon(Heroicon::DocumentText)
-                            ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : 'لم يُرفق')
-                            ->url(fn (?string $state): ?string => $state ? asset('storage/'.$state) : null)
-                            ->openUrlInNewTab(),
+                        \Filament\Schemas\Components\View::make('filament.resources.students.partials.document-preview')
+                            ->viewData([
+                                'field' => 'remedial_statement',
+                                'title' => 'كشف المواد التكميلية',
+                            ]),
                     ]),
 
                 Section::make('مواد المعادلة')
@@ -313,23 +305,27 @@ class StudentResource extends Resource
             Section::make('بيانات الحساب')
                 ->columns(2)
                 ->components([
-                    TextInput::make('user_name')
-                        ->label('الاسم الرباعي واللقب')
-                        ->helperText('الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)')
-                        ->required()
-                        ->visibleOn('create')
-                        ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)')])
-                        ->maxLength(255)
-                        ->columnSpan(2),
+                    self::withArabicGuard(
+                        TextInput::make('user_name')
+                            ->label('الاسم الرباعي واللقب')
+                            ->required()
+                            ->visibleOn('create')
+                            ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(4, 'يجب إدخال الاسم الرباعي كاملاً (4 أسماء على الأقل)')])
+                            ->maxLength(255)
+                            ->columnSpan(2),
+                        helperText: 'الاسم الأول + اسم الأب + اسم الجد + اسم العائلة (اللقب)',
+                    ),
 
-                    TextInput::make('user_name_en')
-                        ->label('الاسم بالإنجليزية (كما في جواز السفر)')
-                        ->placeholder('Full name as in passport')
-                        ->required()
-                        ->visibleOn('create')
-                        ->regex("/^[a-zA-Z\\s\\-']+$/")
-                        ->maxLength(255)
-                        ->columnSpan(2),
+                    self::withEnglishGuard(
+                        TextInput::make('user_name_en')
+                            ->label('الاسم بالإنجليزية (كما في جواز السفر)')
+                            ->placeholder('Full name as in passport')
+                            ->required()
+                            ->visibleOn('create')
+                            ->regex("/^[a-zA-Z\\s\\-']+$/")
+                            ->maxLength(255)
+                            ->columnSpan(2),
+                    ),
 
                     TextInput::make('user_email')
                         ->label('البريد الإلكتروني')
@@ -348,7 +344,9 @@ class StudentResource extends Resource
                     TextInput::make('user_phone')
                         ->label('رقم النقال')
                         ->tel()
+                        ->required()
                         ->helperText('رقم ليبي يبدأ بـ 09 ويتكوّن من 10 أرقام (مثال: 0912345678)')
+                        ->extraInputAttributes(['oninput' => "this.value=this.value.replace(/\\D/g,'')"])
                         ->rules([
                             fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
                                 $v = trim((string) $value);
@@ -369,9 +367,23 @@ class StudentResource extends Resource
                     TextInput::make('user_password')
                         ->label('كلمة المرور')
                         ->password()
+                        ->revealable()
                         ->visibleOn('create')
                         ->required()
-                        ->minLength(8),
+                        ->minLength(8)
+                        ->same('user_password_confirmation')
+                        ->validationMessages([
+                            'same' => 'كلمتا المرور غير متطابقتين.',
+                        ]),
+
+                    TextInput::make('user_password_confirmation')
+                        ->label('تأكيد كلمة المرور')
+                        ->password()
+                        ->revealable()
+                        ->visibleOn('create')
+                        ->required()
+                        ->minLength(8)
+                        ->dehydrated(false),
                 ]),
 
             Section::make('البيانات الشخصية')
@@ -385,11 +397,13 @@ class StudentResource extends Resource
                         ->required()
                         ->columnSpan(2),
 
-                    TextInput::make('mother_name')
-                        ->label('اسم الأم')
-                        ->required()
-                        ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(2, 'يرجى إدخال اسم الأم (كلمتين على الأقل)')])
-                        ->maxLength(255),
+                    self::withArabicGuard(
+                        TextInput::make('mother_name')
+                            ->label('اسم الأم')
+                            ->required()
+                            ->rules(['string', 'max:255', new \App\Rules\ArabicOnly, new \App\Rules\MinArabicWords(2, 'يرجى إدخال اسم الأم (كلمتين على الأقل)')])
+                            ->maxLength(255),
+                    ),
 
                     DatePicker::make('birth_date')
                         ->label('تاريخ الميلاد')
@@ -402,11 +416,14 @@ class StudentResource extends Resource
                             'after_or_equal' => 'يجب ألا يزيد عمر الطالب عن 60 سنة',
                         ]),
 
-                    TextInput::make('birth_place')
-                        ->label('مكان الميلاد')
-                        ->required()
-                        ->rules([new \App\Rules\ArabicOnly(allowNumbers: true)])
-                        ->maxLength(255),
+                    self::withArabicGuard(
+                        TextInput::make('birth_place')
+                            ->label('مكان الميلاد')
+                            ->required()
+                            ->rules([new \App\Rules\ArabicOnly(allowNumbers: true)])
+                            ->maxLength(255),
+                        allowNumbers: true,
+                    ),
 
                     Select::make('gender')
                         ->label('الجنس')
@@ -467,27 +484,31 @@ class StudentResource extends Resource
                     TextInput::make('card_number')
                         ->label('رقم البطاقة'),
 
-                    TextInput::make('residence')
-                        ->label('مكان الإقامة')
-                        ->required()
-                        ->rules([new \App\Rules\ArabicOnly(allowNumbers: true)])
-                        ->maxLength(255),
+                    self::withArabicGuard(
+                        TextInput::make('residence')
+                            ->label('مكان الإقامة')
+                            ->required()
+                            ->rules([new \App\Rules\ArabicOnly(allowNumbers: true)])
+                            ->maxLength(255),
+                        allowNumbers: true,
+                    ),
 
-                    TextInput::make('permanent_address')
-                        ->label('العنوان الدائم')
-                        ->required()
-                        ->rules([new \App\Rules\ArabicOnly(allowNumbers: true), 'max:500'])
-                        ->maxLength(500)
-                        ->columnSpan(2),
+                    self::withArabicGuard(
+                        TextInput::make('permanent_address')
+                            ->label('العنوان الدائم')
+                            ->required()
+                            ->rules([new \App\Rules\ArabicOnly(allowNumbers: true), 'max:500'])
+                            ->maxLength(500)
+                            ->columnSpan(2),
+                        allowNumbers: true,
+                    ),
 
                     TextInput::make('profession')
                         ->label('المهنة')
-                        ->rules(['nullable', new \App\Rules\ArabicOnly])
                         ->maxLength(255),
 
                     TextInput::make('workplace')
                         ->label('مكان العمل')
-                        ->rules(['nullable', new \App\Rules\ArabicOnly(allowNumbers: true)])
                         ->maxLength(255),
                 ]),
 
@@ -609,16 +630,6 @@ class StudentResource extends Resource
                         ->default([]),
                 ]),
 
-            Section::make('الوثيقة العلمية')
-                ->components([
-                    FileUpload::make('degree_image')
-                        ->label('صورة الشهادة (JPG / PNG / PDF)')
-                        ->disk('public')
-                        ->directory('students/degrees')
-                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                        ->maxSize(5120),
-                ]),
-
             Section::make('مستندات القبول')
                 ->columns(2)
                 ->components([
@@ -670,6 +681,50 @@ class StudentResource extends Resource
                         ->dehydrated(false),
                 ]),
         ]);
+    }
+
+    /**
+     * Strip any non-Arabic character as the user types AND flash an inline
+     * "wrong language" message for 3 seconds — the Filament-form mirror of the
+     * public /apply form's `arabicGuard`. `allowNumbers` additionally permits
+     * digits and common separators.
+     */
+    private static function withArabicGuard(TextInput $input, bool $allowNumbers = false, ?string $helperText = null): TextInput
+    {
+        $pattern = $allowNumbers
+            ? '/[^\\p{Script=Arabic}\\d\\s،,\\.\\-]/gu'
+            : '/[^\\p{Script=Arabic}\\s]/gu';
+
+        return self::withLanguageGuard($input, $pattern, 'يرجى إدخال البيانات باللغة العربية فقط', $helperText);
+    }
+
+    /**
+     * Strip any non-English character as the user types AND flash an inline
+     * "wrong language" message — mirrors the /apply form's `englishGuard`
+     * (Latin letters, spaces, hyphens and apostrophes only, as in a passport).
+     */
+    private static function withEnglishGuard(TextInput $input, ?string $helperText = null): TextInput
+    {
+        return self::withLanguageGuard($input, "/[^a-zA-Z\\s\\-']/g", 'يرجى إدخال البيانات باللغة الإنجليزية فقط', $helperText);
+    }
+
+    /**
+     * Wire an Alpine-scoped live language guard onto a text input: the wrapper
+     * holds the `langErr` flag, the input strips disallowed characters on every
+     * keystroke, and the helper-text slot shows the message while `langErr` is
+     * true (auto-clears after 3s). Any existing helper text is preserved above it.
+     */
+    private static function withLanguageGuard(TextInput $input, string $pattern, string $message, ?string $helperText): TextInput
+    {
+        $handler = "let v=\$event.target.value; let c=v.replace({$pattern},''); if (c!==v) { \$event.target.value=c; langErr=true; clearTimeout(langTimer); langTimer=setTimeout(()=>langErr=false,3000); }";
+
+        $helperHtml = ($helperText !== null ? '<span>'.e($helperText).'</span>' : '')
+            .'<span x-show="langErr" x-cloak style="display:block;margin-top:.25rem;color:rgb(239 68 68);font-weight:500;">'.e($message).'</span>';
+
+        return $input
+            ->extraAttributes(['x-data' => '{ langErr: false, langTimer: null }'])
+            ->extraInputAttributes(['x-on:input' => $handler])
+            ->helperText(new \Illuminate\Support\HtmlString($helperHtml));
     }
 
     public static function table(Table $table): Table

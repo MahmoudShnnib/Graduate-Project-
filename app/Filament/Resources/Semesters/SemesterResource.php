@@ -299,7 +299,9 @@ class SemesterResource extends Resource
      * Active courses for the survey checkbox list. The specialization filter only
      * narrows what is shown — any already-selected course is always kept in the
      * list, otherwise Filament rejects it as "المقررات المختار غير صالح" once it
-     * is filtered out of the options.
+     * is filtered out of the options. Such kept-but-out-of-filter courses are
+     * tagged in their label so they are not mistaken for courses that actually
+     * belong to the filtered specialization.
      *
      * @param  array<int|string>  $selectedIds
      * @return array<int, string>
@@ -307,12 +309,22 @@ class SemesterResource extends Resource
     public static function surveyCourseOptions(int|string|null $specializationFilter, array $selectedIds = []): array
     {
         return Course::where('is_active', true)
-            ->when($specializationFilter, fn ($q, $id) => $q->where(fn ($q) => $q
-                ->whereHas('specializations', fn ($s) => $s->where('specializations.id', $id))
-                ->orWhereIn('id', $selectedIds)))
+            ->when($specializationFilter, fn ($q, $id) => $q
+                ->with('specializations:id')
+                ->where(fn ($q) => $q
+                    ->whereHas('specializations', fn ($s) => $s->where('specializations.id', $id))
+                    ->orWhereIn('id', $selectedIds)))
             ->orderBy('name')
             ->get()
-            ->mapWithKeys(fn ($c) => [$c->id => $c->name.' — '.$c->code])
+            ->mapWithKeys(function ($c) use ($specializationFilter) {
+                $label = $c->name.' — '.$c->code;
+
+                if ($specializationFilter && ! $c->specializations->contains('id', $specializationFilter)) {
+                    $label .= ' (محدّد — من تخصص آخر)';
+                }
+
+                return [$c->id => $label];
+            })
             ->all();
     }
 

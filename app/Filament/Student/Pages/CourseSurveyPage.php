@@ -63,9 +63,13 @@ class CourseSurveyPage extends Page
             return collect();
         }
 
+        // A passed course — whether studied in-system or entered as a transfer
+        // (معادلة) equivalence — is not offered again in the survey. It can only be
+        // re-studied via the retake list (getRetakeableCourses).
         return Course::where('is_active', true)
             ->whereHas('semesters', fn ($q) => $q->where('semesters.id', $activeSemester->id))
             ->whereHas('specializations', fn ($q) => $q->where('specializations.id', $student->specialization_id))
+            ->whereNotIn('id', $student->getCompletedCourseIds())
             ->with(['specializations' => fn ($q) => $q->where('specializations.id', $student->specialization_id)])
             ->orderBy('name')
             ->get();
@@ -282,9 +286,18 @@ class CourseSurveyPage extends Page
                 ->where('letter', '!=', 'A'))
             ->with('courseOffering:id,course_id')
             ->get()
-            ->pluck('courseOffering.course_id')
-            ->unique()
-            ->values();
+            ->pluck('courseOffering.course_id');
+
+        // Transfer (معادلة) courses are passed courses too — retakeable below grade A,
+        // mirroring the rule for regular passes. If retaken, the new grade supersedes
+        // the equivalence in the GPA (see GradeCalculationService).
+        $transferNonACourseIds = $student->transferCourses()
+            ->whereNotNull('letter')
+            ->where('letter', '!=', 'F')
+            ->where('letter', '!=', 'A')
+            ->pluck('course_id');
+
+        $nonACourseIds = $nonACourseIds->merge($transferNonACourseIds)->unique()->values();
 
         if ($nonACourseIds->isEmpty()) {
             return collect();

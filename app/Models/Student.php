@@ -43,7 +43,6 @@ class Student extends Model
         'delegation_number',
         'delegation_entity',
         'is_transfer',
-        'degree_image',
         'bachelor_certificate',
         'remedial_statement',
         'dismissed_at',
@@ -196,20 +195,9 @@ class Student extends Model
 
     public function completedCoursesCount(): int
     {
-        $enrollmentCount = $this->activeEnrollments()
-            ->whereHas('grade', function ($query) {
-                $query->whereNotNull('published_at')
-                    ->whereNotNull('letter')
-                    ->where('letter', '!=', 'F');
-            })
-            ->count();
-
-        $transferCount = $this->transferCourses()
-            ->whereNotNull('letter')
-            ->where('letter', '!=', 'F')
-            ->count();
-
-        return $enrollmentCount + $transferCount;
+        // Deduped by course_id across regular passes + transfer equivalences, so a
+        // course studied in-system after a transfer (معادلة) entry counts once.
+        return count($this->getCompletedCourseIds());
     }
 
     public function isEligibleForThesis(): bool
