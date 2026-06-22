@@ -102,6 +102,16 @@ it('never records a WhatsApp send as sent — only reconcile can confirm deliver
         ->and($log->provider_message_id)->toBe('999');
 });
 
+it('strips a leading + from the sender phone so Qonvo recognises the registered number', function () {
+    config()->set('services.qonvo.sender_phone', '+218911011851');
+    Http::fake(['*' => Http::response(['data' => ['id' => 1, 'status' => 'pending']], 201)]);
+
+    app(WhatsAppService::class)->sendText('0912345678', new \App\Channels\WhatsAppMessage(message: 'hi'));
+
+    Http::assertSent(fn (\Illuminate\Http\Client\Request $request): bool => $request['sender_whatsapp_number_phone'] === '218911011851'
+    );
+});
+
 it('maps Qonvo statuses to log statuses', function () {
     expect(WhatsAppService::mapStatus('delivered'))->toBe('sent')
         ->and(WhatsAppService::mapStatus('sent'))->toBe('sent')
