@@ -64,3 +64,57 @@ it('does not render the hero photo on the track page', function (): void {
         ->assertOk()
         ->assertDontSee('hero-apply.jpg');
 });
+
+it('offers a forgot-code recovery option on the search form', function (): void {
+    $this->get(route('application.track.show'))
+        ->assertOk()
+        ->assertSee('نسيت رمز التتبع؟')
+        ->assertSee('name="phone"', false);
+});
+
+it('recovers an application by national id and phone when the code is lost', function (): void {
+    $application = Application::factory()->create([
+        'status' => ApplicationStatus::Pending,
+        'national_id' => '120120120120',
+        'phone' => '0911111111',
+    ]);
+
+    post(route('application.track'), [
+        'mode' => 'recovery',
+        'national_id' => '120120120120',
+        'phone' => '0911111111',
+    ])
+        ->assertOk()
+        ->assertSee('حالة الطلب')
+        ->assertSee('مراجعة الطلب');
+});
+
+it('rejects recovery when the phone does not match the national id', function (): void {
+    Application::factory()->create([
+        'national_id' => '120120120120',
+        'phone' => '0911111111',
+    ]);
+
+    post(route('application.track'), [
+        'mode' => 'recovery',
+        'national_id' => '120120120120',
+        'phone' => '0922222222',
+    ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('national_id');
+});
+
+it('does not leak an application when only the national id is known without the phone', function (): void {
+    Application::factory()->create([
+        'national_id' => '120120120120',
+        'phone' => '0911111111',
+    ]);
+
+    post(route('application.track'), [
+        'mode' => 'recovery',
+        'national_id' => '120120120120',
+        'phone' => '',
+    ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('phone');
+});

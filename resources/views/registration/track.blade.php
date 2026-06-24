@@ -16,24 +16,62 @@
 
         {{-- Search Form — hidden once a result is shown; the visitor just needs their status --}}
         @unless(isset($application))
-        <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200">
-            <form method="POST" action="{{ route('application.track') }}" class="space-y-6">
+        <div class="rounded-2xl bg-white p-8 shadow-md ring-1 ring-slate-200"
+             x-data="{ mode: '{{ old('mode', session('track_mode', 'code')) }}' }">
+
+            {{-- Primary: tracking code + national ID --}}
+            <form x-show="mode === 'code'" method="POST" action="{{ route('application.track') }}" class="space-y-6">
                 @csrf
+                <input type="hidden" name="mode" value="code">
 
                 <div>
                     <x-form.label for="tracking_code">رقم التتبع <span class="text-red-500">*</span></x-form.label>
-                    <x-form.input id="tracking_code" name="tracking_code" type="text" value="{{ old('tracking_code') }}" placeholder="مثال: APP-2026-0001" required dir="ltr" class="text-center tracking-widest" />
+                    <x-form.input id="tracking_code" name="tracking_code" type="text" value="{{ old('tracking_code') }}" placeholder="مثال: APP-2026-0001" dir="ltr" class="text-center tracking-widest" />
                     <x-form.error name="tracking_code" />
                 </div>
 
                 <div>
                     <x-form.label for="national_id">الرقم الوطني <span class="text-red-500">*</span></x-form.label>
-                    <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" placeholder="الرقم الوطني المكون من 12 رقماً" required dir="ltr" class="text-center tracking-widest" />
+                    <x-form.input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" placeholder="الرقم الوطني المكون من 12 رقماً" dir="ltr" class="text-center tracking-widest" />
                     <x-form.error name="national_id" />
                 </div>
 
                 <button type="submit" class="w-full rounded-xl bg-blue-600 px-6 py-3 text-center font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     استعلام
+                </button>
+
+                <button type="button" x-on:click="mode = 'recovery'" class="block w-full text-center text-sm font-medium text-blue-600 underline hover:text-blue-800">
+                    نسيت رمز التتبع؟
+                </button>
+            </form>
+
+            {{-- Recovery: national ID + phone (for visitors who lost their tracking code) --}}
+            <form x-show="mode === 'recovery'" x-cloak method="POST" action="{{ route('application.track') }}" class="space-y-6">
+                @csrf
+                <input type="hidden" name="mode" value="recovery">
+
+                <p class="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                    أدخل الرقم الوطني ورقم النقال اللذين قدّمت بهما طلبك للاستعلام عن حالته.
+                </p>
+
+                <div>
+                    <x-form.label for="recovery_national_id">الرقم الوطني <span class="text-red-500">*</span></x-form.label>
+                    <x-form.input id="recovery_national_id" name="national_id" type="text" value="{{ old('national_id') }}" placeholder="الرقم الوطني المكون من 12 رقماً" dir="ltr" class="text-center tracking-widest" />
+                    <x-form.error name="national_id" />
+                </div>
+
+                <div>
+                    <x-form.label for="phone">رقم النقال <span class="text-red-500">*</span></x-form.label>
+                    <x-form.input id="phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="09xxxxxxxx" maxlength="10" dir="ltr" class="text-center tracking-widest" />
+                    <x-form.error name="phone" />
+                </div>
+
+                <button type="submit" class="w-full rounded-xl bg-blue-600 px-6 py-3 text-center font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    استعلام
+                </button>
+
+                <button type="button" x-on:click="mode = 'code'" class="block w-full text-center text-sm font-medium text-slate-500 underline hover:text-slate-700">
+                    لديّ رمز التتبع
                 </button>
             </form>
         </div>
